@@ -67,24 +67,34 @@ public:
   void update();
   void setupTimer2();
   void setTXDelay();
-  uint8_t CRC( char * buf, int len);
+  
   void setRGB(int r, int g, int b);
+  
   void powerOffAllRx();
   void powerOnAllRx();
   void powerOnRx( byte index );
   void cyclePowerRx();
+  int getActiveRx();    
   void enableRx();
   void disableRx();
-  void enableTx();
-  void disableTx();
-  void resetRxBuf();
-  int processRxBuf();
+  
   void transmitString( char * str_to_send, int len );
   void transmitFloat( float f_to_send );
-  int findChar( char c, char * str, int len);
+  
+  
   int hasMsg();
+
+  int findChar( char c, char * str, int len);
+  void resetRxBuf();
+  int processRxBuf();
+  uint8_t CRC( char * buf, int len);
+  
+  void enableTx();
+  void disableTx(); 
+  
   void stopTx();
   void startTx();
+  
   void clearRxMsg();
   float getFloatValue();
   

@@ -26,7 +26,7 @@ void IRComm_c::init() {
   pinMode(RX_PWR_4, OUTPUT);
 
   powerOffAllRx();
-  powerOnRx(3);
+  
 
   // Start with demodulator 0.
   // Incremented if cyclePowerRX() is called.
@@ -44,7 +44,7 @@ void IRComm_c::init() {
   memset(rx_msg, 0, sizeof(rx_msg));
 
   //enableTx(); // sets up Timer2 to create 38khz carrier
-  disableTx();
+  //disableTx();
 
   // Start assuming we are not transmitting
   // a message, and that we have not received
@@ -79,6 +79,10 @@ void IRComm_c::cyclePowerRx() {
   rx_pwr_index++;
   if ( rx_pwr_index >= 5 ) rx_pwr_index = 0;
 
+}
+
+int IRComm_c::getActiveRx() {
+  return rx_pwr_index;
 }
 
 void IRComm_c::powerOnRx( byte index ) {
@@ -267,12 +271,13 @@ void IRComm_c::resetRxBuf() {
 // We are using 4800 baud, which is
 // 4800 bits per second.
 // 1.042ms per byte.
-// So we space transmission by 64ms
+// We can transmit up to 32 bytes.
+// So we space transmission by 64ms (???)
 // to allow for receipt, and pad/vary
-// by upto 50ms(?)
+// to cause asynchronicity
 void IRComm_c::setTXDelay() {
-  float t = (float)random(0, 125);
-  t += 125;
+  float t = (float)random(0, 64);
+  t += 64.0;
   // Insert random delay to help
   // break up synchronous tranmission
   // between robots.
@@ -532,7 +537,7 @@ int IRComm_c::processRxBuf() {
       int b = 0;  // count how many bytes
 
       // we copy.
-      for (int i = start; i <= last - 1; i++) {
+      for (int i = start; i <= last; i++) {
         buf[b] = rx_buf[i];
         b++;
       }
