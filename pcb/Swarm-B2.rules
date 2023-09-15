@@ -1,0 +1,82 @@
+
+(rules PCB Swarm-B
+  (snap_angle 
+    fortyfive_degree
+  )
+  (autoroute_settings
+    (fanout off)
+    (autoroute on)
+    (postroute on)
+    (vias on)
+    (via_costs 50)
+    (plane_via_costs 5)
+    (start_ripup_costs 100)
+    (start_pass_no 8)
+    (layer_rule F.Cu
+      (active on)
+      (preferred_direction horizontal)
+      (preferred_direction_trace_costs 1.0)
+      (against_preferred_direction_trace_costs 2.1)
+    )
+    (layer_rule B.Cu
+      (active on)
+      (preferred_direction vertical)
+      (preferred_direction_trace_costs 1.0)
+      (against_preferred_direction_trace_costs 1.9)
+    )
+  )
+  (rule
+    (width 250.0)
+    (clear 150.0)
+    (clear 125.0 (type smd_to_turn_gap))
+  )
+  (padstack "Via[0-1]_700:400_um"
+    (shape
+      (circle F.Cu 700.0 0.0 0.0)
+    )
+    (shape
+      (circle B.Cu 700.0 0.0 0.0)
+    )
+    (attach off)
+  )
+  (via 
+    "Via[0-1]_700:400_um" "Via[0-1]_700:400_um" default
+  )
+  (via 
+    "Via[0-1]_700:400_um-kicad_default" "Via[0-1]_700:400_um" "kicad_default"
+  )
+  (via_rule
+    default "Via[0-1]_700:400_um"
+  )
+  (via_rule
+    "kicad_default" "Via[0-1]_700:400_um-kicad_default"
+  )
+  (class default
+    (clearance_class default)
+    (via_rule default)
+    (rule
+      (width 250.0)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+  (class "kicad_default"
+    GND "unconnected-(A1-D13-Pad16)" "unconnected-(A1-D12-Pad15)" "unconnected-(A1-VIN-Pad30)" "Net-(A1-D11)" "Net-(A1-D10)" "unconnected-(A1-~{RESET}-Pad28)" "Net-(A1-D9)"
+    "Net-(A1-D8)" "Net-(A1-A7)" "Net-(A1-D7)" "unconnected-(A1-A6-Pad25)" "Net-(A1-D6)" "Net-(A1-A5)" "Net-(A1-D5)" "Net-(A1-A4)"
+    "Net-(A1-D4)" "unconnected-(A1-A3-Pad22)" "Net-(A1-D3)" "Net-(A1-A2)" "Net-(A1-D2)" "Net-(A1-A1)" "Net-(A1-A0)" "unconnected-(A1-~{RESET}-Pad3)"
+    "unconnected-(A1-AREF-Pad18)" "Net-(A1-D0{slash}RX)" "unconnected-(A1-3V3-Pad17)" "Net-(A1-D1{slash}TX)" "Net-(D1-A)" "Net-(D1-K)" "Net-(D6-K)" "Net-(D7-RED)"
+    "Net-(D7-GRN)" +5V "Net-(D7-BLU)" "unconnected-(J4-Pin_2-Pad2)" "unconnected-(J4-Pin_4-Pad4)" "Net-(U2-OUT)" "Net-(VR1-WIPER)" "unconnected-(VR1-CCW-Pad1)"
+    "unconnected-(J4-Pin_6-Pad6)" "unconnected-(J4-Pin_7-Pad7)" "unconnected-(J4-Pin_8-Pad8)" "unconnected-(J4-Pin_9-Pad9)" "unconnected-(J4-Pin_10-Pad10)" "unconnected-(J4-Pin_11-Pad11)" "unconnected-(J4-Pin_12-Pad12)" "unconnected-(J4-Pin_13-Pad13)"
+    "unconnected-(J4-Pin_14-Pad14)" "unconnected-(J4-Pin_15-Pad15)" "unconnected-(J4-Pin_16-Pad16)" "unconnected-(J4-Pin_17-Pad17)" "unconnected-(J4-Pin_18-Pad18)" "unconnected-(J4-Pin_21-Pad21)" "unconnected-(J4-Pin_22-Pad22)" "unconnected-(J4-Pin_23-Pad23)"
+    "unconnected-(J4-Pin_24-Pad24)" "unconnected-(J4-Pin_25-Pad25)" "unconnected-(J4-Pin_26-Pad26)" "unconnected-(J4-Pin_27-Pad27)" "unconnected-(J4-Pin_29-Pad29)" "unconnected-(J4-Pin_30-Pad30)" "Net-(J6-Pad1)" "Net-(J6-Pad2)"
+    (clearance_class "kicad_default")
+    (via_rule "kicad_default")
+    (rule
+      (width 250.0)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+)

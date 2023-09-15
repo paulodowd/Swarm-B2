@@ -8,22 +8,12 @@ void IRComm_c::init() {
   // Debug led
   pinMode(13, OUTPUT);
 
-  // RGB LED
-  pinMode(LED_R, OUTPUT);
-  pinMode(LED_G, OUTPUT);
-  pinMode(LED_B, OUTPUT);
-
-  // Input pots
-  pinMode(POT_A, INPUT);
-  pinMode(POT_B, INPUT);
-  pinMode(POT_C, INPUT);
 
   // RX Demodulator power pins
   pinMode(RX_PWR_0, OUTPUT);
   pinMode(RX_PWR_1, OUTPUT);
   pinMode(RX_PWR_2, OUTPUT);
   pinMode(RX_PWR_3, OUTPUT);
-  pinMode(RX_PWR_4, OUTPUT);
 
   powerOffAllRx();
   
@@ -43,7 +33,7 @@ void IRComm_c::init() {
   memset(rx_buf, 0, sizeof(rx_buf));
   memset(rx_msg, 0, sizeof(rx_msg));
 
-  //enableTx(); // sets up Timer2 to create 38khz carrier
+  enableTx(); // sets up Timer2 to create 38khz carrier
   //disableTx();
 
   // Start assuming we are not transmitting
@@ -66,7 +56,7 @@ void IRComm_c::init() {
 
   // Set initial time-stamp values
   ts = millis();
-  msg_ttl = millis();
+  for( int i = 0; i < RX_PWR_N; i++ ) msg_ttl[i] = millis();
 
   tx_ts = millis();
   setTXDelay();
@@ -75,10 +65,12 @@ void IRComm_c::init() {
 
 void IRComm_c::cyclePowerRx() {
 
+  if( rx_pwr_index == 3 ) {
+    rx_pwr_index = 0;
+  } else {
+    rx_pwr_index++;
+  }
   powerOnRx( rx_pwr_index );
-  rx_pwr_index++;
-  if ( rx_pwr_index >= 5 ) rx_pwr_index = 0;
-
 }
 
 int IRComm_c::getActiveRx() {
@@ -96,32 +88,22 @@ void IRComm_c::powerOnRx( byte index ) {
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
-    digitalWrite( RX_PWR_4, LOW );
   } else if ( index == 1 ) {
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, HIGH );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
-    digitalWrite( RX_PWR_4, LOW );
   } else if ( index == 2 ) {
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, HIGH );
     digitalWrite( RX_PWR_3, LOW );
-    digitalWrite( RX_PWR_4, LOW );
   } else if ( index == 3 ) {
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, HIGH );
-    digitalWrite( RX_PWR_4, LOW );
-  } else if ( index == 4 ) {
-    digitalWrite( RX_PWR_0, LOW );
-    digitalWrite( RX_PWR_1, LOW );
-    digitalWrite( RX_PWR_2, LOW );
-    digitalWrite( RX_PWR_3, LOW );
-    digitalWrite( RX_PWR_4, HIGH );
-  }
+  } 
 
   enableRx();
 }
@@ -131,7 +113,6 @@ void IRComm_c::powerOffAllRx() {
   digitalWrite( RX_PWR_1, LOW );
   digitalWrite( RX_PWR_2, LOW );
   digitalWrite( RX_PWR_3, LOW );
-  digitalWrite( RX_PWR_4, LOW );
 }
 
 void IRComm_c::powerOnAllRx() {
@@ -139,7 +120,6 @@ void IRComm_c::powerOnAllRx() {
   digitalWrite( RX_PWR_1, HIGH );
   digitalWrite( RX_PWR_2, HIGH);
   digitalWrite( RX_PWR_3, HIGH);
-  digitalWrite( RX_PWR_4, HIGH);
 }
 
 // Buffer size is 32
@@ -184,6 +164,7 @@ void IRComm_c::transmitString(char* str_to_send, int len) {
   for (int i = 0; i < count; i++) {
     tx_buf[i] = buf[i];
   }
+  tx_buf[count] = '!';
 
   //Serial.println("Created:");
   //Serial.print( buf );
@@ -261,7 +242,9 @@ void IRComm_c::enableRx() {
 void IRComm_c::resetRxBuf() {
   rx_count = 0;
   PROCESS_MSG = false;
+  disableRx();
   memset(rx_buf, 0, sizeof(rx_buf));
+  enableRx();
 }
 
 // Attempting an asynchronous send
@@ -276,33 +259,12 @@ void IRComm_c::resetRxBuf() {
 // to allow for receipt, and pad/vary
 // to cause asynchronicity
 void IRComm_c::setTXDelay() {
-  float t = (float)random(0, 64);
-  t += 64.0;
+  float t = (float)random(0, 7);
+  t += 14.0;
   // Insert random delay to help
   // break up synchronous tranmission
   // between robots.
   tx_delay = (unsigned long)t;
-}
-
-void IRComm_c::setRGB(int r, int g, int b) {
-  if (r == 0) {
-    digitalWrite(LED_R, LOW);
-  } else {
-    digitalWrite(LED_R, HIGH);
-  }
-
-  if (g == 0) {
-    analogWrite(LED_G, 0);
-  } else {
-    analogWrite(LED_G, g);
-  }
-
-
-  if (b == 0) {
-    analogWrite(LED_B, 0);
-  } else {
-    analogWrite(LED_B, b);
-  }
 }
 
 
@@ -369,13 +331,24 @@ void IRComm_c::startTx() {
 
 }
 
-void IRComm_c::clearRxMsg() {
-  memset(rx_msg, 0, sizeof(rx_msg));
-  msg_ttl = millis();
+void IRComm_c::clearRxMsg(int which) {
+  if( which >= 0 && which < RX_PWR_N) {
+    memset(rx_msg[which], 0, sizeof(rx_msg[which]));
+    msg_ttl[which] = millis();
+  }
 }
 
-float IRComm_c::getFloatValue() {
-  return atof( rx_msg );
+void IRComm_c::clearTxBuf(){
+  memset(tx_buf, 0, sizeof(tx_buf));
+  tx_buf[0] = '!';
+}
+
+float IRComm_c::getFloatValue(int which) {
+  if( which >= 0 && which < RX_PWR_N) {
+  return atof( rx_msg[which] );
+  } else {
+    return -1;
+  }
 }
 
 void IRComm_c::update() {
@@ -398,9 +371,9 @@ void IRComm_c::update() {
   }
 
   // Clear old messages received via IR.
-  if (millis() - msg_ttl > TTL) {
-    memset(rx_msg, 0, sizeof(rx_msg));
-    msg_ttl = millis();
+  if (millis() - msg_ttl[rx_pwr_index] > TTL) {
+    memset(rx_msg[rx_pwr_index], 0, sizeof(rx_msg[rx_pwr_index]));
+    msg_ttl[rx_pwr_index] = millis();
   }
 
   // If we are in broadcast mode and the LEDS
@@ -437,7 +410,10 @@ void IRComm_c::update() {
     // If we find a newline, we flag we have
     // a message to attempt to process.
     rx_buf[rx_count] = Serial.read();
-    if (rx_buf[rx_count] == '\n') PROCESS_MSG = true;
+    if (rx_buf[rx_count] == '\n' || rx_buf[rx_count] == '!') {
+      if( IR_DEBUG_OUTPUT ) Serial.println("Processing because token");
+      PROCESS_MSG = true;
+    }
 
 
     // Note that, it might seem like rx_count will
@@ -454,7 +430,10 @@ void IRComm_c::update() {
 
     // If we exceed the buffer size, we also
     // will try to process the message.
-    if (rx_count >= MAX_MSG) PROCESS_MSG = true;
+    if (rx_count >= MAX_MSG) {
+      if( IR_DEBUG_OUTPUT ) Serial.println("Processing because buffer full");
+      PROCESS_MSG = true;
+    }
   }
 
 
@@ -467,8 +446,8 @@ void IRComm_c::update() {
     // Invalid conditions:
     if (rx_count <= 0 || rx_buf[0] == 0) {
       // bad read.
-      //Serial.println("bad serial");
-      //resetRxBuf();
+      if( IR_DEBUG_OUTPUT )Serial.println("bad serial");
+      resetRxBuf();
 
     } else {
       //disableRx();
@@ -579,26 +558,26 @@ int IRComm_c::processRxBuf() {
 
           // Make sure where we will store this
           // received message is clear.
-          memset(rx_msg, 0, sizeof(rx_msg));
+          memset(rx_msg[rx_pwr_index], 0, sizeof(rx_msg[rx_pwr_index]));
 
           // Copy message across, ignoring the *
-          for (int i = 0; i < b - 1; i++) {
-            rx_msg[i] = buf[i + 1];
+          for (int i = 0; i < b - 2; i++) {
+            rx_msg[rx_pwr_index][i] = buf[i + 1];
           }
 
           // Add a ! to the message, which will be
           // used when later sending down I2C to
           // the Master to indicate the end of the
           // string.
-          rx_msg[b - 1] = '!';
+          rx_msg[rx_pwr_index][b - 1] = '!';
 
           // Reset TTL timestamp, so this message
           // will only exist temporarily.
-          msg_ttl = millis();
+          msg_ttl[rx_pwr_index] = millis();
 
           if ( IR_DEBUG_OUTPUT ) {
             Serial.print("Saved: " ) ;
-            Serial.println( rx_msg );
+            Serial.println( rx_msg[rx_pwr_index] );
           }
 
 
@@ -627,11 +606,15 @@ int IRComm_c::findChar(char c, char* str, int len) {
   return -1;
 }
 
-int IRComm_c::hasMsg() {
-  if (rx_msg[0] == '!') {
+int IRComm_c::hasMsg(int which) {
+  if( which >= 0 && which < RX_PWR_N) {
+    if (rx_msg[which][0] == '!') {
+      return -1;
+    }
+  } else {
     return -1;
   }
-  return strlen(rx_msg);
+  return strlen(rx_msg[rx_pwr_index]);
 }
 
 // This ISR simply toggles the state of

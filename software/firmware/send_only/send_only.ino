@@ -34,11 +34,10 @@ void setup() {
 void loop() {
 
   // "Slowly" update the count
-  if( millis() - count_update_ts > COUNT_UPDATE_MS ) {
-    count_update_ts = millis();
-    count += 0.01;
-  }
-
+  float to_send = (float)millis();
+  to_send /= 1000;
+  count = to_send;
+  
   
   // Tell the board to transmit a floating point
   // value 

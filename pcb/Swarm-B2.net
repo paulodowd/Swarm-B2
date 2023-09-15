@@ -1,0 +1,1292 @@
+(export 
+  (version D) 
+  (design 
+    (source "C:\\Users\\ke18164\\OneDrive - University of Bristol\\GitRepositories\\Swarm-Bs\\pcb\\Swarm-B\\Swarm-B.sch") 
+    (date "08/07/2022 10:52:50") 
+    (tool "Eeschema (5.1.4)-1") 
+    (sheet 
+      (number 1) 
+      (name /) 
+      (tstamps /) 
+      (title_block 
+        (title) 
+        (company) 
+        (rev) 
+        (date) 
+        (source Swarm-B_20230626.sch) 
+        (comment 
+          (number 1) 
+          (value "")) 
+        (comment 
+          (number 2) 
+          (value "")) 
+        (comment 
+          (number 3) 
+          (value "")) 
+        (comment 
+          (number 4) 
+          (value ""))))) 
+  (components 
+    (comp 
+      (ref A1) 
+      (value Arduino_Nano_v3.x) 
+      (footprint Module:Arduino_Nano) 
+      (datasheet http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf) 
+      (libsource 
+        (lib MCU_Module) 
+        (part Arduino_Nano_v3.x) 
+        (description "Arduino Nano v3.x")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622BEDE5)) 
+    (comp 
+      (ref U1) 
+      (value 74LS32) 
+      (footprint Package_DIP:DIP-14_W7.62mm_Socket) 
+      (datasheet http://www.ti.com/lit/gpn/sn74LS32) 
+      (libsource 
+        (lib 74xx) 
+        (part 74LS32) 
+        (description "Quad 2-input OR")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622C1542)) 
+    (comp 
+      (ref D1) 
+      (value IR_LED) 
+      (footprint LED_THT:LED_D3.0mm_Horizontal_O1.27mm_Z2.0mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part LED) 
+        (description "Light emitting diode")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D255D)) 
+    (comp 
+      (ref D2) 
+      (value IR_LED) 
+      (footprint LED_THT:LED_D3.0mm_Horizontal_O1.27mm_Z2.0mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part LED) 
+        (description "Light emitting diode")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D2CAD)) 
+    (comp 
+      (ref D3) 
+      (value IR_LED) 
+      (footprint LED_THT:LED_D3.0mm_Horizontal_O1.27mm_Z2.0mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part LED) 
+        (description "Light emitting diode")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D34B0)) 
+    (comp 
+      (ref D4) 
+      (value IR_LED) 
+      (footprint LED_THT:LED_D3.0mm_Horizontal_O1.27mm_Z2.0mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part LED) 
+        (description "Light emitting diode")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D3D70)) 
+    (comp 
+      (ref D5) 
+      (value IR_LED) 
+      (footprint LED_THT:LED_D3.0mm_Horizontal_O1.27mm_Z2.0mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part LED) 
+        (description "Light emitting diode")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D4447)) 
+    (comp 
+      (ref U2) 
+      (value TSDP34138) 
+      (footprint OptoDevice:Vishay_MOLD-3Pin) 
+      (datasheet http://www.vishay.com/docs/82669/tsop32s40f.pdf) 
+      (libsource 
+        (lib Interface_Optical) 
+        (part TSOP34S40F) 
+        (description "IR Receiver Modules for Remote Control Systems")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D51A2)) 
+    (comp 
+      (ref VR1) 
+      (value 10K_Pot_B) 
+      (footprint Potentiometer_THT:Potentiometer_Bourns_3386F_Vertical) 
+      (fields 
+        (field 
+          (name Field4) RES-09730)) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+        (description "Trimming Potentiometer (Trimpot) Three-terminal potentiometers, with an adjustable wiper and two adjustable resistors. A pot can be used to create a configurable voltage divider, or as a variable resistor. \"Trimpots\" are a subset of potentiometers, usually intended for \"set-and-forget\" applications. They're often more delicate than standard potentiometers - rated for fewer turns. <h4>Variants</h4><h5>PTH-KNOB - PTH Trimpot w/ finger-adjustable knob</h5><ul><li><a href=\"https://www.sparkfun.com/products/9806\">Trimpot 10K with Knob</a> (COM-09806)</li><li><a href=\"http://www.sparkfun.com/datasheets/Components/General/TSR-3386.pdf\">Datasheet</a></ul><h5>SMD-3MM-CLOSED-FRAME - SMD 3mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/12779\">EasyDriver - Stepper Motor Driver</a></li><li><a href=\"http://www.bitechnologies.com/pdfs/22.pdf\">Datasheet</a> (22AR10KTR)</li></ul><h5>SMD-5MM - SMD 5mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13613\">IOIO-OTG - V2.2</a></li><li><a href=\"http://www.vishay.com/docs/51008/ts53.pdf\">Datasheet</a> (TS53YL502MR10)</li></ul><h5>SMD-3MM-1/10W-25% - 3mm Square Open-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13899\">SparkFun Shapeoko</a></li><li><a href=\"http://www.bourns.com/docs/Product-Datasheets/TC33.pdf\">Datasheet</a> (TC33X-2-103E)</li></ul>")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622D7EB6)) 
+    (comp 
+      (ref VR3) 
+      (value 10K_Pot_C) 
+      (footprint Potentiometer_THT:Potentiometer_Bourns_3386F_Vertical) 
+      (fields 
+        (field 
+          (name Field4) RES-09730)) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+        (description "Trimming Potentiometer (Trimpot) Three-terminal potentiometers, with an adjustable wiper and two adjustable resistors. A pot can be used to create a configurable voltage divider, or as a variable resistor. \"Trimpots\" are a subset of potentiometers, usually intended for \"set-and-forget\" applications. They're often more delicate than standard potentiometers - rated for fewer turns. <h4>Variants</h4><h5>PTH-KNOB - PTH Trimpot w/ finger-adjustable knob</h5><ul><li><a href=\"https://www.sparkfun.com/products/9806\">Trimpot 10K with Knob</a> (COM-09806)</li><li><a href=\"http://www.sparkfun.com/datasheets/Components/General/TSR-3386.pdf\">Datasheet</a></ul><h5>SMD-3MM-CLOSED-FRAME - SMD 3mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/12779\">EasyDriver - Stepper Motor Driver</a></li><li><a href=\"http://www.bitechnologies.com/pdfs/22.pdf\">Datasheet</a> (22AR10KTR)</li></ul><h5>SMD-5MM - SMD 5mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13613\">IOIO-OTG - V2.2</a></li><li><a href=\"http://www.vishay.com/docs/51008/ts53.pdf\">Datasheet</a> (TS53YL502MR10)</li></ul><h5>SMD-3MM-1/10W-25% - 3mm Square Open-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13899\">SparkFun Shapeoko</a></li><li><a href=\"http://www.bourns.com/docs/Product-Datasheets/TC33.pdf\">Datasheet</a> (TC33X-2-103E)</li></ul>")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E4F0E)) 
+    (comp 
+      (ref VR2) 
+      (value 10K_Pot_A) 
+      (footprint Potentiometer_THT:Potentiometer_Bourns_3386F_Vertical) 
+      (fields 
+        (field 
+          (name Field4) RES-09730)) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+        (description "Trimming Potentiometer (Trimpot) Three-terminal potentiometers, with an adjustable wiper and two adjustable resistors. A pot can be used to create a configurable voltage divider, or as a variable resistor. \"Trimpots\" are a subset of potentiometers, usually intended for \"set-and-forget\" applications. They're often more delicate than standard potentiometers - rated for fewer turns. <h4>Variants</h4><h5>PTH-KNOB - PTH Trimpot w/ finger-adjustable knob</h5><ul><li><a href=\"https://www.sparkfun.com/products/9806\">Trimpot 10K with Knob</a> (COM-09806)</li><li><a href=\"http://www.sparkfun.com/datasheets/Components/General/TSR-3386.pdf\">Datasheet</a></ul><h5>SMD-3MM-CLOSED-FRAME - SMD 3mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/12779\">EasyDriver - Stepper Motor Driver</a></li><li><a href=\"http://www.bitechnologies.com/pdfs/22.pdf\">Datasheet</a> (22AR10KTR)</li></ul><h5>SMD-5MM - SMD 5mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13613\">IOIO-OTG - V2.2</a></li><li><a href=\"http://www.vishay.com/docs/51008/ts53.pdf\">Datasheet</a> (TS53YL502MR10)</li></ul><h5>SMD-3MM-1/10W-25% - 3mm Square Open-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13899\">SparkFun Shapeoko</a></li><li><a href=\"http://www.bourns.com/docs/Product-Datasheets/TC33.pdf\">Datasheet</a> (TC33X-2-103E)</li></ul>")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E5945)) 
+    (comp 
+      (ref J2) 
+      (value 5v_3Pi) 
+      (footprint Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical) 
+      (fields 
+        (field 
+          (name Field4) CONN-09863)) 
+      (libsource 
+        (lib SparkFun-Connectors) 
+        (part CONN_02JST-PTH-2) 
+        (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E82BA)) 
+    (comp 
+      (ref J4) 
+      (value I2C_3Pi) 
+      (footprint Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical) 
+      (fields 
+        (field 
+          (name Field4) CONN-09863)) 
+      (libsource 
+        (lib SparkFun-Connectors) 
+        (part CONN_02JST-PTH-2) 
+        (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E8999)) 
+    (comp 
+      (ref R1) 
+      (value 15R_IRLED) 
+      (footprint Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal) 
+      (fields 
+        (field 
+          (name Field4) " ")) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part RESISTOR0402) 
+        (description "Generic Resistor Package")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E9B34)) 
+    (comp 
+      (ref VR4) 
+      (value 1K_Pot_IRLED) 
+      (footprint Potentiometer_THT:Potentiometer_Bourns_3386P_Vertical) 
+      (fields 
+        (field 
+          (name Field4) RES-09730)) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+        (description "Trimming Potentiometer (Trimpot) Three-terminal potentiometers, with an adjustable wiper and two adjustable resistors. A pot can be used to create a configurable voltage divider, or as a variable resistor. \"Trimpots\" are a subset of potentiometers, usually intended for \"set-and-forget\" applications. They're often more delicate than standard potentiometers - rated for fewer turns. <h4>Variants</h4><h5>PTH-KNOB - PTH Trimpot w/ finger-adjustable knob</h5><ul><li><a href=\"https://www.sparkfun.com/products/9806\">Trimpot 10K with Knob</a> (COM-09806)</li><li><a href=\"http://www.sparkfun.com/datasheets/Components/General/TSR-3386.pdf\">Datasheet</a></ul><h5>SMD-3MM-CLOSED-FRAME - SMD 3mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/12779\">EasyDriver - Stepper Motor Driver</a></li><li><a href=\"http://www.bitechnologies.com/pdfs/22.pdf\">Datasheet</a> (22AR10KTR)</li></ul><h5>SMD-5MM - SMD 5mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13613\">IOIO-OTG - V2.2</a></li><li><a href=\"http://www.vishay.com/docs/51008/ts53.pdf\">Datasheet</a> (TS53YL502MR10)</li></ul><h5>SMD-3MM-1/10W-25% - 3mm Square Open-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13899\">SparkFun Shapeoko</a></li><li><a href=\"http://www.bourns.com/docs/Product-Datasheets/TC33.pdf\">Datasheet</a> (TC33X-2-103E)</li></ul>")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 6232F353)) 
+    (comp 
+      (ref J1) 
+      (value RX_Break) 
+      (footprint Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical) 
+      (fields 
+        (field 
+          (name Field4) CONN-09863)) 
+      (libsource 
+        (lib SparkFun-Connectors) 
+        (part CONN_02JST-PTH-2) 
+        (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E7BCA)) 
+    (comp 
+      (ref J3) 
+      (value GND_3Pi) 
+      (footprint Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical) 
+      (fields 
+        (field 
+          (name Field4) CONN-09863)) 
+      (libsource 
+        (lib SparkFun-Connectors) 
+        (part CONN_02JST-PTH-2) 
+        (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622E6D83)) 
+    (comp 
+      (ref R5) 
+      (value LDR) 
+      (footprint OptoDevice:R_LDR_5.0x4.1mm_P3mm_Vertical) 
+      (datasheet ~) 
+      (libsource 
+        (lib Device) 
+        (part R_PHOTO) 
+        (description Photoresistor)) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 623F6B0F)) 
+    (comp 
+      (ref D7) 
+      (value 1N5819) 
+      (footprint Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal) 
+      (datasheet ~) 
+      (libsource 
+        (lib pspice) 
+        (part DIODE) 
+        (description "Diode symbol for simulation only. Pin order incompatible with official kicad footprints")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 624622A0)) 
+    (comp 
+      (ref R6) 
+      (value 10K_LDR) 
+      (footprint Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal) 
+      (fields 
+        (field 
+          (name Field4) " ")) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part RESISTOR0402) 
+        (description "Generic Resistor Package")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 6250BCAE)) 
+    (comp 
+      (ref R2) 
+      (value 155R_R) 
+      (footprint Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal) 
+      (fields 
+        (field 
+          (name Field4) " ")) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part RESISTOR0402) 
+        (description "Generic Resistor Package")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622F7FC7)) 
+    (comp 
+      (ref R3) 
+      (value 90R_G) 
+      (footprint Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal) 
+      (fields 
+        (field 
+          (name Field4) " ")) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part RESISTOR0402) 
+        (description "Generic Resistor Package")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622F755B)) 
+    (comp 
+      (ref R4) 
+      (value 85R_B) 
+      (footprint Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal) 
+      (fields 
+        (field 
+          (name Field4) " ")) 
+      (libsource 
+        (lib SparkFun-Resistors) 
+        (part RESISTOR0402) 
+        (description "Generic Resistor Package")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622F4D3C)) 
+    (comp 
+      (ref D6) 
+      (value RGB) 
+      (footprint LED_THT:LED_D5.0mm-4_RGB) 
+      (fields 
+        (field 
+          (name Field4) DIO-08418)) 
+      (libsource 
+        (lib SparkFun-LED) 
+        (part LED-RGB-CCCLEAR) 
+        (description "LED-RGB Common Cathode <li><b>Packages:</b></li><ul><li> LED RGB-THRU</li><li> LED_PIRANHA_5MM</li></ul> <b>SparkFun Products:</b><ul><li><a href= [https://www.sparkfun.com/products/9264] >RGB Diffused Common Cathode- Diffuse</a></li><li><a href= [https://www.sparkfun.com/products/105] >RGB Diffused Common Cathode - Clear</a></li><li><a href= [https://www.sparkfun.com/products/11679] >LED-RGB 5mm Square (Piranha)</a></li></ul>")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 622EB4D0)) 
+    (comp 
+      (ref SW1) 
+      (value Bttn) 
+      (footprint Button_Switch_THT:SW_PUSH_6mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Switch) 
+        (part SW_Push) 
+        (description "Push button switch, generic, two pins")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 625530E0)) 
+    (comp 
+      (ref PWR1) 
+      (value Bttn) 
+      (footprint Button_Switch_THT:SW_PUSH_6mm) 
+      (datasheet ~) 
+      (libsource 
+        (lib Switch) 
+        (part SW_Push) 
+        (description "Push button switch, generic, two pins")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 62C8351B)) 
+    (comp 
+      (ref J5) 
+      (value 3PI_SWTCH) 
+      (footprint Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical) 
+      (fields 
+        (field 
+          (name Field4) CONN-09863)) 
+      (libsource 
+        (lib SparkFun-Connectors) 
+        (part CONN_02JST-PTH-2) 
+        (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432")) 
+      (sheetpath 
+        (names /) 
+        (tstamps /)) 
+      (tstamp 62C8426D))) 
+  (libparts 
+    (libpart 
+      (lib 74xx) 
+      (part 74LS32) 
+      (description "Quad 2-input OR") 
+      (docs http://www.ti.com/lit/gpn/sn74LS32) 
+      (footprints 
+        (fp DIP?14*)) 
+      (fields 
+        (field 
+          (name Reference) U) 
+        (field 
+          (name Value) 74LS32)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 2) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 3) 
+          (name ~) 
+          (type output)) 
+        (pin 
+          (num 4) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 5) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 6) 
+          (name ~) 
+          (type output)) 
+        (pin 
+          (num 7) 
+          (name GND) 
+          (type power_in)) 
+        (pin 
+          (num 8) 
+          (name ~) 
+          (type output)) 
+        (pin 
+          (num 9) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 10) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 11) 
+          (name ~) 
+          (type output)) 
+        (pin 
+          (num 12) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 13) 
+          (name ~) 
+          (type input)) 
+        (pin 
+          (num 14) 
+          (name VCC) 
+          (type power_in)))) 
+    (libpart 
+      (lib Device) 
+      (part LED) 
+      (description "Light emitting diode") 
+      (docs ~) 
+      (footprints 
+        (fp LED*) 
+        (fp LED_SMD:*) 
+        (fp LED_THT:*)) 
+      (fields 
+        (field 
+          (name Reference) D) 
+        (field 
+          (name Value) LED)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name K) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name A) 
+          (type passive)))) 
+    (libpart 
+      (lib Device) 
+      (part R_PHOTO) 
+      (description Photoresistor) 
+      (docs ~) 
+      (footprints 
+        (fp *LDR*) 
+        (fp R?LDR*)) 
+      (fields 
+        (field 
+          (name Reference) R) 
+        (field 
+          (name Value) R_PHOTO)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name ~) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name ~) 
+          (type passive)))) 
+    (libpart 
+      (lib Interface_Optical) 
+      (part TSOP34S40F) 
+      (description "IR Receiver Modules for Remote Control Systems") 
+      (docs http://www.vishay.com/docs/82669/tsop32s40f.pdf) 
+      (footprints 
+        (fp Vishay*MOLD*)) 
+      (fields 
+        (field 
+          (name Reference) U) 
+        (field 
+          (name Value) TSOP34S40F) 
+        (field 
+          (name Footprint) OptoDevice:Vishay_MOLD-3Pin)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name OUT) 
+          (type output)) 
+        (pin 
+          (num 2) 
+          (name GND) 
+          (type power_in)) 
+        (pin 
+          (num 3) 
+          (name Vs) 
+          (type power_in)))) 
+    (libpart 
+      (lib MCU_Module) 
+      (part Arduino_Nano_v3.x) 
+      (aliases 
+        (alias Arduino_Nano_v2.x)) 
+      (description "Arduino Nano v3.x") 
+      (docs http://www.mouser.com/pdfdocs/Gravitech_Arduino_Nano3_0.pdf) 
+      (footprints 
+        (fp Arduino*Nano*)) 
+      (fields 
+        (field 
+          (name Reference) A) 
+        (field 
+          (name Value) Arduino_Nano_v3.x) 
+        (field 
+          (name Footprint) Module:Arduino_Nano)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name D1/TX) 
+          (type BiDi)) 
+        (pin 
+          (num 2) 
+          (name D0/RX) 
+          (type BiDi)) 
+        (pin 
+          (num 3) 
+          (name RESET) 
+          (type input)) 
+        (pin 
+          (num 4) 
+          (name GND) 
+          (type power_in)) 
+        (pin 
+          (num 5) 
+          (name D2) 
+          (type BiDi)) 
+        (pin 
+          (num 6) 
+          (name D3) 
+          (type BiDi)) 
+        (pin 
+          (num 7) 
+          (name D4) 
+          (type BiDi)) 
+        (pin 
+          (num 8) 
+          (name D5) 
+          (type BiDi)) 
+        (pin 
+          (num 9) 
+          (name D6) 
+          (type BiDi)) 
+        (pin 
+          (num 10) 
+          (name D7) 
+          (type BiDi)) 
+        (pin 
+          (num 11) 
+          (name D8) 
+          (type BiDi)) 
+        (pin 
+          (num 12) 
+          (name D9) 
+          (type BiDi)) 
+        (pin 
+          (num 13) 
+          (name D10) 
+          (type BiDi)) 
+        (pin 
+          (num 14) 
+          (name D11) 
+          (type BiDi)) 
+        (pin 
+          (num 15) 
+          (name D12) 
+          (type BiDi)) 
+        (pin 
+          (num 16) 
+          (name D13) 
+          (type BiDi)) 
+        (pin 
+          (num 17) 
+          (name 3V3) 
+          (type power_out)) 
+        (pin 
+          (num 18) 
+          (name AREF) 
+          (type input)) 
+        (pin 
+          (num 19) 
+          (name A0) 
+          (type BiDi)) 
+        (pin 
+          (num 20) 
+          (name A1) 
+          (type BiDi)) 
+        (pin 
+          (num 21) 
+          (name A2) 
+          (type BiDi)) 
+        (pin 
+          (num 22) 
+          (name A3) 
+          (type BiDi)) 
+        (pin 
+          (num 23) 
+          (name A4) 
+          (type BiDi)) 
+        (pin 
+          (num 24) 
+          (name A5) 
+          (type BiDi)) 
+        (pin 
+          (num 25) 
+          (name A6) 
+          (type BiDi)) 
+        (pin 
+          (num 26) 
+          (name A7) 
+          (type BiDi)) 
+        (pin 
+          (num 27) 
+          (name +5V) 
+          (type power_out)) 
+        (pin 
+          (num 28) 
+          (name RESET) 
+          (type input)) 
+        (pin 
+          (num 29) 
+          (name GND) 
+          (type power_in)) 
+        (pin 
+          (num 30) 
+          (name VIN) 
+          (type power_in)))) 
+    (libpart 
+      (lib SparkFun-Connectors) 
+      (part CONN_02JST-PTH-2) 
+      (description "Multi connection point. Often used as Generic Header-pin footprint for 0.1 inch spaced/style header connections  <b>On any of the 0.1 inch spaced packages, you can populate with these:</b><ul><li><a href=\"https://www.sparkfun.com/products/116\"> Break Away Headers - Straight</a> (PRT-00116)</li><li><a href=\"https://www.sparkfun.com/products/553\"> Break Away Male Headers - Right Angle</a> (PRT-00553)</li><li><a href=\"https://www.sparkfun.com/products/115\"> Female Headers</a> (PRT-00115)</li><li><a href=\"https://www.sparkfun.com/products/117\"> Break Away Headers - Machine Pin</a> (PRT-00117)</li><li><a href=\"https://www.sparkfun.com/products/743\"> Break Away Female Headers - Swiss Machine Pin</a> (PRT-00743)</li></ul> <b> For SCREWTERMINALS and SPRING TERMINALS visit here:</b><ul><li><a href=\"https://www.sparkfun.com/search/results?term=Screw+Terminals\"> Screw Terimnals on SparkFun.com</a> (5mm/3.5mm/2.54mm spacing)</li></ul> <b>This device is also useful as a general connection point to wire up your design to another part of your project. Our various solder wires solder well into these plated through hole pads.</b><ul><li><a href=\"https://www.sparkfun.com/products/11375\"> Hook-Up Wire - Assortment (Stranded, 22 AWG)</a> (PRT-11375)</li><li><a href=\"https://www.sparkfun.com/products/11367\"> Hook-Up Wire - Assortment (Solid Core, 22 AWG)</a> (PRT-11367)</li><li><a href=\"https://www.sparkfun.com/categories/141\"> View the entire wire category on our website here</a></li> </ul> <b>Special notes:</b> Molex polarized connector foot print use with: PRT-08233 with associated crimp pins and housings.<br><br>2.54_SCREWTERM for use with  PRT-10571.<br><br>3.5mm Screw Terminal footprints for  PRT-08084<br><br>5mm Screw Terminal footprints for use with PRT-08432") 
+      (footprints 
+        (fp *JST-2-PTH*)) 
+      (fields 
+        (field 
+          (name Reference) J) 
+        (field 
+          (name Value) CONN_02JST-PTH-2) 
+        (field 
+          (name Footprint) JST-2-PTH) 
+        (field 
+          (name Field4) CONN-09863)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name 1) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name 2) 
+          (type passive)))) 
+    (libpart 
+      (lib SparkFun-LED) 
+      (part LED-RGB-CCCLEAR) 
+      (description "LED-RGB Common Cathode <li><b>Packages:</b></li><ul><li> LED RGB-THRU</li><li> LED_PIRANHA_5MM</li></ul> <b>SparkFun Products:</b><ul><li><a href= [https://www.sparkfun.com/products/9264] >RGB Diffused Common Cathode- Diffuse</a></li><li><a href= [https://www.sparkfun.com/products/105] >RGB Diffused Common Cathode - Clear</a></li><li><a href= [https://www.sparkfun.com/products/11679] >LED-RGB 5mm Square (Piranha)</a></li></ul>") 
+      (footprints 
+        (fp *LED-RGB-THRU*) 
+        (fp *LED-RGB-THRU*)) 
+      (fields 
+        (field 
+          (name Reference) D) 
+        (field 
+          (name Value) LED-RGB-CCCLEAR) 
+        (field 
+          (name Footprint) LED-RGB-THRU) 
+        (field 
+          (name Field4) DIO-08418)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name RED) 
+          (type BiDi)) 
+        (pin 
+          (num 2) 
+          (name C) 
+          (type BiDi)) 
+        (pin 
+          (num 3) 
+          (name GRN) 
+          (type BiDi)) 
+        (pin 
+          (num 4) 
+          (name BLU) 
+          (type BiDi)))) 
+    (libpart 
+      (lib SparkFun-Resistors) 
+      (part RESISTOR0402) 
+      (description "Generic Resistor Package") 
+      (footprints 
+        (fp *0402*) 
+        (fp *0603*) 
+        (fp *0805*) 
+        (fp *1206*)) 
+      (fields 
+        (field 
+          (name Reference) R) 
+        (field 
+          (name Value) RESISTOR0402) 
+        (field 
+          (name Footprint) 258) 
+        (field 
+          (name Field4) " ")) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name 1) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name 2) 
+          (type passive)))) 
+    (libpart 
+      (lib SparkFun-Resistors) 
+      (part TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+      (description "Trimming Potentiometer (Trimpot) Three-terminal potentiometers, with an adjustable wiper and two adjustable resistors. A pot can be used to create a configurable voltage divider, or as a variable resistor. \"Trimpots\" are a subset of potentiometers, usually intended for \"set-and-forget\" applications. They're often more delicate than standard potentiometers - rated for fewer turns. <h4>Variants</h4><h5>PTH-KNOB - PTH Trimpot w/ finger-adjustable knob</h5><ul><li><a href=\"https://www.sparkfun.com/products/9806\">Trimpot 10K with Knob</a> (COM-09806)</li><li><a href=\"http://www.sparkfun.com/datasheets/Components/General/TSR-3386.pdf\">Datasheet</a></ul><h5>SMD-3MM-CLOSED-FRAME - SMD 3mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/12779\">EasyDriver - Stepper Motor Driver</a></li><li><a href=\"http://www.bitechnologies.com/pdfs/22.pdf\">Datasheet</a> (22AR10KTR)</li></ul><h5>SMD-5MM - SMD 5mm Square Closed-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13613\">IOIO-OTG - V2.2</a></li><li><a href=\"http://www.vishay.com/docs/51008/ts53.pdf\">Datasheet</a> (TS53YL502MR10)</li></ul><h5>SMD-3MM-1/10W-25% - 3mm Square Open-Frame Trimpot</h5><ul><li>Used on e.g. <a href=\"https://www.sparkfun.com/products/13899\">SparkFun Shapeoko</a></li><li><a href=\"http://www.bourns.com/docs/Product-Datasheets/TC33.pdf\">Datasheet</a> (TC33X-2-103E)</li></ul>") 
+      (footprints 
+        (fp *TRIMPOT-PTH-3386U*) 
+        (fp *TRIMPOT-SMD-3MM-CLOSED*)) 
+      (fields 
+        (field 
+          (name Reference) VR) 
+        (field 
+          (name Value) TRIMPOT-PTH-10MM-KNOB-1_2W-10%) 
+        (field 
+          (name Footprint) TRIMPOT-PTH-3386U) 
+        (field 
+          (name Field4) RES-09730)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name CCW) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name WIPER) 
+          (type passive)) 
+        (pin 
+          (num 3) 
+          (name CW) 
+          (type passive)))) 
+    (libpart 
+      (lib Switch) 
+      (part SW_Push) 
+      (description "Push button switch, generic, two pins") 
+      (docs ~) 
+      (fields 
+        (field 
+          (name Reference) SW) 
+        (field 
+          (name Value) SW_Push)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name 1) 
+          (type passive)) 
+        (pin 
+          (num 2) 
+          (name 2) 
+          (type passive)))) 
+    (libpart 
+      (lib pspice) 
+      (part DIODE) 
+      (description "Diode symbol for simulation only. Pin order incompatible with official kicad footprints") 
+      (docs ~) 
+      (fields 
+        (field 
+          (name Reference) D) 
+        (field 
+          (name Value) DIODE)) 
+      (pins 
+        (pin 
+          (num 1) 
+          (name K) 
+          (type input)) 
+        (pin 
+          (num 2) 
+          (name A) 
+          (type input))))) 
+  (libraries 
+    (library 
+      (logical 74xx) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/74xx.lib")) 
+    (library 
+      (logical Device) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/Device.lib")) 
+    (library 
+      (logical Interface_Optical) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/Interface_Optical.lib")) 
+    (library 
+      (logical MCU_Module) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/MCU_Module.lib")) 
+    (library 
+      (logical SparkFun-Connectors) 
+      (uri "C:/Users/ke18164/OneDrive - University of Bristol/Documents/PCB_Designs/3Pi_IRComms_v1/3Pi_IRComms_v1/SparkFun-KiCad-Libraries-master/Libraries/SparkFun-Connectors.lib")) 
+    (library 
+      (logical SparkFun-LED) 
+      (uri "C:/Users/ke18164/OneDrive - University of Bristol/Documents/PCB_Designs/3Pi_IRComms_v1/3Pi_IRComms_v1/SparkFun-KiCad-Libraries-master/Libraries/SparkFun-LED.lib")) 
+    (library 
+      (logical SparkFun-Resistors) 
+      (uri "C:/Users/ke18164/OneDrive - University of Bristol/Documents/PCB_Designs/3Pi_IRComms_v1/3Pi_IRComms_v1/SparkFun-KiCad-Libraries-master/Libraries/SparkFun-Resistors.lib")) 
+    (library 
+      (logical Switch) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/Switch.lib")) 
+    (library 
+      (logical pspice) 
+      (uri "C:\\Program Files\\KiCad\\share\\kicad\\library/pspice.lib"))) 
+  (nets 
+    (net 
+      (code 1) 
+      (name "Net-(A1-Pad20)") 
+      (node 
+        (ref VR1) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 20))) 
+    (net 
+      (code 2) 
+      (name "Net-(A1-Pad21)") 
+      (node 
+        (ref VR3) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 21))) 
+    (net 
+      (code 3) 
+      (name GND) 
+      (node 
+        (ref J3) 
+        (pin 2)) 
+      (node 
+        (ref R5) 
+        (pin 2)) 
+      (node 
+        (ref SW1) 
+        (pin 1)) 
+      (node 
+        (ref D6) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 4)) 
+      (node 
+        (ref VR2) 
+        (pin 3)) 
+      (node 
+        (ref A1) 
+        (pin 29)) 
+      (node 
+        (ref VR3) 
+        (pin 3)) 
+      (node 
+        (ref VR1) 
+        (pin 3)) 
+      (node 
+        (ref U2) 
+        (pin 2)) 
+      (node 
+        (ref U1) 
+        (pin 7)) 
+      (node 
+        (ref J3) 
+        (pin 1))) 
+    (net 
+      (code 4) 
+      (name "Net-(A1-Pad19)") 
+      (node 
+        (ref A1) 
+        (pin 19)) 
+      (node 
+        (ref VR2) 
+        (pin 2))) 
+    (net 
+      (code 5) 
+      (name +5V) 
+      (node 
+        (ref U2) 
+        (pin 3)) 
+      (node 
+        (ref U1) 
+        (pin 14)) 
+      (node 
+        (ref VR3) 
+        (pin 1)) 
+      (node 
+        (ref R6) 
+        (pin 1)) 
+      (node 
+        (ref D7) 
+        (pin 2)) 
+      (node 
+        (ref R1) 
+        (pin 1)) 
+      (node 
+        (ref VR1) 
+        (pin 1)) 
+      (node 
+        (ref A1) 
+        (pin 27)) 
+      (node 
+        (ref VR2) 
+        (pin 1))) 
+    (net 
+      (code 6) 
+      (name "Net-(D1-Pad2)") 
+      (node 
+        (ref VR4) 
+        (pin 3)) 
+      (node 
+        (ref D2) 
+        (pin 2)) 
+      (node 
+        (ref D1) 
+        (pin 2)) 
+      (node 
+        (ref D3) 
+        (pin 2)) 
+      (node 
+        (ref D4) 
+        (pin 2)) 
+      (node 
+        (ref D5) 
+        (pin 2))) 
+    (net 
+      (code 7) 
+      (name "Net-(R1-Pad2)") 
+      (node 
+        (ref R1) 
+        (pin 2)) 
+      (node 
+        (ref VR4) 
+        (pin 2))) 
+    (net 
+      (code 8) 
+      (name "Net-(J1-Pad1)") 
+      (node 
+        (ref J1) 
+        (pin 1)) 
+      (node 
+        (ref U2) 
+        (pin 1))) 
+    (net 
+      (code 9) 
+      (name "Net-(A1-Pad2)") 
+      (node 
+        (ref J1) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 2))) 
+    (net 
+      (code 10) 
+      (name "Net-(D6-Pad4)") 
+      (node 
+        (ref D6) 
+        (pin 4)) 
+      (node 
+        (ref R3) 
+        (pin 1))) 
+    (net 
+      (code 11) 
+      (name "Net-(D6-Pad1)") 
+      (node 
+        (ref R2) 
+        (pin 1)) 
+      (node 
+        (ref D6) 
+        (pin 1))) 
+    (net 
+      (code 12) 
+      (name "Net-(A1-Pad14)") 
+      (node 
+        (ref R2) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 14))) 
+    (net 
+      (code 13) 
+      (name "Net-(A1-Pad13)") 
+      (node 
+        (ref R3) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 13))) 
+    (net 
+      (code 14) 
+      (name "Net-(D6-Pad3)") 
+      (node 
+        (ref R4) 
+        (pin 1)) 
+      (node 
+        (ref D6) 
+        (pin 3))) 
+    (net 
+      (code 15) 
+      (name "Net-(A1-Pad9)") 
+      (node 
+        (ref SW1) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 9))) 
+    (net 
+      (code 16) 
+      (name "Net-(J5-Pad1)") 
+      (node 
+        (ref PWR1) 
+        (pin 1)) 
+      (node 
+        (ref J5) 
+        (pin 1))) 
+    (net 
+      (code 17) 
+      (name "Net-(J5-Pad2)") 
+      (node 
+        (ref J5) 
+        (pin 2)) 
+      (node 
+        (ref PWR1) 
+        (pin 2))) 
+    (net 
+      (code 18) 
+      (name "Net-(A1-Pad23)") 
+      (node 
+        (ref A1) 
+        (pin 23)) 
+      (node 
+        (ref J4) 
+        (pin 1))) 
+    (net 
+      (code 19) 
+      (name "Net-(A1-Pad24)") 
+      (node 
+        (ref J4) 
+        (pin 2)) 
+      (node 
+        (ref A1) 
+        (pin 24))) 
+    (net 
+      (code 20) 
+      (name "Net-(D7-Pad1)") 
+      (node 
+        (ref J2) 
+        (pin 1)) 
+      (node 
+        (ref D7) 
+        (pin 1)) 
+      (node 
+        (ref J2) 
+        (pin 2))) 
+    (net 
+      (code 21) 
+      (name "Net-(A1-Pad26)") 
+      (node 
+        (ref R5) 
+        (pin 1)) 
+      (node 
+        (ref A1) 
+        (pin 26)) 
+      (node 
+        (ref R6) 
+        (pin 2))) 
+    (net 
+      (code 22) 
+      (name "Net-(A1-Pad7)") 
+      (node 
+        (ref U1) 
+        (pin 10)) 
+      (node 
+        (ref U1) 
+        (pin 5)) 
+      (node 
+        (ref A1) 
+        (pin 7)) 
+      (node 
+        (ref U1) 
+        (pin 2)) 
+      (node 
+        (ref U1) 
+        (pin 13))) 
+    (net 
+      (code 23) 
+      (name "Net-(D1-Pad1)") 
+      (node 
+        (ref U1) 
+        (pin 8)) 
+      (node 
+        (ref D2) 
+        (pin 1)) 
+      (node 
+        (ref U1) 
+        (pin 3)) 
+      (node 
+        (ref D3) 
+        (pin 1)) 
+      (node 
+        (ref D4) 
+        (pin 1)) 
+      (node 
+        (ref D5) 
+        (pin 1)) 
+      (node 
+        (ref U1) 
+        (pin 6)) 
+      (node 
+        (ref D1) 
+        (pin 1)) 
+      (node 
+        (ref U1) 
+        (pin 11))) 
+    (net 
+      (code 24) 
+      (name "Net-(A1-Pad10)") 
+      (node 
+        (ref A1) 
+        (pin 10))) 
+    (net 
+      (code 25) 
+      (name "Net-(A1-Pad11)") 
+      (node 
+        (ref A1) 
+        (pin 11))) 
+    (net 
+      (code 26) 
+      (name "Net-(A1-Pad12)") 
+      (node 
+        (ref A1) 
+        (pin 12)) 
+      (node 
+        (ref R4) 
+        (pin 2))) 
+    (net 
+      (code 27) 
+      (name "Net-(A1-Pad15)") 
+      (node 
+        (ref A1) 
+        (pin 15))) 
+    (net 
+      (code 28) 
+      (name "Net-(A1-Pad16)") 
+      (node 
+        (ref A1) 
+        (pin 16))) 
+    (net 
+      (code 29) 
+      (name "Net-(A1-Pad17)") 
+      (node 
+        (ref A1) 
+        (pin 17))) 
+    (net 
+      (code 30) 
+      (name "Net-(A1-Pad18)") 
+      (node 
+        (ref A1) 
+        (pin 18))) 
+    (net 
+      (code 31) 
+      (name "Net-(A1-Pad22)") 
+      (node 
+        (ref A1) 
+        (pin 22))) 
+    (net 
+      (code 32) 
+      (name "Net-(A1-Pad25)") 
+      (node 
+        (ref A1) 
+        (pin 25))) 
+    (net 
+      (code 33) 
+      (name "Net-(A1-Pad28)") 
+      (node 
+        (ref A1) 
+        (pin 28))) 
+    (net 
+      (code 34) 
+      (name "Net-(A1-Pad3)") 
+      (node 
+        (ref A1) 
+        (pin 3))) 
+    (net 
+      (code 35) 
+      (name "Net-(A1-Pad30)") 
+      (node 
+        (ref A1) 
+        (pin 30))) 
+    (net 
+      (code 36) 
+      (name "Net-(A1-Pad5)") 
+      (node 
+        (ref A1) 
+        (pin 5))) 
+    (net 
+      (code 37) 
+      (name "Net-(A1-Pad6)") 
+      (node 
+        (ref A1) 
+        (pin 6))) 
+    (net 
+      (code 38) 
+      (name "Net-(A1-Pad8)") 
+      (node 
+        (ref A1) 
+        (pin 8))) 
+    (net 
+      (code 39) 
+      (name "Net-(VR4-Pad1)") 
+      (node 
+        (ref VR4) 
+        (pin 1))) 
+    (net 
+      (code 40) 
+      (name "Net-(A1-Pad1)") 
+      (node 
+        (ref A1) 
+        (pin 1)) 
+      (node 
+        (ref U1) 
+        (pin 4)) 
+      (node 
+        (ref U1) 
+        (pin 1)) 
+      (node 
+        (ref U1) 
+        (pin 9)) 
+      (node 
+        (ref U1) 
+        (pin 12)))))

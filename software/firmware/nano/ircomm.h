@@ -9,29 +9,24 @@
 #define STATE_IR_TX_OFF 2
 #define MAX_MSG 32
 
-#define TTL 1000          // keep a message for 1 second 
+#define TTL 100          // keep a message for 0.1 second 
                           // then delete.
 
-// Pin Definitions
-#define POT_A A0
-#define POT_B A1
-#define POT_C A2
 
-#define LED_B 9
-#define LED_G 10
-#define LED_R 11
 
-#define RX_PWR_0  2
-#define RX_PWR_1  3
-#define RX_PWR_2  5
-#define RX_PWR_3  7
-#define RX_PWR_4  8
+#define RX_PWR_0  2 // Forward
+#define RX_PWR_1  3 // LEFT
+#define RX_PWR_2  5 // BACK
+#define RX_PWR_3  7 // RIGHT
+#define RX_PWR_N  4
+
 
 
 // 38Khz signal generated on
 // digital pin 4.
 #define TX_CLK_OUT 4
 
+//#define IR_DEBUG_OUTPUT true
 #define IR_DEBUG_OUTPUT false
 
 
@@ -48,11 +43,11 @@ public:
 // Message buffers
   char tx_buf[MAX_MSG];  // buffer for IR out (serial)
   char rx_buf[MAX_MSG];  // buffer for IR in  (serial)
-  char rx_msg[MAX_MSG];  // holding buffer for msg down
+  char rx_msg[RX_PWR_N][MAX_MSG];  // holding buffer 
 
   int rx_count;           // tracks how full the rx buffer is.
 
-  unsigned long msg_ttl;  // msg time to live
+  unsigned long msg_ttl[RX_PWR_N];  // msg time to live
 
   unsigned long tx_ts;     // transmit time-stamp
   unsigned long tx_delay;  // delay between tx
@@ -68,8 +63,6 @@ public:
   void setupTimer2();
   void setTXDelay();
   
-  void setRGB(int r, int g, int b);
-  
   void powerOffAllRx();
   void powerOnAllRx();
   void powerOnRx( byte index );
@@ -82,7 +75,7 @@ public:
   void transmitFloat( float f_to_send );
   
   
-  int hasMsg();
+  int hasMsg(int which);
 
   int findChar( char c, char * str, int len);
   void resetRxBuf();
@@ -94,9 +87,10 @@ public:
   
   void stopTx();
   void startTx();
-  
-  void clearRxMsg();
-  float getFloatValue();
+
+  void clearTxBuf();
+  void clearRxMsg(int which);
+  float getFloatValue(int which);
   
 };
 

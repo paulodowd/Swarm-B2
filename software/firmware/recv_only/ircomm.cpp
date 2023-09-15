@@ -26,7 +26,7 @@ void IRComm_c::init() {
   pinMode(RX_PWR_4, OUTPUT);
 
   powerOffAllRx();
-  
+
 
   // Start with demodulator 0.
   // Incremented if cyclePowerRX() is called.
@@ -41,7 +41,8 @@ void IRComm_c::init() {
   // Set message buffers to invalid (empty) state
   memset(tx_buf, 0, sizeof(tx_buf));
   memset(rx_buf, 0, sizeof(rx_buf));
-  memset(rx_msg, 0, sizeof(rx_msg));
+
+  for ( int i = 0; i < 5; i++ ) clearRxMsg(i);
 
   //enableTx(); // sets up Timer2 to create 38khz carrier
   //disableTx();
@@ -66,7 +67,9 @@ void IRComm_c::init() {
 
   // Set initial time-stamp values
   ts = millis();
-  msg_ttl = millis();
+  for ( int i = 0; i < 5; i++ ) {
+    msg_ttl[i] = millis();
+  }
 
   tx_ts = millis();
   setTXDelay();
@@ -89,6 +92,7 @@ void IRComm_c::powerOnRx( byte index ) {
 
   // Disabling the UART will ensure our
   // receive buffer is cleared of contents
+  resetRxBuf();
   disableRx();
 
   if ( index == 0 ) {
@@ -262,6 +266,10 @@ void IRComm_c::resetRxBuf() {
   rx_count = 0;
   PROCESS_MSG = false;
   memset(rx_buf, 0, sizeof(rx_buf));
+
+  // Trying to force a flush of the serial buffer.
+  disableRx();
+  enableRx();
 }
 
 // Attempting an asynchronous send
@@ -369,13 +377,26 @@ void IRComm_c::startTx() {
 
 }
 
-void IRComm_c::clearRxMsg() {
-  memset(rx_msg, 0, sizeof(rx_msg));
-  msg_ttl = millis();
+void IRComm_c::clearRxMsg( int which_receiver ) {
+
+  if ( which_receiver >= 0 && which_receiver < 5 ) {
+    memset(rx_msg[which_receiver], 0, sizeof(rx_msg[which_receiver] ));
+    rx_msg[which_receiver][0] = '!';
+    msg_ttl[which_receiver] = millis();
+    resetRxBuf();
+    disableRx();
+    enableRx();
+  }
+
+
 }
 
-float IRComm_c::getFloatValue() {
-  return atof( rx_msg );
+float IRComm_c::getFloatValue( int which_receiver ) {
+  if ( which_receiver >= 0 && which_receiver < 5 ) {
+    return atof( rx_msg[which_receiver] );
+  } else {
+    return 0.00;
+  }
 }
 
 void IRComm_c::update() {
@@ -398,9 +419,15 @@ void IRComm_c::update() {
   }
 
   // Clear old messages received via IR.
-  if (millis() - msg_ttl > TTL) {
-    memset(rx_msg, 0, sizeof(rx_msg));
-    msg_ttl = millis();
+  // TODO: update for all buffers!!
+  if (millis() - msg_ttl[rx_pwr_index] > TTL) {
+    memset(rx_msg[rx_pwr_index], 0, sizeof(rx_msg[rx_pwr_index]));
+    rx_msg[rx_pwr_index][0] = '!';
+    msg_ttl[rx_pwr_index] = millis();
+    resetRxBuf();
+    disableRx();
+    enableRx();
+    
   }
 
   // If we are in broadcast mode and the LEDS
@@ -510,7 +537,7 @@ int IRComm_c::processRxBuf() {
     // No start token.
     // But a newline or buffer full must have brought
     // us here.
-    if( IR_DEBUG_OUTPUT ) Serial.println("No start token");
+    if ( IR_DEBUG_OUTPUT ) Serial.println("No start token");
 
 
   } else if ((rx_count - start) <= 3 ) {
@@ -577,29 +604,36 @@ int IRComm_c::processRxBuf() {
           //analogWrite(LED_G, 255);
           //setRGB( 0, 1, 0 );
 
+
+
           // Make sure where we will store this
           // received message is clear.
-          memset(rx_msg, 0, sizeof(rx_msg));
+          memset(rx_msg[rx_pwr_index] , 0, sizeof(rx_msg[rx_pwr_index] ) );
 
           // Copy message across, ignoring the *
           for (int i = 0; i < b - 1; i++) {
-            rx_msg[i] = buf[i + 1];
+            rx_msg[rx_pwr_index][i] = buf[i + 1];
           }
 
           // Add a ! to the message, which will be
           // used when later sending down I2C to
           // the Master to indicate the end of the
           // string.
-          rx_msg[b - 1] = '!';
-
-          // Reset TTL timestamp, so this message
-          // will only exist temporarily.
-          msg_ttl = millis();
+          rx_msg[rx_pwr_index][b - 1] = '!';
 
           if ( IR_DEBUG_OUTPUT ) {
             Serial.print("Saved: " ) ;
-            Serial.println( rx_msg );
+            Serial.println( rx_msg[rx_pwr_index] );
           }
+
+
+
+
+          // Reset TTL timestamp, so this message
+          // will only exist temporarily.
+          msg_ttl[rx_pwr_index] = millis();
+
+
 
 
         } else {
@@ -627,11 +661,32 @@ int IRComm_c::findChar(char c, char* str, int len) {
   return -1;
 }
 
+
+// Tells us which of the 5 buffers currently
+// has a message.
+
 int IRComm_c::hasMsg() {
-  if (rx_msg[0] == '!') {
-    return -1;
+
+  // Check all buffers for a message,
+  // and report which buffer has a message.
+  // We will stop at the last buffer which
+  // has a message
+
+  int which_buffer = -1; // assume none.
+
+  for ( int i = 0; i < 5; i++ ) {
+    if ( rx_msg[i][0] == '!' ) {
+
+    } else {
+      which_buffer = i;
+    }
   }
-  return strlen(rx_msg);
+
+
+
+  return which_buffer;
+
+
 }
 
 // This ISR simply toggles the state of
