@@ -259,8 +259,8 @@ void IRComm_c::resetRxBuf() {
 // to allow for receipt, and pad/vary
 // to cause asynchronicity
 void IRComm_c::setTXDelay() {
-  float t = (float)random(0, 7);
-  t += 14.0;
+  float t = (float)random(0, 32);
+  t += 64.0;
   // Insert random delay to help
   // break up synchronous tranmission
   // between robots.

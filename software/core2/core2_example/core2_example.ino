@@ -29,6 +29,8 @@ ircomm_status_t ircomm_status;
 
 unsigned long last_msg_count[4];
 
+unsigned long new_msg_ts;
+
 void setup() {
   M5.begin();
   Serial.begin(115200);
@@ -43,6 +45,8 @@ void setup() {
 
   M5.Lcd.setTextColor(WHITE);
   M5.lcd.println("\nSetting up I2C");
+
+  new_msg_ts = millis();
 }
 
 void setIRMessage(char* str_to_send, int len){
@@ -122,7 +126,24 @@ void loop() {
   //getIRMessage(0);
   //setIRMessage("123.4,56.78,910.1", 17);
 
-  
+    if( millis() - new_msg_ts > 500) {
+      new_msg_ts = millis();
+
+      char buf[32];
+      float f_to_send = (float)millis();
+      f_to_send /= 1000.0;
+      // Convert float to a string, store in the
+      // message buffer.
+      // I had a lot of trouble finding a solution for this.
+      // This is an odd, non-standard function I think.
+      // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
+      // https://www.programmingelectronics.com/dtostrf/
+      //  - a minimum of 6 character (e.g. 000.00)
+      //  - 2 digits after decimal
+      //  - store in buf
+      dtostrf(f_to_send, 6, 2, buf);
+      setIRMessage(buf, strlen(buf));
+    }
 
     Serial.println("Read: ");
     Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));

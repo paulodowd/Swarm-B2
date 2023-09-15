@@ -50,8 +50,8 @@ void i2c_recv( int len ) {
       //memset( tx_buf, 0, sizeof( tx_buf ) );
       ircomm.clearTxBuf();
     }
-    Serial.print("I2C Received:" );
-    Serial.println(buf);
+    //Serial.print("I2C Received:" );
+    //Serial.println(buf);
     ircomm.transmitString( buf, strlen(buf));
   }
 
