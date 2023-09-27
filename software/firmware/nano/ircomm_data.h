@@ -19,6 +19,7 @@ typedef struct i2c_status {
 #define MODE_REPORT_MSG1    6
 #define MODE_REPORT_MSG2    7
 #define MODE_REPORT_MSG3    8
+#define MAX_MODE            9
 
 typedef struct i2c_mode {
   uint8_t mode;

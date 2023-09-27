@@ -55,7 +55,7 @@ void IRComm_c::init() {
 
 
   // Set initial time-stamp values
-  ts = millis();
+  led_ts = millis();
   for( int i = 0; i < RX_PWR_N; i++ ) msg_ttl[i] = millis();
 
   tx_ts = millis();
@@ -210,7 +210,7 @@ uint8_t IRComm_c::CRC(char* buf, int len) {
 }
 
 
-// The arduino pro mini has a parallel serial
+// The arduino nano has a parallel serial
 // interface,meaning with IR it can receive
 // it's own tranmission. There, we access the
 // UART register to disable RX functionality.
@@ -238,10 +238,14 @@ void IRComm_c::enableRx() {
 }
 
 
-// Clears our received buffer
+// Clears our received buffer and resets
+// the variables used to read in bytes.
+// calling disableRx and enableRx 
+// flushes the hardware buffer.
 void IRComm_c::resetRxBuf() {
   rx_count = 0;
   PROCESS_MSG = false;
+  GOT_START_TOKEN = false;
   disableRx();
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
@@ -255,10 +259,19 @@ void IRComm_c::resetRxBuf() {
 // 4800 bits per second.
 // 1.042ms per byte.
 // We can transmit up to 32 bytes.
-// So we space transmission by 64ms (???)
-// to allow for receipt, and pad/vary
-// to cause asynchronicity
+// I think here we could do something intelligent
+// like look at how many bytes we are going to transmit
+// and then double this. 
 void IRComm_c::setTXDelay() {
+//  
+//  if( tx_buf[0] == '!' ) {            // no message
+//    t = 1;
+//  } else if( strlen(tx_buf) == 0 ) {  // no message
+//    t = 1;
+//  } else {
+//
+//  }
+  
   float t = (float)random(0, 32);
   t += 64.0;
   // Insert random delay to help
@@ -338,6 +351,8 @@ void IRComm_c::clearRxMsg(int which) {
   }
 }
 
+// This clears out the message we are broadcasting
+// and adds a ! to the 0th character
 void IRComm_c::clearTxBuf(){
   memset(tx_buf, 0, sizeof(tx_buf));
   tx_buf[0] = '!';
@@ -345,12 +360,47 @@ void IRComm_c::clearTxBuf(){
 
 float IRComm_c::getFloatValue(int which) {
   if( which >= 0 && which < RX_PWR_N) {
-  return atof( rx_msg[which] );
+    // check for 0 length?
+    return atof( rx_msg[which] );
   } else {
     return -1;
   }
 }
 
+
+
+/*
+ * This update routine needs to switch betweeen
+ * listening: providing enough time to receive a message
+ *   sending: just Serial.print/flush a message out.
+ *   
+ * How long it will take to send a message will depend
+ * on the message length (number of bytes).  
+ * 
+ * The more important aspect is probably how long it takes
+ * to receive a message, and this is made more complicated
+ * because the sender will not be synchronised with 
+ * the receiver.  So, if we allowed only a fixed period to
+ * receive, the sender needs to start and finish within this
+ * period, but may not start sending at the beginning.
+ * 
+ * The message format implemented has some tokens to help
+ * make sense of whether a message has been transmitted 
+ * successfully:
+ * 
+ * * = start of the message
+ * @ = end message content, checksum byte after
+ * ! = end of whole message
+ * 
+ * So for example *2839.23@E!
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
 void IRComm_c::update() {
 
   // Toggle whether we are broadcasting
@@ -365,8 +415,8 @@ void IRComm_c::update() {
   }
 
   // Clear status LED
-  if ( millis() - ts > 100 ) {
-    ts = millis();
+  if ( millis() - led_ts > 100 ) {
+    led_ts = millis();
     digitalWrite( 13, LOW );
   }
 
@@ -385,7 +435,8 @@ void IRComm_c::update() {
     } else {  // Message from Master to send.
 
       // We have a problem where we pick up
-      // our own reflected transmission.
+      // our own reflected transmission through
+      // a parallel implementation in hardware.
       disableRx();
 
 
@@ -410,23 +461,27 @@ void IRComm_c::update() {
     // If we find a newline, we flag we have
     // a message to attempt to process.
     rx_buf[rx_count] = Serial.read();
+    
+    // Start token? If yes, we can start to fill the 
+    // receiver buffer (rx_buf) by incrementing rx_count
+    if( rx_buf[ rx_count ] == '*' ) GOT_START_TOKEN = true;
+    
     if (rx_buf[rx_count] == '\n' || rx_buf[rx_count] == '!') {
       if( IR_DEBUG_OUTPUT ) Serial.println("Processing because token");
       PROCESS_MSG = true;
     }
 
 
-    // Note that, it might seem like rx_count will
-    // exceed the buffer. The next check should
-    // catch this, and cause the buffer to be
-    // processed.  We don't zero rx_count on each
-    // call of loop() because we may only have a
-    // few characters in the Serial buffer.  So we
-    // need to incrementally fill our rx_buf with
-    // many calls to this while loop.
+    // Note that, the next line might seem like rx_count will
+    // exceed the buffer. 
+    // This while(Serial.available() ) may not read in a whole
+    // message, so this section of code is called iteratively.
     // Processing the message will reset rx_count
     // to 0.
-    rx_count++;
+    // By using GOT_START_TOKEN, I think that we should
+    // always have a full message starting from index 0 in 
+    // rx_buf
+    if( GOT_START_TOKEN ) rx_count++;
 
     // If we exceed the buffer size, we also
     // will try to process the message.
@@ -607,13 +662,15 @@ int IRComm_c::findChar(char c, char* str, int len) {
 }
 
 int IRComm_c::hasMsg(int which) {
-  if( which >= 0 && which < RX_PWR_N) {
-    if (rx_msg[which][0] == '!') {
+  if( which >= 0 && which < RX_PWR_N) { // valid request?
+    if (rx_msg[which][0] == '!') {      // no message?
       return -1;
     }
-  } else {
+  } else {                              // invalid request
     return -1;
   }
+
+  // Valid, has positive length
   return strlen(rx_msg[rx_pwr_index]);
 }
 

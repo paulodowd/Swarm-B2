@@ -18,7 +18,7 @@
 #define RX_PWR_1  3 // LEFT
 #define RX_PWR_2  5 // BACK
 #define RX_PWR_3  7 // RIGHT
-#define RX_PWR_N  4
+#define RX_PWR_N  4 // How many?
 
 
 
@@ -39,6 +39,7 @@ public:
   // Flags
   bool BROADCAST;
   bool PROCESS_MSG;
+  bool GOT_START_TOKEN;
 
 // Message buffers
   char tx_buf[MAX_MSG];  // buffer for IR out (serial)
@@ -51,7 +52,7 @@ public:
 
   unsigned long tx_ts;     // transmit time-stamp
   unsigned long tx_delay;  // delay between tx
-  unsigned long ts;        // general time stamp
+  unsigned long led_ts;        // general time stamp
 
   // to keep track of which of the 5 
   // IR Demodulators is currently active.

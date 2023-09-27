@@ -27,8 +27,12 @@ void i2c_recv( int len ) {
 
 
   if ( len == 1 ) { // receiving a mode change.
-    Wire.readBytes( (byte*)&last_mode, sizeof( last_mode ) );
-
+    i2c_mode_t new_mode;
+    Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
+    // Check we are setting to a valid mode.
+    if( new_mode.mode < MAX_MODE && new_mode.mode > 0 ) {
+      last_mode.mode = new_mode.mode;
+    }
   } else { // Receiving a new message to transmit.
 
     char buf[MAX_MSG]; // temp buffer
@@ -71,6 +75,27 @@ void i2c_send() {
       Wire.write("!");
     } else {
       Wire.write( ircomm.rx_msg[0], strlen(ircomm.rx_msg[0]) );
+    }
+    
+  } else if ( last_mode.mode == MODE_REPORT_MSG1 ) {
+    if ( ircomm.rx_msg[1] == 0 ) {
+      Wire.write("!");
+    } else {
+      Wire.write( ircomm.rx_msg[1], strlen(ircomm.rx_msg[1]) );
+    }
+    
+  } else if ( last_mode.mode == MODE_REPORT_MSG2 ) {
+    if ( ircomm.rx_msg[2] == 0 ) {
+      Wire.write("!");
+    } else {
+      Wire.write( ircomm.rx_msg[2], strlen(ircomm.rx_msg[2]) );
+    }
+    
+  } else if ( last_mode.mode == MODE_REPORT_MSG3 ) {
+    if ( ircomm.rx_msg[3] == 0 ) {
+      Wire.write("!");
+    } else {
+      Wire.write( ircomm.rx_msg[3], strlen(ircomm.rx_msg[3]) );
     }
     
   }
@@ -171,7 +196,7 @@ void loop() {
 //    Serial.flush();
 
     // If you don't delete this received message, it will
-    // stay for 1 second and then be automatically deleted.
+    // stay for TTL time (ircomm.h) and then be automatically deleted.
     //ircomm.clearRxMsg(ircomm.rx_pwr_index);
 
     // Don't forget to re-enable receiving messages after
