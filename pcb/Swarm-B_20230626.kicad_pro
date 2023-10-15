@@ -114,7 +114,7 @@
       "rule_severitieslegacy_no_courtyard_defined": false,
       "rules": {
         "max_error": 0.005,
-        "min_clearance": 0.15,
+        "min_clearance": 0.254,
         "min_connection": 0.15,
         "min_copper_edge_clearance": 0.3,
         "min_hole_clearance": 0.254,
