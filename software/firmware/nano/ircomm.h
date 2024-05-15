@@ -9,23 +9,29 @@
 #define STATE_IR_TX_OFF 2
 #define MAX_MSG 32
 
-#define TTL 100          // keep a message for 0.1 second 
-                          // then delete.
 
-
+#define TX_DELAY_BIAS 500
+#define TX_DELAY_MOD  250
 
 #define RX_PWR_0  2 // Forward
 #define RX_PWR_1  3 // LEFT
 #define RX_PWR_2  5 // BACK
 #define RX_PWR_3  7 // RIGHT
-#define RX_PWR_N  4 // How many?
+#define RX_PWR_MAX  4 // How many?
 
+#define CYCLE_ON_RX false
 
 
 // 38Khz signal generated on
 // digital pin 4.
 #define TX_CLK_OUT 4
 
+// Uncomment to see debug output.  Note that, we
+// are going to use the serial port for debugging, 
+// which means we will effectively be transmitting
+// debug output to other boards, and without disabling
+// the rx component we'll also receive our own 
+// transmission.  Complicated!
 //#define IR_DEBUG_OUTPUT true
 #define IR_DEBUG_OUTPUT false
 
@@ -41,18 +47,30 @@ public:
   bool PROCESS_MSG;
   bool GOT_START_TOKEN;
 
-// Message buffers
+  // IR Tx/Rx Message buffers
+  int rx_count;           // tracks how full the rx buffer is.
   char tx_buf[MAX_MSG];  // buffer for IR out (serial)
   char rx_buf[MAX_MSG];  // buffer for IR in  (serial)
-  char rx_msg[RX_PWR_N][MAX_MSG];  // holding buffer 
 
-  int rx_count;           // tracks how full the rx buffer is.
+  // I2C buffer
+  char rx_msg[RX_PWR_MAX][MAX_MSG];   
 
-  unsigned long msg_ttl[RX_PWR_N];  // msg time to live
+  // Message receiving stats
+  unsigned long pass_count[RX_PWR_MAX];
+  unsigned long fail_count[RX_PWR_MAX];
+  float rx_ratio[RX_PWR_MAX];
+  unsigned long msg_dt[RX_PWR_MAX];
+  unsigned long msg_t[RX_PWR_MAX];
 
   unsigned long tx_ts;     // transmit time-stamp
   unsigned long tx_delay;  // delay between tx
   unsigned long led_ts;        // general time stamp
+
+
+  // To manage how quickly we cycle across
+  // all receivers.
+  unsigned long CYCLE_TIME_MS = 200;
+  unsigned long cycle_ts;
 
   // to keep track of which of the 5 
   // IR Demodulators is currently active.
@@ -72,8 +90,8 @@ public:
   void enableRx();
   void disableRx();
   
-  void transmitString( char * str_to_send, int len );
-  void transmitFloat( float f_to_send );
+  void formatString( char * str_to_send, int len );
+  void formatFloat( float f_to_send );
   
   
   int hasMsg(int which);
