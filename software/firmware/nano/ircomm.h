@@ -10,8 +10,8 @@
 #define MAX_MSG 32
 
 
-#define TX_DELAY_BIAS 500
-#define TX_DELAY_MOD  250
+#define TX_DELAY_BIAS 250
+#define TX_DELAY_MOD  100
 
 #define RX_PWR_0  2 // Forward
 #define RX_PWR_1  3 // LEFT
@@ -19,7 +19,7 @@
 #define RX_PWR_3  7 // RIGHT
 #define RX_PWR_MAX  4 // How many?
 
-#define CYCLE_ON_RX false
+#define CYCLE_ON_SUCCESS false
 
 
 // 38Khz signal generated on
@@ -98,6 +98,7 @@ public:
 
   int findChar( char c, char * str, int len);
   void resetRxBuf();
+  void resetRxFlags();
   int processRxBuf();
   uint8_t CRC( char * buf, int len);
   

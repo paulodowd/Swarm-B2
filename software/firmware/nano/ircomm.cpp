@@ -89,10 +89,7 @@ int IRComm_c::getActiveRx() {
 
 void IRComm_c::powerOnRx( byte index ) {
 
-  // Disabling the UART will ensure our
-  // receive buffer is cleared of contents
-  //disableRx();
-
+  
   if ( index == 0 ) {
     digitalWrite( RX_PWR_0, HIGH );
     digitalWrite( RX_PWR_1, LOW );
@@ -115,8 +112,10 @@ void IRComm_c::powerOnRx( byte index ) {
     digitalWrite( RX_PWR_3, HIGH );
   }
 
+  // After changing which receiver is active,
+  // the serial buffer is full of old data.
+  // We clear it now.
   resetRxBuf();
-  //enableRx();
 }
 
 // The arduino nano has a parallel serial
@@ -160,6 +159,16 @@ void IRComm_c::resetRxBuf() {
   enableRx();
 }
 
+// Clears flags to allow next message to
+// be processed, but without clearing the
+// hardware uart buffer.
+void IRComm_c::resetRxFlags() {
+  rx_count = 0;
+  PROCESS_MSG = false;
+  GOT_START_TOKEN = false;
+  memset(rx_buf, 0, sizeof(rx_buf));
+}
+
 
 void IRComm_c::powerOffAllRx() {
   digitalWrite( RX_PWR_0, LOW );
@@ -180,13 +189,15 @@ void IRComm_c::powerOnAllRx() {
 // - start token, 1 byte '*'
 // - checksum token, 1 byte '@'
 // - checksum itself, 1 byte
-// So 3 bytes subtracted from the buffer
-// So the maxmimum length string we can send is 29 bytes
+// - terminal character, 1 byte '!'
+// So 4 bytes subtracted from the buffer
+// So the maxmimum length string we can send is 28 bytes
 void IRComm_c::formatString(char* str_to_send, int len) {
   char buf[MAX_MSG];
   int count;
 
-  if (len > 29) return;
+  // String to big? Drop the tail
+  if (len > 28) len = 28;
 
   // Clear buffer
   memset(buf, 0, sizeof(buf));
@@ -463,13 +474,21 @@ void IRComm_c::update() {
   // Check for new message in serial buffer
   // Reads in currently available char's, should
   // not take long.
+  // Importantly, we use the PROCESS_MSG flag
+  // to trigger when we should attempt to process
+  // the message.  Therefore, we're not expecting
+  // to get a complete message within one cycle of
+  // this while loop - it just reads out the
+  // currently available bytes.
   while (Serial.available() && !PROCESS_MSG) {
     // If we find a newline, we flag we have
     // a message to attempt to process.
     rx_buf[rx_count] = Serial.read();
 
     // Start token? If yes, we can start to fill the
-    // receiver buffer (rx_buf) by incrementing rx_count
+    // receiver buffer (rx_buf), and after setting
+    // GOT_START_TOKEN=true rx_count will start to
+    // be incremented.
     if ( rx_buf[ rx_count ] == '*' ) GOT_START_TOKEN = true;
 
     if (rx_buf[rx_count] == '\n' || rx_buf[rx_count] == '!') {
@@ -487,6 +506,7 @@ void IRComm_c::update() {
     // By using GOT_START_TOKEN, I think that we should
     // always have a full message starting from index 0 in
     // rx_buf
+    // If rx_count does exceed max_message, we break.
     if ( GOT_START_TOKEN ) rx_count++;
 
     // If we exceed the buffer size, we also
@@ -508,18 +528,20 @@ void IRComm_c::update() {
     if (rx_count <= 0 || rx_buf[0] == 0) {
       // bad read.
       if ( IR_DEBUG_OUTPUT )Serial.println("bad serial");
-      resetRxBuf();
-
+      
+      // I was doing a hardware reset of UART.
+      // However, the UART buffer is 64 bytes, and so
+      // it could be full of other potentially valid 
+      // messages. Therefore, we just reset the flags.
+      //resetRxBuf();
+      resetRxFlags();
+      
     } else {
-      //disableRx();
-      //unsigned long start_t = millis();
-
+      
       // From testing, this processRxBuf() takes less than
       // 1ms to execute.
       processRxBuf();
-      //Serial.println( (millis() - start_t ) );
-
-      //enableRx();
+      
     }
   }
 
@@ -682,12 +704,12 @@ int IRComm_c::processRxBuf() {
 
   // Unlikely to receive another message within
   // this window, so skip cycle
-  if ( CYCLE_ON_RX ) {
+  if ( CYCLE_ON_SUCCESS ) {
     cycle_ts = millis();
     cyclePowerRx();
   } else {
-    resetRxBuf();
-
+    //resetRxBuf();
+    resetRxFlags();
   }
 }
 

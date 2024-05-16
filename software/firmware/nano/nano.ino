@@ -1,3 +1,11 @@
+/*
+ * 
+ * Currently getting 2.93ms per byte for IR transmission.
+ * I2C limits the string to max 32 bytes.  However, using
+ * 4 bytes as start, token, checkbyte and terminal.
+ * Serial UART can buffer 64bytes.
+ */
+
 
 #include <avr/io.h>
 #include <Wire.h>
@@ -220,48 +228,58 @@ void loop() {
 
     } else if ( SELF_TEST_MODE == TEST_RX ) {
 
-//      Serial.print("Rx Times: ");
+//      Looking at actual strings received.
 //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-//        Serial.print( ircomm.msg_dt[i] );
-//        Serial.print(", ");
+//        Serial.print( ircomm.rx_msg[i] );
+//
+//
+//        Serial.print("\n");
 //      }
 //      Serial.print("\n");
 
-//
-      //Serial.print("Pass count: ");
+//      Looking at the time between receiving messages
+      Serial.print("Rx Times: ");
       for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-        Serial.print( ircomm.pass_count[i] );
+        Serial.print( ircomm.msg_dt[i] );
         Serial.print(", ");
       }
       Serial.print("\n");
-//
-//
-//      Serial.print("Fail count: ");
-//      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-//        Serial.print( ircomm.fail_count[i] );
-//        Serial.print(", ");
-//      }
-//      Serial.print("\n");
-//
-//
-//      Serial.print("Rx Ratios: ");
-//      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-//        float pass = (float)ircomm.pass_count[i];
-//        float fail = (float)ircomm.fail_count[i];
-//        if ( fail > 0 && pass > 0 ) {
-//          Serial.print( (fail / pass) );
-//        } else {
-//          Serial.print( "0.0" );
-//        }
-//        Serial.print(", ");
-//      }
-//      Serial.print("\n");
+
+      //      Looking at how many received without error (pass)
+      //      //Serial.print("Pass count: ");
+      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //        Serial.print( ircomm.pass_count[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.print("\n");
+      //
+      //      Looking at how many received with error (fail)
+      //      Serial.print("Fail count: ");
+      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //        Serial.print( ircomm.fail_count[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.print("\n");
+      //
+      //
+      //      Serial.print("Rx Ratios: ");
+      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //        float pass = (float)ircomm.pass_count[i];
+      //        float fail = (float)ircomm.fail_count[i];
+      //        if ( fail > 0 && pass > 0 ) {
+      //          Serial.print( (fail / pass) );
+      //        } else {
+      //          Serial.print( "0.0" );
+      //        }
+      //        Serial.print(", ");
+      //      }
+      //      Serial.print("\n");
     }
 
   }
 
 
- 
+
 
 
   // If you don't want your board to transmit,
@@ -282,9 +300,9 @@ void loop() {
 
   // I'm copying like this because in the future I think we
   // can use this to detect new messages by comparing counts
-//  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.msg_dt[i];//pass_count[ircomm.rx_pwr_index];
+  //  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.msg_dt[i];//pass_count[ircomm.rx_pwr_index];
 
-  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.pass_count[i];
+  for ( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.pass_count[i];
 
 }
 
