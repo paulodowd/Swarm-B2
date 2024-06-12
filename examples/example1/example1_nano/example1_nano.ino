@@ -49,8 +49,10 @@ void i2c_recv( int len ) {
   if ( len == 1 ) { // receiving a mode change.
     i2c_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
+
+    
     // Check we are setting to a valid mode.
-    if ( new_mode.mode < MAX_MODE && new_mode.mode > 0 ) {
+    if ( new_mode.mode < MAX_MODE && new_mode.mode >= 0 ) {
       last_mode.mode = new_mode.mode;
     }
 
@@ -88,8 +90,8 @@ void i2c_recv( int len ) {
 
 }
 
-// When the Core2 calls an i2c request, this function
-// is executed.  Sends robot status to Core2.
+// When the 3Pi or Core2 calls an i2c request, this function
+// is executed.  
 void i2c_send() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
@@ -100,9 +102,17 @@ void i2c_send() {
   } else if ( last_mode.mode == MODE_REPORT_LDR0 ) {
     Wire.write((byte*)&status.ldr[0], sizeof( status.ldr[0] ));
 
+
+  
+  } else if ( last_mode.mode == MODE_STATUS_MSG0 ) {
+      i2c_mode_t msg_status;
+      msg_status.mode = strlen( ircomm.rx_msg[0] );
+      Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+      
+  
   } else if ( last_mode.mode == MODE_REPORT_MSG0 ) {
-    if ( ircomm.rx_msg[0] == 0 ) {
-      Wire.write("!");
+    if ( ircomm.rx_msg[0] == 0 ) { 
+      Wire.write("!");  // Error token
     } else {
       Wire.write( ircomm.rx_msg[0], strlen(ircomm.rx_msg[0]) );
       // Delete message
@@ -164,6 +174,8 @@ void setup() {
   // Debug LED
   pinMode( 13, OUTPUT );
 
+
+  
 
   // Begin I2C as a slave device.
   Wire.begin( I2C_ADDR );
@@ -244,11 +256,11 @@ void loop() {
 
       //      Looking at how many received without error (pass)
       //      //Serial.print("Pass count: ");
-            for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-              Serial.print( ircomm.pass_count[i] );
-              Serial.print(", ");
-            }
-            Serial.print("\n");
+//            for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+//              Serial.print( ircomm.pass_count[i] );
+//              Serial.print(", ");
+//            }
+//            Serial.print("\n");
       //
       //      Looking at how many received with error (fail)
       //      Serial.print("Fail count: ");
