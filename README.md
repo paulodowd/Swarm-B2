@@ -10,6 +10,8 @@ The IR Communication board is built around an Arduino Nano, so you should follow
 ## Using the IR Communication board with other devices
 This IR communication board can be used as a general purpose communication board.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
 
+Because the IR Communication board is designed around an Arduino Nano, it should also be relatively simple to adjust the nano software to operate as a stand-alone device.
+
 ## Minor Modifications to the Pololu 3Pi+
 The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
 
