@@ -12,6 +12,9 @@ The IR Communication board has been designed to work with the Atmega32u4 variant
 ## IR Communication board Programming / Updating
 To program the IR Communication board with the software, or to update it with your own software, it is necessary to first remove the jumper situated on the back of the circuit board labelled `RX_break`.  If you do not do this, the Arduino IDE will report that the programmer cannot sync with the arduino device (or similar error).  Remember to replace this jumper, because it connects the IR receiver modules electronically to the Arduino. 
 
+## BOM, Bill of Materials
+
+
 ## Fabrication, Gerber files
 Navigate to folder `pcb` to find the last known gerber files sent for manufacturing, `Gerbers.zip`.  
 
