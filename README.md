@@ -1,7 +1,7 @@
 # Swarm-B2
 IR Communication board for Pololu 3Pi+ robots that also accommodates an M5 Stack Core2
 
-## Modifications to the Pololu 3Pi+
+## Minor Modifications to the Pololu 3Pi+
 The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
 
 ## IR Communication board Programming / Updating
