@@ -1,7 +1,9 @@
 # Swarm-B2
 IR Communication board for Pololu 3Pi+ robots that also accommodates an M5 Stack Core2.  
 
-## Using the IR Communication board with other devices.
+## IR Communication board fully assembled
+
+## Using the IR Communication board with other devices
 This IR communication board can be used as a general purpose communication board.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
 
 ## Minor Modifications to the Pololu 3Pi+
