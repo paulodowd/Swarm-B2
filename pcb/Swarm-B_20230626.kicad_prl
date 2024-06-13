@@ -70,6 +70,12 @@
     "visible_layers": "0015ff3_ffffffff",
     "zone_display_mode": 0
   },
+  "git": {
+    "repo_password": "",
+    "repo_type": "",
+    "repo_username": "",
+    "ssh_key": ""
+  },
   "meta": {
     "filename": "Swarm-B_20230626.kicad_prl",
     "version": 3

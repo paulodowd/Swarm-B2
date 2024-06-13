@@ -56,12 +56,14 @@ public:
   char rx_msg[RX_PWR_MAX][MAX_MSG];   
 
   // Message receiving stats
-  unsigned long pass_count[RX_PWR_MAX];
-  unsigned long fail_count[RX_PWR_MAX];
-  float rx_ratio[RX_PWR_MAX];
-  unsigned long msg_dt[RX_PWR_MAX];
-  unsigned long msg_t[RX_PWR_MAX];
+  // uint16_t = 65,535 max
+  uint16_t pass_count[RX_PWR_MAX];   // received correctly
+  uint16_t fail_count[RX_PWR_MAX];   // received with error
+  uint16_t msg_dt[RX_PWR_MAX];       // time between last 2 messages
+  uint16_t msg_t[RX_PWR_MAX];        // last message time in millis
 
+  float rx_ratio[RX_PWR_MAX];
+  
   unsigned long tx_ts;     // transmit time-stamp
   unsigned long tx_delay;  // delay between tx
   unsigned long led_ts;        // general time stamp
