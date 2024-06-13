@@ -3,26 +3,46 @@
 
 #pragma pack(1)
 
-// Currently 23 bytes (max 32)
+// A general status structure to discover
+// what mode the board is in, and the number
+// of messages received correctly or with error
+// The max possible size of an i2c struct is
+// 32 bytes.
 typedef struct i2c_status { 
-  uint8_t mode;                       // 1  bytes
-  uint8_t ldr[3];                     // 3  bytes
-  unsigned long msg_count[4];         // 16 bytes
+  uint8_t mode;                   // 1  bytes
+  uint16_t fail_count[4];          // 8 bytes
+  uint16_t pass_count[4];         // 8 bytes 
 } i2c_status_t;
+
+// Small struct used to change mode.
+// It's also 1 byte, so convenient to
+// pass around 1 byte of data.
+typedef struct i2c_mode {
+  uint8_t mode;
+} i2c_mode_t;
+
+typedef struct i2c_sensors {
+  int16_t ldr[3];     // 6 bytes
+  int16_t prox[2];    // 4 bytes
+} i2c_sensors_t;
 
 #define MODE_REPORT_STATUS  0
 #define MODE_STOP_TX        1
 #define MODE_REPORT_LDR0    2
 #define MODE_REPORT_LDR1    3
 #define MODE_REPORT_LDR2    4
-#define MODE_REPORT_MSG0    5
-#define MODE_REPORT_MSG1    6
-#define MODE_REPORT_MSG2    7
-#define MODE_REPORT_MSG3    8
-#define MAX_MODE            9
+#define MODE_STATUS_MSG0    5
+#define MODE_STATUS_MSG0    6
+#define MODE_STATUS_MSG1    7
+#define MODE_STATUS_MSG2    8
+#define MODE_STATUS_MSG3    9
+#define MODE_REPORT_MSG0    10
+#define MODE_REPORT_MSG1    11
+#define MODE_REPORT_MSG2    12
+#define MODE_REPORT_MSG3    13
+#define MODE_REPORT_SENSORS 14
+#define MAX_MODE            15
 
-typedef struct i2c_mode {
-  uint8_t mode;
-} i2c_mode_t;
+
 
 #endif

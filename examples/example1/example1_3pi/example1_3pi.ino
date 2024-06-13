@@ -67,6 +67,9 @@ void loop() {
     Serial.println();
 
 
+    // Test for getting data from extra sensors.
+    getSensors();
+
   }
 
   // Update the message being transmitted every 5000ms (5s)
@@ -137,8 +140,40 @@ void setIRMessage(char* str_to_send, int len) {
   }
 }
 
+void getSensors() {
+  // Set mode to read fetch sensor data
+  ircomm_mode.mode = MODE_REPORT_SENSORS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  // struct to store sensor data
+  i2c_sensors_t sensors;
+
+  // Read across bytes
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( sensors ));
+  Wire.readBytes( (uint8_t*)&sensors, sizeof( sensors ));
+
+  Serial.println("Sensors:");
+  Serial.print(" - LDR: ");
+  for (int i = 0; i < 3; i++ ) {
+    Serial.print( sensors.ldr[i] );
+    Serial.print(",");
+  }
+  Serial.print("\n - Prox:");
+  for (int i = 0; i < 2; i++ ) {
+    Serial.print( sensors.prox[i] );
+    Serial.print(",");
+  }
+  Serial.println();
+
+}
+
 // Get the latest message from the communication board
 // from receiver "which_rx" (0,1,2,3).
+// This is a little bit more complicated because we don't
+// know how long a message will be. So we have to first 
+// ask how many bytes are available (present).
 void getIRMessage(int which_rx ) {
   if ( which_rx < 0 || which_rx >= 4 ) {
     // Invalid

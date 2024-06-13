@@ -1,10 +1,10 @@
 /*
- * 
- * Currently getting 2.93ms per byte for IR transmission.
- * I2C limits the string to max 32 bytes.  However, using
- * 4 bytes as start, token, checkbyte and terminal.
- * Serial UART can buffer 64bytes.
- */
+
+   Currently getting 2.93ms per byte for IR transmission.
+   I2C limits the string to max 32 bytes.  However, using
+   4 bytes as start, token, checkbyte and terminal.
+   Serial UART can buffer 64bytes.
+*/
 
 
 #include <avr/io.h>
@@ -21,6 +21,14 @@
 #define SELF_TEST_MODE TEST_DISABLED
 //#define SELF_TEST_MODE TEST_TX
 //#define SELF_TEST_MODE TEST_RX
+
+// Pin definitions for extra sensors
+// on the communication board, if present
+#define LDR0_PIN  A0
+#define LDR1_PIN  A1
+#define LDR2_PIN  A2
+#define PROX0_PIN A6
+#define PROX1_PIN A7
 
 // Used to control the IR communication.
 IRComm_c ircomm;
@@ -49,8 +57,10 @@ void i2c_recv( int len ) {
   if ( len == 1 ) { // receiving a mode change.
     i2c_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
+
+
     // Check we are setting to a valid mode.
-    if ( new_mode.mode < MAX_MODE && new_mode.mode > 0 ) {
+    if ( new_mode.mode < MAX_MODE && new_mode.mode >= 0 ) {
       last_mode.mode = new_mode.mode;
     }
 
@@ -88,28 +98,54 @@ void i2c_recv( int len ) {
 
 }
 
-// When the Core2 calls an i2c request, this function
-// is executed.  Sends robot status to Core2.
+// When the 3Pi or Core2 calls an i2c request, this function
+// is executed.
 void i2c_send() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
     Wire.write( (byte*)&status, sizeof( status ) );
 
+    //
+    // Below are request for message size from the
+    // master device.
+    //
+  } else if ( last_mode.mode == MODE_STATUS_MSG0 ) {
+    i2c_mode_t msg_status;
+    msg_status.mode = strlen( ircomm.rx_msg[0] );
+    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
-  } else if ( last_mode.mode == MODE_REPORT_LDR0 ) {
-    Wire.write((byte*)&status.ldr[0], sizeof( status.ldr[0] ));
 
+  } else if ( last_mode.mode == MODE_STATUS_MSG1 ) {
+    i2c_mode_t msg_status;
+    msg_status.mode = strlen( ircomm.rx_msg[1] );
+    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+
+
+  } else if ( last_mode.mode == MODE_STATUS_MSG2 ) {
+    i2c_mode_t msg_status;
+    msg_status.mode = strlen( ircomm.rx_msg[2] );
+    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+
+
+  } else if ( last_mode.mode == MODE_STATUS_MSG3 ) {
+    i2c_mode_t msg_status;
+    msg_status.mode = strlen( ircomm.rx_msg[3] );
+    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+
+
+    //
+    // Below are requests for actual message to be
+    // reported to the master device
+    //
   } else if ( last_mode.mode == MODE_REPORT_MSG0 ) {
     if ( ircomm.rx_msg[0] == 0 ) {
-      Wire.write("!");
+      Wire.write("!");  // Error token
     } else {
       Wire.write( ircomm.rx_msg[0], strlen(ircomm.rx_msg[0]) );
       // Delete message
       ircomm.clearRxMsg( 0 );
     }
-
-
 
   } else if ( last_mode.mode == MODE_REPORT_MSG1 ) {
     if ( ircomm.rx_msg[1] == 0 ) {
@@ -119,8 +155,6 @@ void i2c_send() {
       // Delete message
       ircomm.clearRxMsg( 1 );
     }
-
-
 
   } else if ( last_mode.mode == MODE_REPORT_MSG2 ) {
     if ( ircomm.rx_msg[2] == 0 ) {
@@ -143,6 +177,20 @@ void i2c_send() {
       ircomm.clearRxMsg( 3 );
     }
 
+  } else if ( last_mode.mode == MODE_REPORT_SENSORS ) {
+
+    // Data struct
+    i2c_sensors_t sensors;
+
+    // Collect sensor readings
+    sensors.ldr[0] = (int16_t)analogRead( LDR0_PIN );
+    sensors.ldr[1] = (int16_t)analogRead( LDR1_PIN );
+    sensors.ldr[2] = (int16_t)analogRead( LDR2_PIN );
+    sensors.prox[0] = (int16_t)analogRead( PROX0_PIN );
+    sensors.prox[1] = (int16_t)analogRead( PROX1_PIN );
+
+    // Transmit
+    Wire.write( (byte*)&sensors, sizeof( sensors ) );
   }
 }
 
@@ -156,13 +204,17 @@ void setup() {
   // Set random seed.
   initRandomSeed();
 
-  // Pinmodes
-  pinMode(A0, INPUT);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
+  // Pinmodes for LDR
+  pinMode(LDR0_PIN, INPUT);
+  pinMode(LDR1_PIN, INPUT);
+  pinMode(LDR2_PIN, INPUT);
+  pinMode(PROX0_PIN, INPUT);
+  pinMode(PROX1_PIN, INPUT);
 
   // Debug LED
   pinMode( 13, OUTPUT );
+
+
 
 
   // Begin I2C as a slave device.
@@ -177,15 +229,11 @@ void setup() {
 
   last_mode.mode = MODE_REPORT_STATUS;
 
-  status.mode = 0;
-  status.ldr[0] = 0;
-  status.ldr[1] = 0;
-  status.ldr[2] = 0;
-  status.msg_count[0] = 0;
-  status.msg_count[1] = 0;
-  status.msg_count[2] = 0;
-  status.msg_count[3] = 0;
-
+  status.mode = MODE_REPORT_STATUS;
+  for ( int i = 0; i < 4; i++ ) {
+    status.pass_count[i] = 0;
+    status.fail_count[i] = 0;
+  }
 
   cycle_ts = millis();
   status_ts = millis();
@@ -208,15 +256,10 @@ void loop() {
   if ( millis() - status_ts > STATUS_MS ) {
     status_ts = millis();
 
-    // Capture LDR light values
-    status.ldr[0] = analogRead( A0 );
-    status.ldr[1] = analogRead( A1 );
-    status.ldr[2] = analogRead( A2 );
-
-    // use mode variable to report back which
-    // receiver is currently active.
-    status.mode = (uint8_t)ircomm.rx_pwr_index;
-    //Serial.println("Status Update");
+    // There used to be a general status update done here
+    // but it is now done in place in different areas of
+    // operation. I'm using this status update time to
+    // operate tests modes instead.
 
     if ( SELF_TEST_MODE == TEST_TX ) {
       char buf[20];
@@ -225,30 +268,30 @@ void loop() {
 
     } else if ( SELF_TEST_MODE == TEST_RX ) {
 
-//      Looking at actual strings received.
-//      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-//        Serial.print( ircomm.rx_msg[i] );
-//
-//
-//        Serial.print("\n");
-//      }
-//      Serial.print("\n");
+      //      Looking at actual strings received.
+      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //        Serial.print( ircomm.rx_msg[i] );
+      //
+      //
+      //        Serial.print("\n");
+      //      }
+      //      Serial.print("\n");
 
-//      Looking at the time between receiving messages
-//      Serial.print("Rx Times: ");
-//      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-//        Serial.print( ircomm.msg_dt[i] );
-//        Serial.print(", ");
-//      }
-//      Serial.print("\n");
+      //      Looking at the time between receiving messages
+      //      Serial.print("Rx Times: ");
+      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //        Serial.print( ircomm.msg_dt[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.print("\n");
 
       //      Looking at how many received without error (pass)
       //      //Serial.print("Pass count: ");
-            for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-              Serial.print( ircomm.pass_count[i] );
-              Serial.print(", ");
-            }
-            Serial.print("\n");
+      //            for ( int i = 0; i < RX_PWR_MAX; i++ ) {
+      //              Serial.print( ircomm.pass_count[i] );
+      //              Serial.print(", ");
+      //            }
+      //            Serial.print("\n");
       //
       //      Looking at how many received with error (fail)
       //      Serial.print("Fail count: ");
@@ -299,7 +342,10 @@ void loop() {
   // can use this to detect new messages by comparing counts
   //  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.msg_dt[i];//pass_count[ircomm.rx_pwr_index];
 
-  for ( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.pass_count[i];
+  for ( int i = 0; i < 4; i++ ) {
+    status.pass_count[ i ] = ircomm.pass_count[i];
+    status.fail_count[ i ] = ircomm.fail_count[i];
+  }
 
 }
 
