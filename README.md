@@ -21,3 +21,8 @@ Navigate to folder `pcb` to find the last known gerber files sent for manufactur
 ## Schematic
 The schematic of the communication board is available in picture format in the `images` folder and within the pcb folder as KiCad files.
 <img src="https://raw.githubusercontent.com/paulodowd/Swarm-B2/main/images/schematic.svg">
+
+## Notes on Using a M5Stack Core2
+
+The docs for the M5Stack Core2 are at this <a href="https://docs.m5stack.com/en/core/core2">link</a>.
+Follow the guides at <a href="https://docs.m5stack.com/en/arduino/arduino_ide">this link</a> to setup the Arduino IDE.
