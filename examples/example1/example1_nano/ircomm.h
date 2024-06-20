@@ -9,18 +9,27 @@
 #define STATE_IR_TX_OFF 2
 #define MAX_MSG 32
 
+// It seems to be about 2.5ms per byte
+// during serial tranmission at 4800 
+// baud.  Therefore, we'd need 80ms to
+// send/receive a full 32 bytes. 
+// If we need at least double the time
+// to receive a full message, that gives 
+// 160ms.  How much can this vary?
+// Let's say a message length (80ms) 
+// but as +/-40ms.  
+#define RX_DELAY_BIAS 160
+#define RX_DELAY_MOD  40
 
-#define TX_DELAY_BIAS 250
-#define TX_DELAY_MOD  100
-
-#define RX_PWR_0  2 // Forward
-#define RX_PWR_1  3 // LEFT
+#define RX_PWR_0  3 // Forward
+#define RX_PWR_1  2 // LEFT
 #define RX_PWR_2  5 // BACK
 #define RX_PWR_3  7 // RIGHT
 #define RX_PWR_MAX  4 // How many?
 
-#define CYCLE_ON_SUCCESS false
+#define CYCLE_ON_SUCCESS true
 
+#define RX_MAG_MS 500
 
 // 38Khz signal generated on
 // digital pin 4.
@@ -43,14 +52,20 @@ public:
   int state;
 
   // Flags
-  bool BROADCAST;
-  bool PROCESS_MSG;
+    bool PROCESS_MSG;
   bool GOT_START_TOKEN;
 
   // IR Tx/Rx Message buffers
   int rx_count;           // tracks how full the rx buffer is.
   char tx_buf[MAX_MSG];  // buffer for IR out (serial)
   char rx_buf[MAX_MSG];  // buffer for IR in  (serial)
+
+  // magnitudes to construct an angle of
+  // message reception.  We simply sum the
+  // message counts within a period of time
+  unsigned long rx_mag_ts;
+  float rx_mag[4];
+  float msg_dir;
 
   // I2C buffer
   char rx_msg[RX_PWR_MAX][MAX_MSG];   
@@ -64,8 +79,8 @@ public:
 
   float rx_ratio[RX_PWR_MAX];
   
-  unsigned long tx_ts;     // transmit time-stamp
-  unsigned long tx_delay;  // delay between tx
+  unsigned long rx_ts;     // transmit time-stamp
+  unsigned long rx_delay;  // delay between tx
   unsigned long led_ts;        // general time stamp
 
 
@@ -82,7 +97,7 @@ public:
   void init();
   void update();
   void setupTimer2();
-  void setTXDelay();
+  void setRXDelay();
   
   void powerOffAllRx();
   void powerOnAllRx();
@@ -103,6 +118,8 @@ public:
   void resetRxFlags();
   int processRxBuf();
   uint8_t CRC( char * buf, int len);
+
+  void doTransmit();
   
   void enableTx();
   void disableTx(); 

@@ -33,16 +33,11 @@
 // Used to control the IR communication.
 IRComm_c ircomm;
 
-// How frequently to update the general
-// status of the board, e.g., the LDR
-// readings.
-unsigned long status_ts;
-#define STATUS_MS 250
+// A timestamp used only to configure various
+// testing/debugging activities.
+unsigned long test_ts;
+#define TEST_MS 300
 
-// Cycle for which IR receiver is being
-// used.
-unsigned long cycle_ts;
-#define CYCLE_MS 250    // 250ms per receiver?
 
 i2c_mode_t last_mode;
 i2c_status_t status;
@@ -64,9 +59,16 @@ void i2c_recv( int len ) {
       last_mode.mode = new_mode.mode;
     }
 
-    // Special command
+    // For instant mode changes
+    // Should we set a last_mode state after this?
     if ( new_mode.mode == MODE_STOP_TX ) {
       ircomm.clearTxBuf();
+    } else if ( new_mode.mode == MODE_RESET_COUNTS ) {
+      for ( int i = 0; i < 4; i++ ) {
+        status.fail_count[i] = 0;
+        status.pass_count[i] = 0;
+      }
+
     }
 
 
@@ -103,6 +105,12 @@ void i2c_recv( int len ) {
 void i2c_send() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
+
+    status.msg_dir = ircomm.msg_dir;
+    for ( int i = 0; i < 4; i++ ) {
+      status.pass_count[ i ] = ircomm.pass_count[i];
+      status.fail_count[ i ] = ircomm.fail_count[i];
+    }
 
     Wire.write( (byte*)&status, sizeof( status ) );
 
@@ -182,7 +190,7 @@ void i2c_send() {
     // Data struct
     i2c_sensors_t sensors;
 
-    // Collect sensor readings
+    // Collect sensor readings - should be very quick
     sensors.ldr[0] = (int16_t)analogRead( LDR0_PIN );
     sensors.ldr[1] = (int16_t)analogRead( LDR1_PIN );
     sensors.ldr[2] = (int16_t)analogRead( LDR2_PIN );
@@ -235,8 +243,7 @@ void setup() {
     status.fail_count[i] = 0;
   }
 
-  cycle_ts = millis();
-  status_ts = millis();
+  test_ts = millis();
 
   if ( SELF_TEST_MODE == TEST_TX ) {
     char buf[20];
@@ -253,68 +260,24 @@ void loop() {
 
 
   // Periodic update of other board status
-  if ( millis() - status_ts > STATUS_MS ) {
-    status_ts = millis();
-
-    // There used to be a general status update done here
-    // but it is now done in place in different areas of
-    // operation. I'm using this status update time to
-    // operate tests modes instead.
-
+  if ( millis() - test_ts > TEST_MS ) {
+    test_ts = millis();
     if ( SELF_TEST_MODE == TEST_TX ) {
       char buf[20];
-      sprintf( buf, "Testing:%lu", millis() );
+      sprintf( buf, "Test:%lu", millis() );
       ircomm.formatString(buf, strlen(buf) );
 
-    } else if ( SELF_TEST_MODE == TEST_RX ) {
-
-      //      Looking at actual strings received.
-      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-      //        Serial.print( ircomm.rx_msg[i] );
-      //
-      //
-      //        Serial.print("\n");
-      //      }
-      //      Serial.print("\n");
-
-      //      Looking at the time between receiving messages
-      //      Serial.print("Rx Times: ");
-      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-      //        Serial.print( ircomm.msg_dt[i] );
-      //        Serial.print(", ");
-      //      }
-      //      Serial.print("\n");
-
-      //      Looking at how many received without error (pass)
-      //      //Serial.print("Pass count: ");
-      //            for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-      //              Serial.print( ircomm.pass_count[i] );
-      //              Serial.print(", ");
-      //            }
-      //            Serial.print("\n");
-      //
-      //      Looking at how many received with error (fail)
-      //      Serial.print("Fail count: ");
-      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-      //        Serial.print( ircomm.fail_count[i] );
-      //        Serial.print(", ");
-      //      }
-      //      Serial.print("\n");
-      //
-      //
-      //      Serial.print("Rx Ratios: ");
-      //      for ( int i = 0; i < RX_PWR_MAX; i++ ) {
-      //        float pass = (float)ircomm.pass_count[i];
-      //        float fail = (float)ircomm.fail_count[i];
-      //        if ( fail > 0 && pass > 0 ) {
-      //          Serial.print( (fail / pass) );
-      //        } else {
-      //          Serial.print( "0.0" );
-      //        }
-      //        Serial.print(", ");
-      //      }
-      //      Serial.print("\n");
+    } else if( SELF_TEST_MODE == TEST_RX ) {
+      ircomm.disableRx();
+      for( int i = 0; i < 4; i++ ) {
+        Serial.print( ircomm.pass_count[i] );
+        Serial.print(",");
+      }
+      Serial.println();
+      Serial.flush();
+      ircomm.enableRx();
     }
+
 
   }
 
@@ -342,10 +305,7 @@ void loop() {
   // can use this to detect new messages by comparing counts
   //  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.msg_dt[i];//pass_count[ircomm.rx_pwr_index];
 
-  for ( int i = 0; i < 4; i++ ) {
-    status.pass_count[ i ] = ircomm.pass_count[i];
-    status.fail_count[ i ] = ircomm.fail_count[i];
-  }
+
 
 }
 

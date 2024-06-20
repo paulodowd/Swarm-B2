@@ -38,7 +38,7 @@ void setup() {
 void loop() {
 
   // Periodically check status
-  if ( millis() - status_ts > 1000 ) {
+  if ( millis() - status_ts > 500 ) {
     status_ts = millis();
 
     // Set mode to status request
@@ -53,66 +53,69 @@ void loop() {
 
     // Report how many messages have been received on each
     // receiver
-    Serial.print("Msg Pass:\t");
+//    Serial.print("Msg Pass:\t");
     for ( int i = 0; i < 4; i++ ) {
       Serial.print( ircomm_status.pass_count[i] );
       Serial.print("\t");
     }
-    Serial.println();
-    Serial.print("Msg Fail:\t");
+//    Serial.println();
+//    Serial.print("Msg Fail:\t");
     for ( int i = 0; i < 4; i++ ) {
-      Serial.print( ircomm_status.fail_count[i] );
+      float m = (float)ircomm_status.fail_count[i];
+    
+      Serial.print( -m );
       Serial.print("\t");
     }
     Serial.println();
 
+//    Serial.println( ircomm_status.msg_dir );
 
     // Test for getting data from extra sensors.
-    getSensors();
+    //getSensors();
 
   }
 
   // Update the message being transmitted every 5000ms (5s)
-  if ( millis() - new_msg_ts > 5000) {
-
-    new_msg_ts = millis();
-
-
-    // Let's just send the current time from millis()
-    // as an example.
-
-    char buf[32];
-    float f_to_send = (float)millis();
-    f_to_send /= 1000.0;
-
-    // Convert float to a string, store in the
-    // message buffer.
-    // I had a lot of trouble finding a solution for this.
-    // This is an odd, non-standard function I think.
-    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
-    // https://www.programmingelectronics.com/dtostrf/
-    //  - a minimum of 6 character (e.g. 000.00)
-    //  - 2 digits after decimal
-    //  - store in buf
-    dtostrf(f_to_send, 6, 2, buf);
-
-    // This function call tells the communication board
-    // (the nano) to start ending the requested message.
-    // It will keep doing this until a new call to this
-    // function is made.
-    setIRMessage(buf, strlen(buf));
-  }
-
-
-  // Check a receiver every 500ms
-  if ( millis() - recv_msg_ts > 500 ) {
-    recv_msg_ts = millis();
-
-    for ( int i = 0; i < 4; i++ ) {
-      // Any messages arrived ?
-      getIRMessage( i );
-    }
-  }
+//  if ( millis() - new_msg_ts > 5000) {
+//
+//    new_msg_ts = millis();
+//
+//
+//    // Let's just send the current time from millis()
+//    // as an example.
+//
+//    char buf[32];
+//    float f_to_send = (float)millis();
+//    f_to_send /= 1000.0;
+//
+//    // Convert float to a string, store in the
+//    // message buffer.
+//    // I had a lot of trouble finding a solution for this.
+//    // This is an odd, non-standard function I think.
+//    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
+//    // https://www.programmingelectronics.com/dtostrf/
+//    //  - a minimum of 6 character (e.g. 000.00)
+//    //  - 2 digits after decimal
+//    //  - store in buf
+//    dtostrf(f_to_send, 6, 2, buf);
+//
+//    // This function call tells the communication board
+//    // (the nano) to start ending the requested message.
+//    // It will keep doing this until a new call to this
+//    // function is made.
+//    setIRMessage(buf, strlen(buf));
+//  }
+//
+//
+//  // Check a receiver every 500ms
+//  if ( millis() - recv_msg_ts > 500 ) {
+//    recv_msg_ts = millis();
+//
+//    for ( int i = 0; i < 4; i++ ) {
+//      // Any messages arrived ?
+//      getIRMessage( i );
+//    }
+//  }
 
 
 
