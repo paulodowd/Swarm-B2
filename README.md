@@ -2,8 +2,8 @@
 IR Communication board for Pololu 3Pi+ robots that also accommodates an M5 Stack Core2.  
 <p align="center">
 <br>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true"></img>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true"></img>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true" width="250"></img>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true" width="250"></img>
 <br>
 </p>
 
