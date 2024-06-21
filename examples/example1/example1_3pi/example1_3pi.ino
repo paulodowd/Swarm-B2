@@ -43,23 +43,23 @@ void loop() {
 
     unsigned long start = micros();
 
-    ircomm_mode.mode = MODE_REPORT_DIRECTION;
-    Wire.beginTransmission( IRCOMM_I2C_ADDR );
-    Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-    Wire.endTransmission();
-
-    i2c_bearing_t bearing;
-    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( bearing ));
-    Wire.readBytes( (uint8_t*)&bearing, sizeof( bearing ));
-
-    unsigned long end = micros();
-//    Serial.print( (end-start) );
+//    ircomm_mode.mode = MODE_REPORT_DIRECTION;
+//    Wire.beginTransmission( IRCOMM_I2C_ADDR );
+//    Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+//    Wire.endTransmission();
+//
+//    i2c_bearing_t bearing;
+//    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( bearing ));
+//    Wire.readBytes( (uint8_t*)&bearing, sizeof( bearing ));
+//
+//    unsigned long end = micros();
+////    Serial.print( (end-start) );
+////    Serial.print(",");
+//
+//    Serial.print(bearing.theta, 4);
 //    Serial.print(",");
-
-    Serial.print(bearing.theta, 4);
-    Serial.print(",");
-    Serial.print( bearing.mag, 4 );
-    Serial.println();
+//    Serial.print( bearing.mag, 4 );
+//    Serial.println();
 
     //        ircomm_mode.mode = MODE_REPORT_ACTIVITY;
     //        Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -80,34 +80,33 @@ void loop() {
     //
     //        Serial.println( atan2( y , x ), 4);
 
-    //    // Set mode to status request
-    //    ircomm_mode.mode = MODE_REPORT_STATUS;
-    //    Wire.beginTransmission( IRCOMM_I2C_ADDR );
-    //    Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-    //    Wire.endTransmission();
-    //
-    //    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-    //    Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
-    //
-    //
-    //    // Report how many messages have been received on each
-    //    // receiver
-    ////    Serial.print("Msg Pass:\t");
-    //    for ( int i = 0; i < 4; i++ ) {
-    //      Serial.print( ircomm_status.pass_count[i] );
-    //      Serial.print("\t");
-    //    }
-    ////    Serial.println();
-    ////    Serial.print("Msg Fail:\t");
-    //    for ( int i = 0; i < 4; i++ ) {
-    //      float m = (float)ircomm_status.fail_count[i];
-    //
-    //      Serial.print( -m );
-    //      Serial.print("\t");
-    //    }
-    //    //Serial.println();
-    //
-    //    Serial.println( ircomm_status.msg_dir );
+        // Set mode to status request
+        ircomm_mode.mode = MODE_REPORT_STATUS;
+        Wire.beginTransmission( IRCOMM_I2C_ADDR );
+        Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+        Wire.endTransmission();
+    
+        Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
+        Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
+    
+    
+        // Report how many messages have been received on each
+        // receiver
+    //    Serial.print("Msg Pass:\t");
+        for ( int i = 0; i < 4; i++ ) {
+          Serial.print( ircomm_status.pass_count[i] );
+          Serial.print("\t");
+        }
+    //    Serial.println();
+    //    Serial.print("Msg Fail:\t");
+        for ( int i = 0; i < 4; i++ ) {
+          float m = (float)ircomm_status.fail_count[i];
+    
+          Serial.print( -m );
+          Serial.print("\t");
+        }
+        Serial.println();
+    
 
     // Test for getting data from extra sensors.
     //getSensors();

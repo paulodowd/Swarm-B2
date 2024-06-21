@@ -42,8 +42,6 @@ unsigned long test_ts;
 IRComm_c ircomm;
 
 
-
-
 i2c_mode_t last_mode;
 i2c_status_t status;
 
@@ -203,11 +201,11 @@ void i2c_send() {
   } else if (  last_mode.mode == MODE_REPORT_DIRECTION ) {
 
     i2c_bearing_t bearing;
-    
-    // Here, we treat each receiver as contributing to 
+
+    // Here, we treat each receiver as contributing to
     // either x or y, because they are aligned to the x
-    // and y axis in their placement on the circuit board. 
-    // Therefore, rx0 is +y, rx1 is +x, 
+    // and y axis in their placement on the circuit board.
+    // Therefore, rx0 is +y, rx1 is +x,
     // rx2 is -y, and rx3 is -x. We then treat them as
     // vectors, using atan2 to find the resultant
     // direction.  This is relative (local) to the robot.
@@ -218,7 +216,7 @@ void i2c_send() {
     float x = (ircomm.rx_activity[0] - ircomm.rx_activity[2]);
     float y = (ircomm.rx_activity[1] - ircomm.rx_activity[3]);
     bearing.theta = atan2( y, x );
-     
+
     // Transmit
     Wire.write( (byte*)&bearing, sizeof( bearing ) );
 
@@ -279,11 +277,7 @@ void setup() {
 
   test_ts = millis();
 
-  if ( SELF_TEST_MODE == TEST_TX ) {
-    char buf[20];
-    sprintf( buf, "Testing:%lu", millis() );
-    ircomm.formatString(buf, strlen(buf) );
-  }
+ 
 
 }
 
@@ -297,10 +291,22 @@ void loop() {
   if ( millis() - test_ts > TEST_MS ) {
     test_ts = millis();
     if ( SELF_TEST_MODE == TEST_TX ) {
-      char buf[20];
-      sprintf( buf, "Test:%lu", millis() );
-      ircomm.formatString(buf, strlen(buf) );
+      // Create a test string up to 29 chars long
+      int max_chars = 19;
+      char buf[ max_chars ];
 
+      memset( buf, 0, sizeof( buf ) );
+
+      sprintf( buf, "%lu", millis() );
+      int ms_len = strlen( buf );
+      buf[ms_len] = ':';
+      ms_len++;
+      for ( int i = ms_len; i < max_chars; i++ ) {
+        buf[i] = (byte)(65 + i);
+      }
+
+
+      ircomm.formatString(buf, strlen(buf) );
     } else if ( SELF_TEST_MODE == TEST_RX ) {
       ircomm.disableRx();
       for ( int i = 0; i < 4; i++ ) {
