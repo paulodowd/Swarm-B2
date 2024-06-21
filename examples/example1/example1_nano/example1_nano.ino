@@ -18,9 +18,17 @@
 #define TEST_DISABLED 0
 #define TEST_TX 1
 #define TEST_RX 2
+
 #define SELF_TEST_MODE TEST_DISABLED
 //#define SELF_TEST_MODE TEST_TX
 //#define SELF_TEST_MODE TEST_RX
+
+// A timestamp used only to configure various
+// testing/debugging activities.
+unsigned long test_ts;
+#define TEST_MS 10 // Good for test tx
+//#define TEST_MS 300 // good for test rx
+
 
 // Pin definitions for extra sensors
 // on the communication board, if present
@@ -33,10 +41,7 @@
 // Used to control the IR communication.
 IRComm_c ircomm;
 
-// A timestamp used only to configure various
-// testing/debugging activities.
-unsigned long test_ts;
-#define TEST_MS 300
+
 
 
 i2c_mode_t last_mode;
@@ -62,7 +67,10 @@ void i2c_recv( int len ) {
     // For instant mode changes
     // Should we set a last_mode state after this?
     if ( new_mode.mode == MODE_STOP_TX ) {
+
+      // Clearing tx  buff will stop transmission of messages
       ircomm.clearTxBuf();
+
     } else if ( new_mode.mode == MODE_RESET_COUNTS ) {
       for ( int i = 0; i < 4; i++ ) {
         status.fail_count[i] = 0;
@@ -106,7 +114,7 @@ void i2c_send() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
-    status.msg_dir = ircomm.msg_dir;
+
     for ( int i = 0; i < 4; i++ ) {
       status.pass_count[ i ] = ircomm.pass_count[i];
       status.fail_count[ i ] = ircomm.fail_count[i];
@@ -184,6 +192,35 @@ void i2c_send() {
       // Delete message
       ircomm.clearRxMsg( 3 );
     }
+  } else if ( last_mode.mode == MODE_REPORT_ACTIVITY ) {
+    i2c_activity_t activity;
+    for ( int i = 0; i < 4; i++ ) {
+      activity.rx[i] = ircomm.rx_activity[i];
+    }
+    // Transmit
+    Wire.write( (byte*)&activity, sizeof( activity ) );
+
+  } else if (  last_mode.mode == MODE_REPORT_DIRECTION ) {
+
+    i2c_bearing_t bearing;
+    
+    // Here, we treat each receiver as contributing to 
+    // either x or y, because they are aligned to the x
+    // and y axis in their placement on the circuit board. 
+    // Therefore, rx0 is +y, rx1 is +x, 
+    // rx2 is -y, and rx3 is -x. We then treat them as
+    // vectors, using atan2 to find the resultant
+    // direction.  This is relative (local) to the robot.
+    bearing.mag = ircomm.rx_activity[0];
+    bearing.mag += ircomm.rx_activity[1];
+    bearing.mag += ircomm.rx_activity[2];
+    bearing.mag += ircomm.rx_activity[3];
+    float x = (ircomm.rx_activity[0] - ircomm.rx_activity[2]);
+    float y = (ircomm.rx_activity[1] - ircomm.rx_activity[3]);
+    bearing.theta = atan2( y, x );
+     
+    // Transmit
+    Wire.write( (byte*)&bearing, sizeof( bearing ) );
 
   } else if ( last_mode.mode == MODE_REPORT_SENSORS ) {
 
@@ -221,9 +258,6 @@ void setup() {
 
   // Debug LED
   pinMode( 13, OUTPUT );
-
-
-
 
   // Begin I2C as a slave device.
   Wire.begin( I2C_ADDR );
@@ -267,9 +301,9 @@ void loop() {
       sprintf( buf, "Test:%lu", millis() );
       ircomm.formatString(buf, strlen(buf) );
 
-    } else if( SELF_TEST_MODE == TEST_RX ) {
+    } else if ( SELF_TEST_MODE == TEST_RX ) {
       ircomm.disableRx();
-      for( int i = 0; i < 4; i++ ) {
+      for ( int i = 0; i < 4; i++ ) {
         Serial.print( ircomm.pass_count[i] );
         Serial.print(",");
       }

@@ -41,34 +41,73 @@ void loop() {
   if ( millis() - status_ts > 500 ) {
     status_ts = millis();
 
-    // Set mode to status request
-    ircomm_mode.mode = MODE_REPORT_STATUS;
+    unsigned long start = micros();
+
+    ircomm_mode.mode = MODE_REPORT_DIRECTION;
     Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
     Wire.endTransmission();
 
-    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-    Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
+    i2c_bearing_t bearing;
+    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( bearing ));
+    Wire.readBytes( (uint8_t*)&bearing, sizeof( bearing ));
 
+    unsigned long end = micros();
+//    Serial.print( (end-start) );
+//    Serial.print(",");
 
-    // Report how many messages have been received on each
-    // receiver
-//    Serial.print("Msg Pass:\t");
-    for ( int i = 0; i < 4; i++ ) {
-      Serial.print( ircomm_status.pass_count[i] );
-      Serial.print("\t");
-    }
-//    Serial.println();
-//    Serial.print("Msg Fail:\t");
-    for ( int i = 0; i < 4; i++ ) {
-      float m = (float)ircomm_status.fail_count[i];
-    
-      Serial.print( -m );
-      Serial.print("\t");
-    }
+    Serial.print(bearing.theta, 4);
+    Serial.print(",");
+    Serial.print( bearing.mag, 4 );
     Serial.println();
 
-//    Serial.println( ircomm_status.msg_dir );
+    //        ircomm_mode.mode = MODE_REPORT_ACTIVITY;
+    //        Wire.beginTransmission( IRCOMM_I2C_ADDR );
+    //        Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+    //        Wire.endTransmission();
+    //
+    //        i2c_activity_t activity;
+    //        Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( activity ));
+    //        Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
+    //
+    //        for ( int i = 0; i < 4; i++ ) {
+    //          Serial.print( activity.rx[i] * 10, 7 );
+    //          Serial.print(",");
+    //
+    //        }
+    //        float x = activity.rx[0] - activity.rx[2];
+    //        float y = activity.rx[1] - activity.rx[3];
+    //
+    //        Serial.println( atan2( y , x ), 4);
+
+    //    // Set mode to status request
+    //    ircomm_mode.mode = MODE_REPORT_STATUS;
+    //    Wire.beginTransmission( IRCOMM_I2C_ADDR );
+    //    Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+    //    Wire.endTransmission();
+    //
+    //    Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
+    //    Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
+    //
+    //
+    //    // Report how many messages have been received on each
+    //    // receiver
+    ////    Serial.print("Msg Pass:\t");
+    //    for ( int i = 0; i < 4; i++ ) {
+    //      Serial.print( ircomm_status.pass_count[i] );
+    //      Serial.print("\t");
+    //    }
+    ////    Serial.println();
+    ////    Serial.print("Msg Fail:\t");
+    //    for ( int i = 0; i < 4; i++ ) {
+    //      float m = (float)ircomm_status.fail_count[i];
+    //
+    //      Serial.print( -m );
+    //      Serial.print("\t");
+    //    }
+    //    //Serial.println();
+    //
+    //    Serial.println( ircomm_status.msg_dir );
 
     // Test for getting data from extra sensors.
     //getSensors();
@@ -76,50 +115,50 @@ void loop() {
   }
 
   // Update the message being transmitted every 5000ms (5s)
-//  if ( millis() - new_msg_ts > 5000) {
-//
-//    new_msg_ts = millis();
-//
-//
-//    // Let's just send the current time from millis()
-//    // as an example.
-//
-//    char buf[32];
-//    float f_to_send = (float)millis();
-//    f_to_send /= 1000.0;
-//
-//    // Convert float to a string, store in the
-//    // message buffer.
-//    // I had a lot of trouble finding a solution for this.
-//    // This is an odd, non-standard function I think.
-//    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
-//    // https://www.programmingelectronics.com/dtostrf/
-//    //  - a minimum of 6 character (e.g. 000.00)
-//    //  - 2 digits after decimal
-//    //  - store in buf
-//    dtostrf(f_to_send, 6, 2, buf);
-//
-//    // This function call tells the communication board
-//    // (the nano) to start ending the requested message.
-//    // It will keep doing this until a new call to this
-//    // function is made.
-//    setIRMessage(buf, strlen(buf));
-//  }
-//
-//
-//  // Check a receiver every 500ms
-//  if ( millis() - recv_msg_ts > 500 ) {
-//    recv_msg_ts = millis();
-//
-//    for ( int i = 0; i < 4; i++ ) {
-//      // Any messages arrived ?
-//      getIRMessage( i );
-//    }
-//  }
+  //  if ( millis() - new_msg_ts > 5000) {
+  //
+  //    new_msg_ts = millis();
+  //
+  //
+  //    // Let's just send the current time from millis()
+  //    // as an example.
+  //
+  //    char buf[32];
+  //    float f_to_send = (float)millis();
+  //    f_to_send /= 1000.0;
+  //
+  //    // Convert float to a string, store in the
+  //    // message buffer.
+  //    // I had a lot of trouble finding a solution for this.
+  //    // This is an odd, non-standard function I think.
+  //    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
+  //    // https://www.programmingelectronics.com/dtostrf/
+  //    //  - a minimum of 6 character (e.g. 000.00)
+  //    //  - 2 digits after decimal
+  //    //  - store in buf
+  //    dtostrf(f_to_send, 6, 2, buf);
+  //
+  //    // This function call tells the communication board
+  //    // (the nano) to start ending the requested message.
+  //    // It will keep doing this until a new call to this
+  //    // function is made.
+  //    setIRMessage(buf, strlen(buf));
+  //  }
+  //
+  //
+  //  // Check a receiver every 500ms
+  //  if ( millis() - recv_msg_ts > 500 ) {
+  //    recv_msg_ts = millis();
+  //
+  //    for ( int i = 0; i < 4; i++ ) {
+  //      // Any messages arrived ?
+  //      getIRMessage( i );
+  //    }
+  //  }
 
 
 
-  delay(100);
+  delay(10);
 
 }
 
@@ -175,7 +214,7 @@ void getSensors() {
 // Get the latest message from the communication board
 // from receiver "which_rx" (0,1,2,3).
 // This is a little bit more complicated because we don't
-// know how long a message will be. So we have to first 
+// know how long a message will be. So we have to first
 // ask how many bytes are available (present).
 void getIRMessage(int which_rx ) {
   if ( which_rx < 0 || which_rx >= 4 ) {
