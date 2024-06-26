@@ -20,7 +20,7 @@
 #define TEST_RX 2
 
 #define SELF_TEST_MODE TEST_DISABLED
-//#define SELF_TEST_MODE TEST_TX
+#define SELF_TEST_MODE TEST_TX
 //#define SELF_TEST_MODE TEST_RX
 
 // A timestamp used only to configure various
@@ -117,6 +117,7 @@ void i2c_send() {
       status.pass_count[ i ] = ircomm.pass_count[i];
       status.fail_count[ i ] = ircomm.fail_count[i];
     }
+    status.mode = last_mode.mode;
 
     Wire.write( (byte*)&status, sizeof( status ) );
 
@@ -124,7 +125,19 @@ void i2c_send() {
     // Below are request for message size from the
     // master device.
     //
-  } else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
+  } else if ( last_mode.mode == MODE_REPORT_TIMINGS ) {
+
+    i2c_msg_timings_t msg_timings;
+    for ( int i = 0; i < 4; i++ ) {
+      msg_timings.msg_dt[i] = (uint16_t)ircomm.msg_dt[i];
+      msg_timings.msg_t[i] = (uint16_t)ircomm.msg_t[i];
+    }
+    msg_timings.rx_delay = (uint16_t)ircomm.rx_delay;
+    msg_timings.tx_delay = (uint16_t)ircomm.tx_delay;
+    Wire.write( (byte*)&msg_timings, sizeof( msg_timings ) );
+
+  }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
+
     i2c_mode_t msg_status;
     msg_status.mode = strlen( ircomm.rx_msg[0] );
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
@@ -197,6 +210,22 @@ void i2c_send() {
     }
     // Transmit
     Wire.write( (byte*)&activity, sizeof( activity ) );
+
+  } else if ( last_mode.mode == MODE_CLEAR_MSG0 ) {
+    // Delete message
+    ircomm.clearRxMsg( 0 );
+
+  } else if ( last_mode.mode == MODE_CLEAR_MSG1 ) {
+    // Delete message
+    ircomm.clearRxMsg( 1 );
+
+  } else if ( last_mode.mode == MODE_CLEAR_MSG2 ) {
+    // Delete message
+    ircomm.clearRxMsg( 2 );
+
+  } else if ( last_mode.mode == MODE_CLEAR_MSG3 ) {
+    // Delete message
+    ircomm.clearRxMsg( 3 );
 
   } else if (  last_mode.mode == MODE_REPORT_RX_DIRECTION ) {
 
@@ -277,7 +306,17 @@ void setup() {
 
   test_ts = millis();
 
- 
+  // We can trick the board into sending messages
+  // much faster by setting rx_len to a value
+  // greater than -1.
+  // rx_delay = (2 * rx_len * 2.5 )ms
+  // tx_delay = rx_delay * 2
+  // rx_len = 1 -> 2 * 1 * 2.5 = 5ms -> tx_delay = 10ms.
+  if ( SELF_TEST_MODE == TEST_TX ) {
+    ircomm.rx_len = 1;
+
+  }
+
 
 }
 
@@ -290,9 +329,12 @@ void loop() {
   // Periodic update of other board status
   if ( millis() - test_ts > TEST_MS ) {
     test_ts = millis();
+
+
+
     if ( SELF_TEST_MODE == TEST_TX ) {
       // Create a test string up to 29 chars long
-      int max_chars = 19;
+      int max_chars = 27;
       char buf[ max_chars ];
 
       memset( buf, 0, sizeof( buf ) );

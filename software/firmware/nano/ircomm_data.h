@@ -23,6 +23,21 @@ typedef struct i2c_mode {
   uint8_t mode;
 } i2c_mode_t;
 
+// To find out if a message is ready
+// to collect
+typedef struct i2c_msg_status {
+  uint8_t n_bytes;
+} i2c_msg_status_t;
+
+// To find out the relative timing of
+// message activity
+typedef struct i2c_msg_timings {
+  uint16_t msg_dt[4];         // 8 bytes
+  uint16_t msg_t[4];          // 8 bytes
+  uint16_t rx_delay;          // 2 bytes
+  uint16_t tx_delay;          // 2 bytes
+} i2c_msg_timings_t;
+
 // Struct to track the activity levels
 // of the receivers
 typedef struct i2c_activity {
@@ -54,11 +69,16 @@ typedef struct i2c_sensors {
 #define MODE_REPORT_MSG1    10
 #define MODE_REPORT_MSG2    11
 #define MODE_REPORT_MSG3    12
-#define MODE_REPORT_SENSORS 13
-#define MODE_RESET_COUNTS   14
-#define MODE_REPORT_RX_ACTIVITY 15
-#define MODE_REPORT_RX_DIRECTION 16
-#define MAX_MODE            17
+#define MODE_CLEAR_MSG0     13
+#define MODE_CLEAR_MSG1     14
+#define MODE_CLEAR_MSG2     15
+#define MODE_CLEAR_MSG3     16
+#define MODE_REPORT_SENSORS 17
+#define MODE_RESET_COUNTS   18
+#define MODE_REPORT_RX_ACTIVITY 19
+#define MODE_REPORT_RX_DIRECTION 20
+#define MODE_REPORT_TIMINGS 21
+#define MAX_MODE            22
 
 
 

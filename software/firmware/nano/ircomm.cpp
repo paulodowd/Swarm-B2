@@ -36,7 +36,7 @@ void IRComm_c::init() {
   // Set recorded message lengths to invalid
   // to begin with. Used in conjunction with
   // PREDICT_TX_RX_DELAY true
-  tx_len = -1;
+
   rx_len = -1;
 
 
@@ -63,9 +63,9 @@ void IRComm_c::init() {
   for ( int i = 0; i < RX_PWR_MAX; i++ ) {
     pass_count[i] = 0;
     fail_count[i] = 0;
-    
+
     rx_activity[i] = 0;
-    
+
     msg_dt[i] = 0;
     msg_t[i] = millis();
   }
@@ -262,18 +262,16 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   state = STATE_IR_TX_OFF;
 
   // Copy to tx buffer
-  memset(tx_buf, 0, sizeof(tx_buf));
+  memset(tx_buf, 0, sizeof(tx_buf)); // clear first
   for (int i = 0; i < count; i++) {
-    tx_buf[i] = buf[i];
+    tx_buf[i] = buf[i]; // copy
   }
 
-  // Save this message length if it is the largest
-  // yet.  This is used if PREDICT_TX_RX_DELAY is
-  // set to true.
-  if ( count > tx_len ) tx_len = count;
+
 
   // Add terminal token
   tx_buf[count] = '!';
+
 
   //Serial.println("Created:");
   //Serial.print( buf );
@@ -333,21 +331,29 @@ uint8_t IRComm_c::CRC(char* buf, int len) {
 // like look at how many bytes we are going to transmit
 // and then double this.
 void IRComm_c::setRxDelay() {
-  //
-  //  if( tx_buf[0] == '!' ) {            // no message
-  //    t = 1;
-  //  } else if( strlen(tx_buf) == 0 ) {  // no message
-  //    t = 1;
-  //  } else {
-  //
-  //  }
 
-  float t = (float)random(0, RX_DELAY_MOD);
-  t += RX_DELAY_BIAS;
-  // Insert random delay to help
-  // break up synchronous tranmission
-  // between robots.
-  rx_delay = (unsigned long)t;
+  if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
+    float t = rx_len;
+    t *= 2.0; // twice as long to listen
+    t *= 2.5; // 2.5ms per byte
+    float mod = rx_len;
+    mod *= 0.25;
+    mod = (float)random(0, (long)mod);
+    t += mod;
+    rx_delay = (unsigned long)t;
+
+  } else {
+
+    // Use global and fixed parameters
+    float t = (float)random(0, RX_DELAY_MOD);
+    t += RX_DELAY_BIAS;
+    // Insert random delay to help
+    // break up synchronous tranmission
+    // between robots.
+    rx_delay = (unsigned long)t;
+
+
+  }
 
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
@@ -357,17 +363,22 @@ void IRComm_c::setRxDelay() {
 void IRComm_c::setTxDelay() {
 
 
+  if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
+    // send every 2 receiver cycles?
+    tx_delay = rx_delay * 2.0;
+  } else {
 
-
-  float t = (float)random(0, TX_DELAY_MOD);
-  t += TX_DELAY_BIAS;
-  // break up synchronous tranmission
-  // between robots.
-  tx_delay = (unsigned long)t;
+    float t = (float)random(0, TX_DELAY_MOD);
+    t += TX_DELAY_BIAS;
+    // break up synchronous tranmission
+    // between robots.
+    tx_delay = (unsigned long)t;
+  }
 
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
   tx_ts = millis();
+
 
 }
 
@@ -492,11 +503,15 @@ void IRComm_c::update() {
     digitalWrite( 13, LOW );
   }
 
- 
+
   // time for RECEIVER ROTATION
   if (millis() - rx_ts > rx_delay) {
-
     //rx_ts = millis(); // setRxDelay() handles this
+    
+    // Debugging...
+    //    Serial.println( (millis() - rx_ts) );
+
+
 
     // Are we configured to send a message on every
     // receiver rotation?
@@ -571,8 +586,9 @@ void IRComm_c::update() {
     // Set a different delay for next
     // iteration
     setRxDelay();
+    
 
-  }
+  } // endif( millis() - rx_ts > rx_delay )
 
 
   // Check for new message in serial buffer
@@ -656,6 +672,7 @@ void IRComm_c::update() {
 // by recalculating and comparing the checksum
 int IRComm_c::processRxBuf() {
 
+  unsigned long s = micros();
 
   if ( IR_DEBUG_OUTPUT ) {
 
@@ -695,6 +712,7 @@ int IRComm_c::processRxBuf() {
 
 
   } else {  // message valid, * index found
+
 
     // Check CRC, find @ token to separate
     // out CRC value.
@@ -755,6 +773,14 @@ int IRComm_c::processRxBuf() {
           // count for this receiver
           pass_count[ rx_pwr_index ]++;
 
+          // Since we are successful, we can now use the last
+          // and start index values to work out how long this
+          // message was for PREDICT_TX_RX_DELAY
+          // Checksum token (@) was at last, so we need to
+          // add the checksum byte and final token (+2).
+          int len = (last - start) + 2;
+          if ( len > rx_len ) rx_len = len;
+
 
           msg_dt[ rx_pwr_index ] = millis() - msg_t[ rx_pwr_index ];
           msg_t[ rx_pwr_index ] = millis();
@@ -780,6 +806,9 @@ int IRComm_c::processRxBuf() {
             Serial.print("Saved: " ) ;
             Serial.println( rx_msg[rx_pwr_index] );
           }
+
+          //Serial.println( millis() );
+//          Serial.println(( micros() - s) );
 
 
 
