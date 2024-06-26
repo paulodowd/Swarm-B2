@@ -33,13 +33,19 @@ void IRComm_c::init() {
   memset(rx_buf, 0, sizeof(rx_buf));
   memset(rx_msg, 0, sizeof(rx_msg));
 
+  // Set recorded message lengths to invalid
+  // to begin with. Used in conjunction with
+  // PREDICT_TX_RX_DELAY true
+  tx_len = -1;
+  rx_len = -1;
+
+
   enableTx(); // sets up Timer2 to create 38khz carrier
   //disableTx();
 
   // Start assuming we are not transmitting
   // a message, and that we have not received
   // a message to process.
-  BROADCAST = false;
   PROCESS_MSG = false;
   rx_count = 0;
 
@@ -51,33 +57,48 @@ void IRComm_c::init() {
   // baud up to 4800, but other variants
   // might not.
   Serial.begin(4800);
-  Serial.setTimeout(250);
-
-
 
   // Set initial counts to 0
   led_ts = millis();
   for ( int i = 0; i < RX_PWR_MAX; i++ ) {
     pass_count[i] = 0;
     fail_count[i] = 0;
-    rx_ratio[i] = 0.0;
+    
+    rx_activity[i] = 0;
+    
     msg_dt[i] = 0;
     msg_t[i] = millis();
   }
 
+  msg_dir = 0.0;
+
+  rx_ts = millis();
   tx_ts = millis();
-  cycle_ts = millis();
-  setTXDelay();
+
+
+  setRxDelay();
+  setTxDelay();
   resetRxBuf();
 }
 
 void IRComm_c::cyclePowerRx() {
+  rx_pwr_index++;
 
-  if ( rx_pwr_index >= 3 ) {
+  // A full rotation has occured, process the
+  // activity level, update the lpf
+  if ( rx_pwr_index > 3 ) {
     rx_pwr_index = 0;
-  } else {
-    rx_pwr_index++;
+    for ( int i = 0; i < 4; i++ ) {
+
+      // I use 4 here because I think the most number of messages
+      // we should get per cycle is 4 (unless CYCLE_ON_RX = false).
+      // This will reduce recorded activity per iteration if no
+      // messages are received
+      rx_activity[i] /= 4.0;
+    }
+
   }
+
   powerOnRx( rx_pwr_index );
 }
 
@@ -89,27 +110,44 @@ int IRComm_c::getActiveRx() {
 
 void IRComm_c::powerOnRx( byte index ) {
 
-  
+
   if ( index == 0 ) {
-    digitalWrite( RX_PWR_0, HIGH );
+    digitalWrite( RX_PWR_0, HIGH ); // fwd
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
-  } else if ( index == 1 ) {
+    //    digitalWrite( RX_PWR_0, LOW );
+    //    digitalWrite( RX_PWR_1, LOW );
+    //    digitalWrite( RX_PWR_2, LOW );
+    //    digitalWrite( RX_PWR_3, LOW );
+  } else if ( index == 1 ) {        // left
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, HIGH );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
-  } else if ( index == 2 ) {
+
+    //    digitalWrite( RX_PWR_0, LOW );
+    //    digitalWrite( RX_PWR_1, LOW );
+    //    digitalWrite( RX_PWR_2, LOW );
+    //    digitalWrite( RX_PWR_3, LOW );
+  } else if ( index == 2 ) {        // back
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, HIGH );
     digitalWrite( RX_PWR_3, LOW );
-  } else if ( index == 3 ) {
+    //    digitalWrite( RX_PWR_0, LOW );
+    //    digitalWrite( RX_PWR_1, LOW );
+    //    digitalWrite( RX_PWR_2, LOW );
+    //    digitalWrite( RX_PWR_3, LOW );
+  } else if ( index == 3 ) {        // right
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, HIGH );
+    //    digitalWrite( RX_PWR_0, LOW );
+    //    digitalWrite( RX_PWR_1, LOW );
+    //    digitalWrite( RX_PWR_2, LOW );
+    //    digitalWrite( RX_PWR_3, LOW );
   }
 
   // After changing which receiver is active,
@@ -197,7 +235,7 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   int count;
 
   // String to big? Drop the tail
-  if (len > 28) len = 28;
+  if (len > 29) len = 29;
 
   // Clear buffer
   memset(buf, 0, sizeof(buf));
@@ -228,6 +266,11 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   for (int i = 0; i < count; i++) {
     tx_buf[i] = buf[i];
   }
+
+  // Save this message length if it is the largest
+  // yet.  This is used if PREDICT_TX_RX_DELAY is
+  // set to true.
+  if ( count > tx_len ) tx_len = count;
 
   // Add terminal token
   tx_buf[count] = '!';
@@ -289,7 +332,7 @@ uint8_t IRComm_c::CRC(char* buf, int len) {
 // I think here we could do something intelligent
 // like look at how many bytes we are going to transmit
 // and then double this.
-void IRComm_c::setTXDelay() {
+void IRComm_c::setRxDelay() {
   //
   //  if( tx_buf[0] == '!' ) {            // no message
   //    t = 1;
@@ -299,12 +342,33 @@ void IRComm_c::setTXDelay() {
   //
   //  }
 
-  float t = (float)random(0, TX_DELAY_MOD);
-  t += TX_DELAY_BIAS;
+  float t = (float)random(0, RX_DELAY_MOD);
+  t += RX_DELAY_BIAS;
   // Insert random delay to help
   // break up synchronous tranmission
   // between robots.
+  rx_delay = (unsigned long)t;
+
+  // If we've adjsuted the delay period,
+  // we move the timestamp forwards.
+  rx_ts = millis();
+}
+
+void IRComm_c::setTxDelay() {
+
+
+
+
+  float t = (float)random(0, TX_DELAY_MOD);
+  t += TX_DELAY_BIAS;
+  // break up synchronous tranmission
+  // between robots.
   tx_delay = (unsigned long)t;
+
+  // If we've adjsuted the delay period,
+  // we move the timestamp forwards.
+  tx_ts = millis();
+
 }
 
 
@@ -394,7 +458,6 @@ float IRComm_c::getFloatValue(int which) {
 }
 
 
-
 /*
    This update routine needs to switch betweeen
    listening: providing enough time to receive a message
@@ -423,51 +486,92 @@ float IRComm_c::getFloatValue(int which) {
 */
 void IRComm_c::update() {
 
-  // Toggle whether we are broadcasting
-  // or listening for IR messages
-  if (millis() - tx_ts > tx_delay) {
-    BROADCAST = !BROADCAST;
-    tx_ts = millis();
-
-    // Set a different delay for next
-    // iteration
-    setTXDelay();
-  }
-
   // Clear status LED
   if ( millis() - led_ts > 100 ) {
     led_ts = millis();
     digitalWrite( 13, LOW );
   }
 
+ 
+  // time for RECEIVER ROTATION
+  if (millis() - rx_ts > rx_delay) {
 
-  // If we are in broadcast mode and the LEDS
-  // are active.
-  if (state == STATE_IR_TX_ON && BROADCAST) {
+    //rx_ts = millis(); // setRxDelay() handles this
+
+    // Are we configured to send a message on every
+    // receiver rotation?
+    if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+
+      if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == '0' ) {
+
+        // don't attempt send, empty buffer.
+
+      } else {  // Message from Master to send.
+
+        // We have a problem where we pick up
+        // our own reflected transmission through
+        // a parallel implementation in hardware.
+        disableRx();
+
+        // Using Serial.print transmits over
+        // IR.  Serial TX is modulated with
+        // the 38Khz carrier in hardware.
+        //unsigned long start_t = millis();
+        Serial.println(tx_buf);
+        Serial.flush();  // wait for send to complete
+        //unsigned long end_t = millis();
+        //Serial.println( (end_t - start_t ) );
+
+      }
+    } else if ( TX_MODE == TX_MODE_PERIODIC ) {
 
 
-    if (strlen(tx_buf) == 0 || tx_buf[0] == '!' ) {
-      // don't attempt send, empty buffer.
+      // Transmission only happens once the current
+      // receiver has finished AND if the delay
+      // between tranmissions has elapsed.
+      if ( millis() - tx_ts > tx_delay ) {
 
-    } else {  // Message from Master to send.
+        // Check whether we actually have something to
+        // transmit
+        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == '0' ) {
 
-      // We have a problem where we pick up
-      // our own reflected transmission through
-      // a parallel implementation in hardware.
-      disableRx();
+          // don't attempt send, empty buffer.
+
+        } else {
+          //tx_ts = millis(); // setTxDelay() handles this
 
 
-      // Using Serial.print transmits over
-      // IR.  Serial TX is modulated with
-      // the 38Khz carrier in hardware.
-      Serial.println(tx_buf);
-      Serial.flush();  // wait for send to complete
-      //delay(2);
+          // We have a problem where we pick up
+          // our own reflected transmission through
+          // a parallel implementation in hardware.
+          disableRx();
 
-      // With TX finished, we can receive again
-      // and not get our own transmission.
-      enableRx();
+          // Using Serial.print transmits over
+          // IR.  Serial TX is modulated with
+          // the 38Khz carrier in hardware.
+          //unsigned long start_t = millis();
+          Serial.println(tx_buf);
+          Serial.flush();  // wait for send to complete
+          //unsigned long end_t = millis();
+          //Serial.println( (end_t - start_t ) );
+
+
+        }
+
+        // Regardless of whether there was something to
+        // transmit, set the new transmission delay
+        setTxDelay();
+      }
+
     }
+
+    // Switch receiver.  This also does a full
+    // disable/enable cycle and resets all rx flags
+    cyclePowerRx();
+    // Set a different delay for next
+    // iteration
+    setRxDelay();
+
   }
 
 
@@ -528,30 +632,24 @@ void IRComm_c::update() {
     if (rx_count <= 0 || rx_buf[0] == 0) {
       // bad read.
       if ( IR_DEBUG_OUTPUT )Serial.println("bad serial");
-      
+
       // I was doing a hardware reset of UART.
       // However, the UART buffer is 64 bytes, and so
-      // it could be full of other potentially valid 
+      // it could be full of other potentially valid
       // messages. Therefore, we just reset the flags.
       //resetRxBuf();
       resetRxFlags();
-      
+
     } else {
-      
+
       // From testing, this processRxBuf() takes less than
       // 1ms to execute.
       processRxBuf();
-      
+
     }
   }
 
-  // Time to rotate the receiver?
-  // Note, this is done automatically if
-  // a message is successfully received.
-  if ( millis() - cycle_ts > CYCLE_TIME_MS ) {
-    cycle_ts = millis();
-    cyclePowerRx();
-  }
+
 }
 
 // Needs to validate what is in the rx buffer
@@ -657,6 +755,7 @@ int IRComm_c::processRxBuf() {
           // count for this receiver
           pass_count[ rx_pwr_index ]++;
 
+
           msg_dt[ rx_pwr_index ] = millis() - msg_t[ rx_pwr_index ];
           msg_t[ rx_pwr_index ] = millis();
 
@@ -684,6 +783,7 @@ int IRComm_c::processRxBuf() {
 
 
 
+
         } else {
 
           fail_count[rx_pwr_index]++;
@@ -692,8 +792,9 @@ int IRComm_c::processRxBuf() {
           if ( IR_DEBUG_OUTPUT ) Serial.println("bad checksum");
 
         }
-      }
-    } else {
+      } // message was complete, but CRC pass or failed.
+
+    } else { // Message was not complete
 
       // checksum token missing or invalid
       if ( IR_DEBUG_OUTPUT ) Serial.println("invalid message");
@@ -702,11 +803,16 @@ int IRComm_c::processRxBuf() {
     }
   }
 
+  // Register activity on this receiver, whether pass or fail
+  rx_activity[ rx_pwr_index ] += 1;
+
   // Unlikely to receive another message within
   // this window, so skip cycle
-  if ( CYCLE_ON_SUCCESS ) {
-    cycle_ts = millis();
-    cyclePowerRx();
+  if ( CYCLE_ON_RX ) {
+
+    cyclePowerRx(); // Rotate to next receiver
+    setRxDelay();   // reset receiver rotation delay
+
   } else {
     //resetRxBuf();
     resetRxFlags();

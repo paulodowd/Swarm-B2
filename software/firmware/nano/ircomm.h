@@ -2,6 +2,8 @@
 #ifndef IRCOMM_C_H
 #define IRCOMM_C_H
 
+
+
 #include <avr/io.h>
 #include "Arduino.h"
 
@@ -9,28 +11,78 @@
 #define STATE_IR_TX_OFF 2
 #define MAX_MSG 32
 
+// It seems to be about 2.5ms per byte
+// during serial tranmission at 4800
+// baud.  Therefore, we'd need 80ms to
+// send/receive a full 32 bytes.
+// If we need at least double the time
+// to receive a full message, that gives
+// 160ms.  How much can this vary?
+// Let's say a message length (80ms)
+// but as +/-40ms.
+#define RX_DELAY_BIAS 160
+#define RX_DELAY_MOD  40
 
-#define TX_DELAY_BIAS 250
-#define TX_DELAY_MOD  100
+// Used only for periodic tranmission mode.
+// How often do we transmit in ms?
+#define TX_DELAY_BIAS (RX_DELAY_BIAS * 2) // every 2 receivers?
+#define TX_DELAY_MOD  40
 
-#define RX_PWR_0  2 // Forward
-#define RX_PWR_1  3 // LEFT
+
+#define RX_PWR_0  3 // Forward
+#define RX_PWR_1  2 // LEFT
 #define RX_PWR_2  5 // BACK
 #define RX_PWR_3  7 // RIGHT
 #define RX_PWR_MAX  4 // How many?
 
-#define CYCLE_ON_SUCCESS false
+// If the robot attempts to process a received 
+// message (pass or fail), should it rotate to
+// the next receiver?
+// It takes time to receive a full message, so 
+// there is unlikely to be enough time remaining
+// to get another message (e.g, set to true).
+#define CYCLE_ON_RX true
+
+
+// If we know we are going to send and receive 
+// messages of a certain length then we could 
+// configure the device for a more optimal
+// rx_delay and tx_delay.  To try and have the
+// board do this for itself, set the below to 
+// true.  Set true, the board will look at the 
+// length of the message to transmit and the
+// length of messages received, and setup the
+// tx_delay and rx_delay to be appropriate for
+// which ever of the two is longest.
+// If set to false, the board will use the 
+// #defines set above for tx/rx_delay _bias _mod.
+#define PREDICT_TX_RX_DELAY false
+
+
 
 
 // 38Khz signal generated on
 // digital pin 4.
 #define TX_CLK_OUT 4
 
+
+// What system should we use for the tranmission?
+// Periodic: Decouples receiving from transmission, meaning
+//          that tranmission happens every (x)ms.
+// Interleaved: Means that after a receiver is rotated, we
+//          also transmit.  This means that if a robot is
+//          receiving messages well, the tranmission rate 
+//          would also increase.  Seems complicated.
+#define TX_MODE_PERIODIC    0
+#define TX_MODE_INTERLEAVED 1
+
+#define TX_MODE TX_MODE_INTERLEAVED
+
 // Uncomment to see debug output.  Note that, we
-// are going to use the serial port for debugging, 
+// are going to use the serial port for debugging,
 // which means we will effectively be transmitting
 // debug output to other boards, and without disabling
-// the rx component we'll also receive our own 
+// the rx component we'll also receive our own
 // transmission.  Complicated!
 //#define IR_DEBUG_OUTPUT true
 #define IR_DEBUG_OUTPUT false
@@ -38,82 +90,93 @@
 
 class IRComm_c {
 
-public:
-// Two operational states
-  int state;
+  public:
+    // Two operational states
+    int state;
 
-  // Flags
-  bool BROADCAST;
-  bool PROCESS_MSG;
-  bool GOT_START_TOKEN;
+    // Flags
+    bool PROCESS_MSG;
+    bool GOT_START_TOKEN;
 
-  // IR Tx/Rx Message buffers
-  int rx_count;           // tracks how full the rx buffer is.
-  char tx_buf[MAX_MSG];  // buffer for IR out (serial)
-  char rx_buf[MAX_MSG];  // buffer for IR in  (serial)
+    // IR Tx/Rx Message buffers
+    int rx_count;           // tracks how full the rx buffer is.
+    char tx_buf[MAX_MSG];  // buffer for IR out (serial)
+    char rx_buf[MAX_MSG];  // buffer for IR in  (serial)
 
-  // I2C buffer
-  char rx_msg[RX_PWR_MAX][MAX_MSG];   
+    // magnitudes to construct an angle of
+    // message reception.  We simply sum the
+    // message counts within a period of time
+    
+    float rx_activity[4];
+    
+    float msg_dir;
 
-  // Message receiving stats
-  // uint16_t = 65,535 max
-  uint16_t pass_count[RX_PWR_MAX];   // received correctly
-  uint16_t fail_count[RX_PWR_MAX];   // received with error
-  uint16_t msg_dt[RX_PWR_MAX];       // time between last 2 messages
-  uint16_t msg_t[RX_PWR_MAX];        // last message time in millis
+    // I2C buffer
+    char rx_msg[RX_PWR_MAX][MAX_MSG];
 
-  float rx_ratio[RX_PWR_MAX];
-  
-  unsigned long tx_ts;     // transmit time-stamp
-  unsigned long tx_delay;  // delay between tx
-  unsigned long led_ts;        // general time stamp
+    // Message receiving stats
+    // uint16_t = 65,535 max
+    uint16_t pass_count[RX_PWR_MAX];   // received correctly
+    uint16_t fail_count[RX_PWR_MAX];   // received with error
+    uint16_t msg_dt[RX_PWR_MAX];       // time between last 2 messages
+    uint16_t msg_t[RX_PWR_MAX];        // last message time in millis
+
+    int tx_len; // to monitor the length of messages sent
+    int rx_len; // to monitor the length of messages received
+    
+    unsigned long rx_ts;     // receiver rotation time-stamp
+    unsigned long rx_delay;  // delay between receiver rotations
+
+    unsigned long tx_ts;    // periodic transmit timestamp
+    unsigned long tx_delay; // delay between transmission
+    
+    unsigned long led_ts;        // general time stamp
+
+    
+
+    // to keep track of which of the 5
+    // IR Demodulators is currently active.
+    byte rx_pwr_index;
+
+    IRComm_c();
+    void init();
+    void update();
+    void setupTimer2();
+    void setRxDelay();
+    void setTxDelay();
+
+    void powerOffAllRx();
+    void powerOnAllRx();
+    void powerOnRx( byte index );
+    void cyclePowerRx();
+    int getActiveRx();
+    void enableRx();
+    void disableRx();
+
+    void formatString( char * str_to_send, int len );
+    void formatFloat( float f_to_send );
 
 
-  // To manage how quickly we cycle across
-  // all receivers.
-  unsigned long CYCLE_TIME_MS = 200;
-  unsigned long cycle_ts;
+    int hasMsg(int which);
 
-  // to keep track of which of the 5 
-  // IR Demodulators is currently active.
-  byte rx_pwr_index;
+    int findChar( char c, char * str, int len);
+    void resetRxBuf();
+    void resetRxFlags();
+    int processRxBuf();
+    uint8_t CRC( char * buf, int len);
 
-  IRComm_c();
-  void init();
-  void update();
-  void setupTimer2();
-  void setTXDelay();
-  
-  void powerOffAllRx();
-  void powerOnAllRx();
-  void powerOnRx( byte index );
-  void cyclePowerRx();
-  int getActiveRx();    
-  void enableRx();
-  void disableRx();
-  
-  void formatString( char * str_to_send, int len );
-  void formatFloat( float f_to_send );
-  
-  
-  int hasMsg(int which);
+    void doTransmit();
 
-  int findChar( char c, char * str, int len);
-  void resetRxBuf();
-  void resetRxFlags();
-  int processRxBuf();
-  uint8_t CRC( char * buf, int len);
-  
-  void enableTx();
-  void disableTx(); 
-  
-  void stopTx();
-  void startTx();
+    void enableTx();
+    void disableTx();
 
-  void clearTxBuf();
-  void clearRxMsg(int which);
-  float getFloatValue(int which);
-  
+    void stopTx();
+    void startTx();
+
+    void clearTxBuf();
+    void clearRxMsg(int which);
+    float getFloatValue(int which);
+
 };
 
 #endif

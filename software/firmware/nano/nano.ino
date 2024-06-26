@@ -124,25 +124,25 @@ void i2c_send() {
     // Below are request for message size from the
     // master device.
     //
-  } else if ( last_mode.mode == MODE_STATUS_MSG0 ) {
+  } else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
     i2c_mode_t msg_status;
     msg_status.mode = strlen( ircomm.rx_msg[0] );
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
-  } else if ( last_mode.mode == MODE_STATUS_MSG1 ) {
+  } else if ( last_mode.mode == MODE_SIZE_MSG1 ) {
     i2c_mode_t msg_status;
     msg_status.mode = strlen( ircomm.rx_msg[1] );
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
-  } else if ( last_mode.mode == MODE_STATUS_MSG2 ) {
+  } else if ( last_mode.mode == MODE_SIZE_MSG2 ) {
     i2c_mode_t msg_status;
     msg_status.mode = strlen( ircomm.rx_msg[2] );
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
-  } else if ( last_mode.mode == MODE_STATUS_MSG3 ) {
+  } else if ( last_mode.mode == MODE_SIZE_MSG3 ) {
     i2c_mode_t msg_status;
     msg_status.mode = strlen( ircomm.rx_msg[3] );
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
@@ -190,7 +190,7 @@ void i2c_send() {
       // Delete message
       ircomm.clearRxMsg( 3 );
     }
-  } else if ( last_mode.mode == MODE_REPORT_ACTIVITY ) {
+  } else if ( last_mode.mode == MODE_REPORT_RX_ACTIVITY ) {
     i2c_activity_t activity;
     for ( int i = 0; i < 4; i++ ) {
       activity.rx[i] = ircomm.rx_activity[i];
@@ -198,7 +198,7 @@ void i2c_send() {
     // Transmit
     Wire.write( (byte*)&activity, sizeof( activity ) );
 
-  } else if (  last_mode.mode == MODE_REPORT_DIRECTION ) {
+  } else if (  last_mode.mode == MODE_REPORT_RX_DIRECTION ) {
 
     i2c_bearing_t bearing;
 
