@@ -59,7 +59,7 @@
 #define PREDICT_TX_RX_DELAY false
 
 
-#define RX_MAG_MS 500
+
 
 // 38Khz signal generated on
 // digital pin 4.
@@ -106,9 +106,9 @@ class IRComm_c {
     // magnitudes to construct an angle of
     // message reception.  We simply sum the
     // message counts within a period of time
-    unsigned long rx_mag_ts;
+    
     float rx_activity[4];
-    float lpf_activity[4];
+    
     float msg_dir;
 
     // I2C buffer

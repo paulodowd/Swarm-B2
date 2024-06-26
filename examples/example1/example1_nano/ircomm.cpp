@@ -58,15 +58,14 @@ void IRComm_c::init() {
   // might not.
   Serial.begin(4800);
 
-
-
   // Set initial counts to 0
   led_ts = millis();
   for ( int i = 0; i < RX_PWR_MAX; i++ ) {
     pass_count[i] = 0;
     fail_count[i] = 0;
-    lpf_activity[i] = 0;
+    
     rx_activity[i] = 0;
+    
     msg_dt[i] = 0;
     msg_t[i] = millis();
   }
@@ -75,7 +74,7 @@ void IRComm_c::init() {
 
   rx_ts = millis();
   tx_ts = millis();
-  rx_mag_ts = millis();
+
 
   setRxDelay();
   setTxDelay();
@@ -493,21 +492,7 @@ void IRComm_c::update() {
     digitalWrite( 13, LOW );
   }
 
-  if ( millis() - rx_mag_ts > RX_MAG_MS ) {
-    rx_mag_ts = millis();
-
-    float x, y;
-
-
-    y = lpf_activity[0] - lpf_activity[2];
-    x = lpf_activity[1] - lpf_activity[3];
-    msg_dir = atan2( y, x );
-    //Serial.println( msg_dir );
-
-
-    //    Serial.println();
-  }
-
+ 
   // time for RECEIVER ROTATION
   if (millis() - rx_ts > rx_delay) {
 
