@@ -33,8 +33,13 @@ void IRComm_c::init() {
   memset(rx_buf, 0, sizeof(rx_buf));
   memset(rx_msg, 0, sizeof(rx_msg));
 
+  // Set recorded message lengths to invalid
+  // to begin with. Used in conjunction with
+  // PREDICT_TX_RX_DELAY true
+  tx_len = -1;
+  rx_len = -1;
 
-  
+
   enableTx(); // sets up Timer2 to create 38khz carrier
   //disableTx();
 
@@ -84,15 +89,15 @@ void IRComm_c::cyclePowerRx() {
   // activity level, update the lpf
   if ( rx_pwr_index > 3 ) {
     rx_pwr_index = 0;
-    for( int i = 0; i < 4; i++ ) {
+    for ( int i = 0; i < 4; i++ ) {
 
       // I use 4 here because I think the most number of messages
       // we should get per cycle is 4 (unless CYCLE_ON_RX = false).
       // This will reduce recorded activity per iteration if no
       // messages are received
-      rx_activity[i] /= 4.0;  
+      rx_activity[i] /= 4.0;
     }
-    
+
   }
 
   powerOnRx( rx_pwr_index );
@@ -263,6 +268,11 @@ void IRComm_c::formatString(char* str_to_send, int len) {
     tx_buf[i] = buf[i];
   }
 
+  // Save this message length if it is the largest
+  // yet.  This is used if PREDICT_TX_RX_DELAY is
+  // set to true.
+  if ( count > tx_len ) tx_len = count;
+
   // Add terminal token
   tx_buf[count] = '!';
 
@@ -346,18 +356,12 @@ void IRComm_c::setRxDelay() {
 }
 
 void IRComm_c::setTxDelay() {
-  //
-  //  if( tx_buf[0] == '!' ) {            // no message
-  //    t = 1;
-  //  } else if( strlen(tx_buf) == 0 ) {  // no message
-  //    t = 1;
-  //  } else {
-  //
-  //  }
+
+
+
 
   float t = (float)random(0, TX_DELAY_MOD);
   t += TX_DELAY_BIAS;
-  // Insert random delay to help
   // break up synchronous tranmission
   // between robots.
   tx_delay = (unsigned long)t;
@@ -365,6 +369,7 @@ void IRComm_c::setTxDelay() {
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
   tx_ts = millis();
+
 }
 
 
@@ -499,7 +504,7 @@ void IRComm_c::update() {
     msg_dir = atan2( y, x );
     //Serial.println( msg_dir );
 
-   
+
     //    Serial.println();
   }
 
@@ -537,11 +542,11 @@ void IRComm_c::update() {
 
 
       // Transmission only happens once the current
-      // receiver has finished AND if the delay 
+      // receiver has finished AND if the delay
       // between tranmissions has elapsed.
       if ( millis() - tx_ts > tx_delay ) {
 
-        // Check whether we actually have something to 
+        // Check whether we actually have something to
         // transmit
         if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == '0' ) {
 
@@ -565,7 +570,7 @@ void IRComm_c::update() {
           //unsigned long end_t = millis();
           //Serial.println( (end_t - start_t ) );
 
-          
+
         }
 
         // Regardless of whether there was something to
@@ -764,7 +769,7 @@ int IRComm_c::processRxBuf() {
           // Since we are successful, we increase the message
           // count for this receiver
           pass_count[ rx_pwr_index ]++;
-          
+
 
           msg_dt[ rx_pwr_index ] = millis() - msg_t[ rx_pwr_index ];
           msg_t[ rx_pwr_index ] = millis();
@@ -793,6 +798,7 @@ int IRComm_c::processRxBuf() {
 
 
 
+
         } else {
 
           fail_count[rx_pwr_index]++;
@@ -802,7 +808,7 @@ int IRComm_c::processRxBuf() {
 
         }
       } // message was complete, but CRC pass or failed.
-      
+
     } else { // Message was not complete
 
       // checksum token missing or invalid

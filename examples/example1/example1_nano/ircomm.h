@@ -40,8 +40,24 @@
 // the next receiver?
 // It takes time to receive a full message, so 
 // there is unlikely to be enough time remaining
-// to get anothe message (e.g, set to true).
+// to get another message (e.g, set to true).
 #define CYCLE_ON_RX true
+
+
+// If we know we are going to send and receive 
+// messages of a certain length then we could 
+// configure the device for a more optimal
+// rx_delay and tx_delay.  To try and have the
+// board do this for itself, set the below to 
+// true.  Set true, the board will look at the 
+// length of the message to transmit and the
+// length of messages received, and setup the
+// tx_delay and rx_delay to be appropriate for
+// which ever of the two is longest.
+// If set to false, the board will use the 
+// #defines set above for tx/rx_delay _bias _mod.
+#define PREDICT_TX_RX_DELAY false
+
 
 #define RX_MAG_MS 500
 
@@ -105,8 +121,9 @@ class IRComm_c {
     uint16_t msg_dt[RX_PWR_MAX];       // time between last 2 messages
     uint16_t msg_t[RX_PWR_MAX];        // last message time in millis
 
-
-
+    int tx_len; // to monitor the length of messages sent
+    int rx_len; // to monitor the length of messages received
+    
     unsigned long rx_ts;     // receiver rotation time-stamp
     unsigned long rx_delay;  // delay between receiver rotations
 
