@@ -7,8 +7,6 @@
 #include <avr/io.h>
 #include "Arduino.h"
 
-#define STATE_IR_TX_ON 1
-#define STATE_IR_TX_OFF 2
 #define MAX_MSG 32
 
 // It seems to be about 2.5ms per byte
@@ -28,6 +26,17 @@
 #define TX_DELAY_BIAS (RX_DELAY_BIAS * 2) // every 2 receivers?
 #define TX_DELAY_MOD  40
 
+// A special case, what is the interval of
+// time between transmission if in TX_MODE_BURST?
+#define TX_DELAY_BURST  800
+
+
+
+// I think we might get better performance if we 
+// repeat the message transmission.  We are expecting
+// a listening window of at least x2 the size of the 
+// message, so we might as well transmit twice too
+#define TX_REPEAT 2
 
 #define RX_PWR_0  3 // Forward
 #define RX_PWR_1  2 // LEFT
@@ -57,7 +66,7 @@
 // If set to false, the board will use the 
 // #defines set above for tx/rx_delay _bias _mod.
 #define PREDICT_TX_RX_DELAY true
-
+#define PREDICT_RX_MULTIPLIER 4
 
 
 
@@ -73,10 +82,13 @@
 //          also transmit.  This means that if a robot is
 //          receiving messages well, the tranmission rate 
 //          would also increase.  Seems complicated.
-#define TX_MODE_PERIODIC    0
-#define TX_MODE_INTERLEAVED 1
+#define TX_MODE_PERIODIC    0   // set a period for when to do a tx
+#define TX_MODE_INTERLEAVED 1   // tx after every receiver rotation (not working)
+#define TX_MODE_BURST       10   // Do a burst? how many repeats?
 
-#define TX_MODE TX_MODE_INTERLEAVED
+//#define TX_MODE TX_MODE_PERIODIC
+//#define TX_MODE TX_MODE_INTERLEAVED
+#define TX_MODE TX_MODE_BURST
 
 // Uncomment to see debug output.  Note that, we
 // are going to use the serial port for debugging,

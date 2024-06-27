@@ -75,7 +75,23 @@ void i2c_recv( int len ) {
         status.pass_count[i] = 0;
       }
 
-    }
+    } else if ( new_mode.mode == MODE_CLEAR_MSG0 ) {
+    // Delete message
+    ircomm.clearRxMsg( 0 );
+
+  } else if ( new_mode.mode == MODE_CLEAR_MSG1 ) {
+    // Delete message
+    ircomm.clearRxMsg( 1 );
+
+  } else if ( new_mode.mode == MODE_CLEAR_MSG2 ) {
+    // Delete message
+    ircomm.clearRxMsg( 2 );
+
+  } else if ( new_mode.mode == MODE_CLEAR_MSG3 ) {
+    // Delete message
+    ircomm.clearRxMsg( 3 );
+
+  } 
 
 
   } else { // Receiving a new message to transmit.
@@ -211,22 +227,6 @@ void i2c_send() {
     // Transmit
     Wire.write( (byte*)&activity, sizeof( activity ) );
 
-  } else if ( last_mode.mode == MODE_CLEAR_MSG0 ) {
-    // Delete message
-    ircomm.clearRxMsg( 0 );
-
-  } else if ( last_mode.mode == MODE_CLEAR_MSG1 ) {
-    // Delete message
-    ircomm.clearRxMsg( 1 );
-
-  } else if ( last_mode.mode == MODE_CLEAR_MSG2 ) {
-    // Delete message
-    ircomm.clearRxMsg( 2 );
-
-  } else if ( last_mode.mode == MODE_CLEAR_MSG3 ) {
-    // Delete message
-    ircomm.clearRxMsg( 3 );
-
   } else if (  last_mode.mode == MODE_REPORT_RX_DIRECTION ) {
 
     i2c_bearing_t bearing;
@@ -294,8 +294,6 @@ void setup() {
   // Start the IR communication board.
   ircomm.init();
 
-  ircomm.powerOnRx(2);
-
   last_mode.mode = MODE_REPORT_STATUS;
 
   status.mode = MODE_REPORT_STATUS;
@@ -313,7 +311,7 @@ void setup() {
   // tx_delay = rx_delay * 2
   // rx_len = 1 -> 2 * 1 * 2.5 = 5ms -> tx_delay = 10ms.
   if ( SELF_TEST_MODE == TEST_TX ) {
-    ircomm.rx_len = 1;
+    ircomm.rx_len = 6;
 
   }
 
@@ -334,8 +332,8 @@ void loop() {
 
     if ( SELF_TEST_MODE == TEST_TX ) {
       // Create a test string up to 29 chars long
-      int max_chars = 27;
-      char buf[ max_chars ];
+      int max_chars = 6;
+      char buf[ 29 ];
 
       memset( buf, 0, sizeof( buf ) );
 
@@ -346,9 +344,10 @@ void loop() {
       for ( int i = ms_len; i < max_chars; i++ ) {
         buf[i] = (byte)(65 + i);
       }
-
-
       ircomm.formatString(buf, strlen(buf) );
+//      Serial.println( ircomm.rx_delay );
+//      Serial.println( ircomm.tx_delay );
+//      
     } else if ( SELF_TEST_MODE == TEST_RX ) {
       ircomm.disableRx();
       for ( int i = 0; i < 4; i++ ) {

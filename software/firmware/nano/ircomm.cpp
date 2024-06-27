@@ -25,8 +25,6 @@ void IRComm_c::init() {
   // Set pin for 38khz carrier as output
   pinMode(TX_CLK_OUT, OUTPUT);
 
-  state = STATE_IR_TX_ON;
-
 
   // Set message buffers to invalid (empty) state
   memset(tx_buf, 0, sizeof(tx_buf));
@@ -36,7 +34,6 @@ void IRComm_c::init() {
   // Set recorded message lengths to invalid
   // to begin with. Used in conjunction with
   // PREDICT_TX_RX_DELAY true
-
   rx_len = -1;
 
 
@@ -257,9 +254,6 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   // Add checksum
   buf[count++] = CRC(buf, strlen(buf));
 
-  // Stop transmission whilst we update
-  // the buffer.
-  state = STATE_IR_TX_OFF;
 
   // Copy to tx buffer
   memset(tx_buf, 0, sizeof(tx_buf)); // clear first
@@ -277,8 +271,6 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   //Serial.print( buf );
   //Serial.println("END");
 
-  // Restart IR transmission
-  state = STATE_IR_TX_ON;
 }
 
 
@@ -334,9 +326,9 @@ void IRComm_c::setRxDelay() {
 
   if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
     float t = rx_len;
-    t *= 2.0; // twice as long to listen
+    t *= PREDICT_RX_MULTIPLIER; // twice as long to listen
     t *= 2.5; // 2.5ms per byte
-    float mod = rx_len;
+    float mod = t;
     mod *= 0.25;
     mod = (float)random(0, (long)mod);
     t += mod;
@@ -365,6 +357,8 @@ void IRComm_c::setTxDelay() {
 
   if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
     // send every 2 receiver cycles?
+    // rx_delay does vary, so it won't stay
+    // completely in sync with every 2
     tx_delay = rx_delay * 2.0;
   } else {
 
@@ -436,15 +430,7 @@ void IRComm_c::setupTimer2() {
   sei();
 }
 
-void IRComm_c::stopTx() {
-  state = STATE_IR_TX_OFF;
-}
 
-void IRComm_c::startTx() {
-
-  state = STATE_IR_TX_ON;
-
-}
 
 void IRComm_c::clearRxMsg(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
@@ -504,20 +490,63 @@ void IRComm_c::update() {
   }
 
 
+
+
   // time for RECEIVER ROTATION
   if (millis() - rx_ts > rx_delay) {
     //rx_ts = millis(); // setRxDelay() handles this
-    
+
     // Debugging...
     //    Serial.println( (millis() - rx_ts) );
 
 
 
-    // Are we configured to send a message on every
-    // receiver rotation?
-    if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+    if ( TX_MODE == TX_MODE_BURST ) {
 
-      if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == '0' ) {
+      // If we are about to cycle away from the last
+      // receiver...
+      if ( millis() - tx_ts > tx_delay ) {
+
+        // In burst mode, the robot simply does repeated
+        // transmissions, taking over the device. It then
+        // reverts back to listening and cycling the
+        // receivers
+
+        // Check whether we actually have something to transmit
+        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
+
+          // don't attempt send, empty buffer.
+
+        } else {
+
+
+
+          // We have a problem where we pick up
+          // our own reflected transmission through
+          // a parallel implementation in hardware.
+          disableRx();
+
+          // This is going to repeat by whatever value
+          // TX_MODE_BURST has been set to.
+          for ( int i = 0; i < TX_MODE_BURST; i++ ) {
+            Serial.println(tx_buf);
+            Serial.flush();  // wait for send to complete
+          }
+
+
+
+
+
+        }
+        // A special case, so we don't use this function
+        // setTxDelay();
+        tx_delay = TX_DELAY_BURST;
+        tx_ts = millis();
+      }
+
+    } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+
+      if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
 
         // don't attempt send, empty buffer.
 
@@ -534,10 +563,11 @@ void IRComm_c::update() {
         //unsigned long start_t = millis();
         Serial.println(tx_buf);
         Serial.flush();  // wait for send to complete
-        //unsigned long end_t = millis();
-        //Serial.println( (end_t - start_t ) );
+
+
 
       }
+
     } else if ( TX_MODE == TX_MODE_PERIODIC ) {
 
 
@@ -548,7 +578,7 @@ void IRComm_c::update() {
 
         // Check whether we actually have something to
         // transmit
-        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == '0' ) {
+        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
 
           // don't attempt send, empty buffer.
 
@@ -565,17 +595,22 @@ void IRComm_c::update() {
           // IR.  Serial TX is modulated with
           // the 38Khz carrier in hardware.
           //unsigned long start_t = millis();
-          Serial.println(tx_buf);
+          for ( int i = 0; i < TX_REPEAT; i++ ) {
+
+
+            Serial.println(tx_buf);
+          }
           Serial.flush();  // wait for send to complete
           //unsigned long end_t = millis();
           //Serial.println( (end_t - start_t ) );
 
 
-        }
 
-        // Regardless of whether there was something to
-        // transmit, set the new transmission delay
+        }
+        // set the new transmission delay
         setTxDelay();
+
+
       }
 
     }
@@ -586,7 +621,7 @@ void IRComm_c::update() {
     // Set a different delay for next
     // iteration
     setRxDelay();
-    
+
 
   } // endif( millis() - rx_ts > rx_delay )
 
@@ -808,7 +843,7 @@ int IRComm_c::processRxBuf() {
           }
 
           //Serial.println( millis() );
-//          Serial.println(( micros() - s) );
+          //          Serial.println(( micros() - s) );
 
 
 
