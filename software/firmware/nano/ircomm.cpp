@@ -501,50 +501,7 @@ void IRComm_c::update() {
 
 
 
-    if ( TX_MODE == TX_MODE_BURST ) {
-
-      // If we are about to cycle away from the last
-      // receiver...
-      if ( millis() - tx_ts > tx_delay ) {
-
-        // In burst mode, the robot simply does repeated
-        // transmissions, taking over the device. It then
-        // reverts back to listening and cycling the
-        // receivers
-
-        // Check whether we actually have something to transmit
-        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
-
-          // don't attempt send, empty buffer.
-
-        } else {
-
-
-
-          // We have a problem where we pick up
-          // our own reflected transmission through
-          // a parallel implementation in hardware.
-          disableRx();
-
-          // This is going to repeat by whatever value
-          // TX_MODE_BURST has been set to.
-          for ( int i = 0; i < TX_MODE_BURST; i++ ) {
-            Serial.println(tx_buf);
-            Serial.flush();  // wait for send to complete
-          }
-
-
-
-
-
-        }
-        // A special case, so we don't use this function
-        // setTxDelay();
-        tx_delay = TX_DELAY_BURST;
-        tx_ts = millis();
-      }
-
-    } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+    if ( TX_MODE == TX_MODE_INTERLEAVED ) {
 
       if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
 
@@ -596,11 +553,10 @@ void IRComm_c::update() {
           // the 38Khz carrier in hardware.
           //unsigned long start_t = millis();
           for ( int i = 0; i < TX_REPEAT; i++ ) {
-
-
             Serial.println(tx_buf);
+            Serial.flush();  // wait for send to complete
           }
-          Serial.flush();  // wait for send to complete
+          
           //unsigned long end_t = millis();
           //Serial.println( (end_t - start_t ) );
 

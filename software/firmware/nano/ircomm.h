@@ -23,12 +23,10 @@
 
 // Used only for periodic tranmission mode.
 // How often do we transmit in ms?
-#define TX_DELAY_BIAS (RX_DELAY_BIAS * 2) // every 2 receivers?
-#define TX_DELAY_MOD  40
+#define TX_DELAY_BIAS 600 // every 2 receivers?
+#define TX_DELAY_MOD  400
 
-// A special case, what is the interval of
-// time between transmission if in TX_MODE_BURST?
-#define TX_DELAY_BURST  800
+
 
 
 
@@ -84,11 +82,11 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC    0   // set a period for when to do a tx
 #define TX_MODE_INTERLEAVED 1   // tx after every receiver rotation (not working)
-#define TX_MODE_BURST       10   // Do a burst? how many repeats?
 
-//#define TX_MODE TX_MODE_PERIODIC
+
+#define TX_MODE TX_MODE_PERIODIC
 //#define TX_MODE TX_MODE_INTERLEAVED
-#define TX_MODE TX_MODE_BURST
+
 
 // Uncomment to see debug output.  Note that, we
 // are going to use the serial port for debugging,
