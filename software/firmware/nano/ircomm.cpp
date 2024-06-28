@@ -29,7 +29,7 @@ void IRComm_c::init() {
   // Set message buffers to invalid (empty) state
   memset(tx_buf, 0, sizeof(tx_buf));
   memset(rx_buf, 0, sizeof(rx_buf));
-  memset(rx_msg, 0, sizeof(rx_msg));
+  memset(i2c_msg, 0, sizeof(i2c_msg));
 
   // Set recorded message lengths to invalid
   // to begin with. Used in conjunction with
@@ -434,7 +434,7 @@ void IRComm_c::setupTimer2() {
 
 void IRComm_c::clearRxMsg(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
-    memset(rx_msg[which], 0, sizeof(rx_msg[which]));
+    memset(i2c_msg[which], 0, sizeof(i2c_msg[which]));
   }
 }
 
@@ -448,7 +448,7 @@ void IRComm_c::clearTxBuf() {
 float IRComm_c::getFloatValue(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
     // check for 0 length?
-    return atof( rx_msg[which] );
+    return atof( i2c_msg[which] );
   } else {
     return -1;
   }
@@ -542,7 +542,7 @@ void IRComm_c::update() {
         } else {
           //tx_ts = millis(); // setTxDelay() handles this
 
-
+          unsigned long s = micros();
           // We have a problem where we pick up
           // our own reflected transmission through
           // a parallel implementation in hardware.
@@ -556,7 +556,7 @@ void IRComm_c::update() {
             Serial.println(tx_buf);
             Serial.flush();  // wait for send to complete
           }
-          
+          Serial.println( (micros() - s ) );
           //unsigned long end_t = millis();
           //Serial.println( (end_t - start_t ) );
 
@@ -779,23 +779,23 @@ int IRComm_c::processRxBuf() {
 
           // Make sure where we will store this
           // received message is clear.
-          memset(rx_msg[rx_pwr_index], 0, sizeof(rx_msg[rx_pwr_index]));
+          memset(i2c_msg[rx_pwr_index], 0, sizeof(i2c_msg[rx_pwr_index]));
 
           // Copy message across, ignoring the *
           for (int i = 0; i < b - 2; i++) {
-            rx_msg[rx_pwr_index][i] = buf[i + 1];
+            i2c_msg[rx_pwr_index][i] = buf[i + 1];
           }
 
           // Add a ! to the message, which will be
           // used when later sending down I2C to
           // the Master to indicate the end of the
           // string.
-          rx_msg[rx_pwr_index][b - 1] = '!';
+          i2c_msg[rx_pwr_index][b - 1] = '!';
 
 
           if ( IR_DEBUG_OUTPUT ) {
             Serial.print("Saved: " ) ;
-            Serial.println( rx_msg[rx_pwr_index] );
+            Serial.println( i2c_msg[rx_pwr_index] );
           }
 
           //Serial.println( millis() );
@@ -850,7 +850,7 @@ int IRComm_c::findChar(char c, char* str, int len) {
 
 int IRComm_c::hasMsg(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) { // valid request?
-    if (rx_msg[which][0] == '!') {      // no message?
+    if (i2c_msg[which][0] == '!') {      // no message?
       return -1;
     }
   } else {                              // invalid request
@@ -858,7 +858,7 @@ int IRComm_c::hasMsg(int which) {
   }
 
   // Valid, has positive length
-  return strlen(rx_msg[rx_pwr_index]);
+  return strlen(i2c_msg[rx_pwr_index]);
 }
 
 // This ISR simply toggles the state of

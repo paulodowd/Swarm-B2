@@ -23,7 +23,7 @@
 
 // Used only for periodic tranmission mode.
 // How often do we transmit in ms?
-#define TX_DELAY_BIAS 600 // every 2 receivers?
+#define TX_DELAY_BIAS 600  
 #define TX_DELAY_MOD  400
 
 
@@ -33,8 +33,11 @@
 // I think we might get better performance if we 
 // repeat the message transmission.  We are expecting
 // a listening window of at least x2 the size of the 
-// message, so we might as well transmit twice too
-#define TX_REPEAT 2
+// message, and robots will listen across 4 receivers.
+// So 8?
+// With 6 bytes of data, sending x8 takes ~200ms
+// with 29 bytes of data, sending x8 takes ~500ms
+#define TX_REPEAT 8
 
 #define RX_PWR_0  3 // Forward
 #define RX_PWR_1  2 // LEFT
@@ -83,7 +86,6 @@
 #define TX_MODE_PERIODIC    0   // set a period for when to do a tx
 #define TX_MODE_INTERLEAVED 1   // tx after every receiver rotation (not working)
 
-
 #define TX_MODE TX_MODE_PERIODIC
 //#define TX_MODE TX_MODE_INTERLEAVED
 
@@ -104,7 +106,7 @@ class IRComm_c {
     // Two operational states
     int state;
 
-    // Flags
+    // Decoding Flags
     bool PROCESS_MSG;
     bool GOT_START_TOKEN;
 
@@ -122,7 +124,7 @@ class IRComm_c {
     float msg_dir;
 
     // I2C buffer
-    char rx_msg[RX_PWR_MAX][MAX_MSG];
+    char i2c_msg[RX_PWR_MAX][MAX_MSG];
 
     // Message receiving stats
     // uint16_t = 65,535 max
