@@ -42,8 +42,8 @@ unsigned long test_ts;
 IRComm_c ircomm;
 
 
-i2c_mode_t last_mode;
-i2c_status_t status;
+volatile i2c_mode_t last_mode;
+volatile i2c_status_t status;
 
 
 // Function to receive commands from the master device.
@@ -52,6 +52,11 @@ i2c_status_t status;
 void i2c_recv( int len ) {
 
 
+  // Mode changes are always 1 byte long.  We use these to
+  // ready the board to send back information or to ask the
+  // board to complete specific actions (e.g, delete a 
+  // message).
+  // 
   if ( len == 1 ) { // receiving a mode change.
     i2c_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
@@ -70,10 +75,12 @@ void i2c_recv( int len ) {
       ircomm.clearTxBuf();
 
     } else if ( new_mode.mode == MODE_RESET_COUNTS ) {
-      for ( int i = 0; i < 4; i++ ) {
-        status.fail_count[i] = 0;
-        status.pass_count[i] = 0;
+      memset( &status, 0, sizeof( status ) );
+      for( int i = 0; i < 4; i++ ) {
+        ircomm.pass_count[i] = 0;
+        ircomm.fail_count[i] = 0;
       }
+      
 
     } else if ( new_mode.mode == MODE_CLEAR_MSG0 ) {
     // Delete message
