@@ -67,7 +67,7 @@
 // If set to false, the board will use the 
 // #defines set above for tx/rx_delay _bias _mod.
 #define PREDICT_TX_RX_DELAY true
-#define PREDICT_RX_MULTIPLIER 4
+#define PREDICT_RX_MULTIPLIER 2
 
 
 
@@ -132,7 +132,7 @@ class IRComm_c {
     uint16_t fail_count[RX_PWR_MAX];   // received with error
     uint16_t msg_dt[RX_PWR_MAX];       // time between last 2 messages
     uint16_t msg_t[RX_PWR_MAX];        // last message time in millis
-
+    uint8_t hist[4];
     
     int rx_len; // to monitor the length of messages received
     

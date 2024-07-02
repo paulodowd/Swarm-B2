@@ -69,6 +69,9 @@ void IRComm_c::init() {
 
   msg_dir = 0.0;
 
+  hist[0] = 0;
+  hist[1] = 0;
+
   rx_ts = millis();
   tx_ts = millis();
 
@@ -359,7 +362,7 @@ void IRComm_c::setTxDelay() {
     // send every 2 receiver cycles?
     // rx_delay does vary, so it won't stay
     // completely in sync with every 2
-    tx_delay = rx_delay * 2.0;
+    tx_delay = rx_delay * PREDICT_RX_MULTIPLIER;
   } else {
 
     float t = (float)random(0, TX_DELAY_MOD);
@@ -542,7 +545,7 @@ void IRComm_c::update() {
         } else {
           //tx_ts = millis(); // setTxDelay() handles this
 
-          unsigned long s = micros();
+          //unsigned long s = micros();
           // We have a problem where we pick up
           // our own reflected transmission through
           // a parallel implementation in hardware.
@@ -556,7 +559,7 @@ void IRComm_c::update() {
             Serial.println(tx_buf);
             Serial.flush();  // wait for send to complete
           }
-          Serial.println( (micros() - s ) );
+          //Serial.println( (micros() - s ) );
           //unsigned long end_t = millis();
           //Serial.println( (end_t - start_t ) );
 
@@ -760,9 +763,6 @@ int IRComm_c::processRxBuf() {
           // receiving messages correctly
           digitalWrite(13, HIGH);
 
-          // Since we are successful, we increase the message
-          // count for this receiver
-          pass_count[ rx_pwr_index ]++;
 
           // Since we are successful, we can now use the last
           // and start index values to work out how long this
@@ -792,6 +792,20 @@ int IRComm_c::processRxBuf() {
           // string.
           i2c_msg[rx_pwr_index][b - 1] = '!';
 
+          float id = atof( i2c_msg[rx_pwr_index] );
+          if( id == 1.00 ) {
+            hist[0]++;
+          } else if( id == 2.00 ) {
+            hist[1]++;
+          } else if( id == 3.00 ) {
+            hist[2]++; 
+          } else {
+            hist[3]++;
+          }
+          
+          // Since we are successful, we increase the message
+          // count for this receiver
+          pass_count[ rx_pwr_index ]++;
 
           if ( IR_DEBUG_OUTPUT ) {
             Serial.print("Saved: " ) ;

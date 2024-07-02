@@ -98,7 +98,12 @@ void i2c_recv( int len ) {
     // Delete message
     ircomm.clearRxMsg( 3 );
 
-  } 
+  } else if( new_mode.mode == MODE_CLEAR_HIST ) {
+    ircomm.hist[0] = 0;
+    ircomm.hist[1] = 0;
+    ircomm.hist[2] = 0;
+    ircomm.hist[3] = 0;
+  }
 
 
   } else { // Receiving a new message to transmit.
@@ -270,6 +275,16 @@ void i2c_send() {
 
     // Transmit
     Wire.write( (byte*)&sensors, sizeof( sensors ) );
+    
+  } else if( last_mode.mode == MODE_REPORT_HIST ) {
+    
+    i2c_id_hist_t hist;
+    hist.id[0] = ircomm.hist[0];
+    hist.id[1] = ircomm.hist[1];
+    hist.id[2] = ircomm.hist[2];
+    hist.id[3] = ircomm.hist[3];
+    Wire.write( (byte*)&hist, sizeof( hist ) );
+    
   }
 }
 

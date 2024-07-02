@@ -51,6 +51,10 @@ typedef struct i2c_bearing {
   float mag;
 } i2c_bearing_t;
 
+typedef struct i2c_id_hist {
+  uint8_t id[4];
+} i2c_id_hist_t;
+
 typedef struct i2c_sensors {
   int16_t ldr[3];     // 6 bytes
   int16_t prox[2];    // 4 bytes
@@ -78,7 +82,9 @@ typedef struct i2c_sensors {
 #define MODE_REPORT_RX_ACTIVITY 19
 #define MODE_REPORT_RX_DIRECTION 20
 #define MODE_REPORT_TIMINGS 21
-#define MAX_MODE            22
+#define MODE_REPORT_HIST    22
+#define MODE_CLEAR_HIST     23
+#define MAX_MODE            24
 
 
 
