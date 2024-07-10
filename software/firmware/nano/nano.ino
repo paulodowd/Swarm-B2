@@ -12,7 +12,7 @@
 #include "ircomm.h"
 #include "ircomm_data.h"
 
-#define I2C_ADDR  8
+#define I2C_ADDR  0x08
 
 // Test/Debug modes
 #define TEST_DISABLED 0
