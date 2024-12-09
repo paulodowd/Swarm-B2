@@ -1,9 +1,51 @@
 #include "ircomm.h"
 
+
+
 IRComm_c::IRComm_c() {
 }
 
+
+
 void IRComm_c::init() {
+
+  // Start by setting up the default config
+  // set by the #define in ircomm.h, which
+  // can then be over-rided by i2c.
+  if ( TX_MODE == TX_MODE_PERIODIC ) {
+    ir_config.tx_mode   = TX_MODE_PERIODIC;
+    ir_config.tx_repeat = DEFAULT_TX_REPEAT;
+    ir_config.tx_period = DEFAULT_TX_PERIOD;
+
+  } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+    ir_config.tx_mode   = TX_MODE_INTERLEAVED;
+    ir_config.tx_repeat = DEFAULT_TX_REPEAT;
+    ir_config.tx_period = 0; // not used
+
+  } else {
+    // You need to set TX_MODE in ircomm.h
+  }
+
+  ir_config.rx_predict_timeout = RX_PREDICT_TIMEOUT;
+  ir_config.rx_overrun        = RX_OVERRUN;
+  ir_config.rx_length         = RX_DEFAULT_MSG_LEN;
+  ir_config.rx_timeout        = 0;
+  ir_config.rx_timeout_multi  = RX_PREDICT_MULTIPLIER;
+
+
+  setRxTimeout();
+  setTxPeriod();
+
+
+#ifdef IR_FREQ_38
+  Serial.begin( 4800 );
+#endif
+
+#ifdef IR_FREQ_58
+  Serial.begin( 9600 );
+#endif
+
+  //reportConfiguration();
 
   // Debug led
   pinMode(13, OUTPUT);
@@ -12,7 +54,7 @@ void IRComm_c::init() {
   error_type[1] = 0;
   error_type[2] = 0;
   error_type[3] = 0;
-  
+
 
   // RX Demodulator power pins
   pinMode(RX_PWR_0, OUTPUT);
@@ -39,26 +81,12 @@ void IRComm_c::init() {
   // Set recorded message lengths to invalid
   // to begin with. Used in conjunction with
   // PREDICT_TX_RX_DELAY true
-  rx_len = -1;
+  ir_config.rx_length = -1;
 
 
   enableTx(); // sets up Timer2 to create 38khz carrier
   //disableTx();
 
-  // Start assuming we are not transmitting
-  // a message, and that we have not received
-  // a message to process.
-  PROCESS_MSG = false;
-  rx_count = 0;
-
-
-  // Start Serial.  Note, here we are using
-  // serial to transmit strings over IR by
-  // modulating it with the 38khz carrier.
-  // The IR demodulator chip can support
-  // baud up to 4800, but other variants
-  // might not.
-  Serial.begin(9600);
 
   // Set initial counts to 0
   led_ts = millis();
@@ -81,9 +109,21 @@ void IRComm_c::init() {
   tx_ts = millis();
 
 
-  setRxDelay();
-  setTxDelay();
-  resetRxBuf();
+  resetRxProcess();
+}
+
+void IRComm_c::reportConfiguration() {
+
+
+  Serial.print("Configured to:\n" );
+  Serial.print("- tx mode: \t" ); Serial.println( ir_config.tx_mode );
+  Serial.print("- tx repeat: \t" ); Serial.println( ir_config.tx_repeat );
+  Serial.print("- tx period: \t" ); Serial.println( ir_config.tx_period );
+  Serial.print("- rx predict: \t" ); Serial.println( ir_config.rx_predict_timeout );
+  Serial.print("- rx overrun: \t" ); Serial.println( ir_config.rx_overrun );
+  Serial.print("- rx length: \t" ); Serial.println( ir_config.rx_length );
+  Serial.print("- rx timeout: \t" ); Serial.println( ir_config.rx_timeout );
+  Serial.print("- rx to-multi: \t" ); Serial.println( ir_config.rx_timeout_multi );
 }
 
 void IRComm_c::cyclePowerRx() {
@@ -91,24 +131,34 @@ void IRComm_c::cyclePowerRx() {
 
   // A full rotation has occured, process the
   // activity level, update the lpf
-  if ( rx_pwr_index > 3 ) {
+  if ( rx_pwr_index >= RX_PWR_MAX ) {
     rx_pwr_index = 0;
-    
-    for ( int i = 0; i < 4; i++ ) {
 
-      // I use 4 here because I think the most number of messages
-      // we should get per cycle is 4 (unless CYCLE_ON_RX = false).
-      // This will reduce recorded activity per iteration if no
-      // messages are received
-      rx_activity[i] /= 4.0;
-    }
+    updateActivity();
 
   }
 
-  
+
   powerOnRx( rx_pwr_index );
 
-  
+  // Since we've cycled receiver,
+  // set the new timeout period
+  setRxTimeout();
+}
+
+
+// Small wrapper for how to update the recorded activity
+// level by some decay rate.
+void IRComm_c::updateActivity() {
+
+  for ( int i = 0; i < 4; i++ ) {
+
+    // I use 4 here because I think the most number of messages
+    // we should get per cycle is 4 (unless CYCLE_ON_RX = false).
+    // This will reduce recorded activity per iteration if no
+    // messages are received
+    rx_activity[i] /= 4.0;
+  }
 }
 
 int IRComm_c::getActiveRx() {
@@ -125,44 +175,32 @@ void IRComm_c::powerOnRx( byte index ) {
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
-    //    digitalWrite( RX_PWR_0, LOW );
-    //    digitalWrite( RX_PWR_1, LOW );
-    //    digitalWrite( RX_PWR_2, LOW );
-    //    digitalWrite( RX_PWR_3, LOW );
+
   } else if ( index == 1 ) {        // left
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, HIGH );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
 
-    //    digitalWrite( RX_PWR_0, LOW );
-    //    digitalWrite( RX_PWR_1, LOW );
-    //    digitalWrite( RX_PWR_2, LOW );
-    //    digitalWrite( RX_PWR_3, LOW );
+
   } else if ( index == 2 ) {        // back
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, HIGH );
     digitalWrite( RX_PWR_3, LOW );
-    //    digitalWrite( RX_PWR_0, LOW );
-    //    digitalWrite( RX_PWR_1, LOW );
-    //    digitalWrite( RX_PWR_2, LOW );
-    //    digitalWrite( RX_PWR_3, LOW );
+
   } else if ( index == 3 ) {        // right
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, HIGH );
-    //    digitalWrite( RX_PWR_0, LOW );
-    //    digitalWrite( RX_PWR_1, LOW );
-    //    digitalWrite( RX_PWR_2, LOW );
-    //    digitalWrite( RX_PWR_3, LOW );
+
   }
 
   // After changing which receiver is active,
   // the serial buffer is full of old data.
   // We clear it now.
-  resetRxBuf();
+  resetRxProcess();
 }
 
 // The arduino nano has a parallel serial
@@ -171,7 +209,6 @@ void IRComm_c::powerOnRx( byte index ) {
 // UART register to disable RX functionality.
 // When we re-enable it, this has the beneficial
 // side-effect of clearing the input buffer.
-
 void IRComm_c::disableRx() {
   cli();
   UCSR0B &= ~(1 << RXEN0);
@@ -181,8 +218,6 @@ void IRComm_c::disableRx() {
 
 // Re-enable the serial port RX hardware.
 void IRComm_c::enableRx() {
-
-
   cli();
   UCSR0A &= ~(1 << FE0);
   UCSR0A &= ~(1 << DOR0);
@@ -197,18 +232,20 @@ void IRComm_c::enableRx() {
 // the variables used to read in bytes.
 // calling disableRx and enableRx
 // flushes the hardware buffer.
-void IRComm_c::resetRxBuf() {
-  rx_count = 0;
-  PROCESS_MSG = false;
+void IRComm_c::resetRxProcess() {
+
+  rx_index        = 0;
+  PROCESS_MSG     = false;
   GOT_START_TOKEN = false;
+  CRC_INDEX       = 0;
+
   disableRx();
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
 
-  if( IR_DEBUG_OUTPUT ) {
+  if ( IR_DEBUG_OUTPUT ) {
     Serial.print("Buffer reset to: ");
     Serial.println( rx_buf );
-    
   }
 }
 
@@ -216,9 +253,10 @@ void IRComm_c::resetRxBuf() {
 // be processed, but without clearing the
 // hardware uart buffer.
 void IRComm_c::resetRxFlags() {
-  rx_count = 0;
-  PROCESS_MSG = false;
+  rx_index        = 0;
+  PROCESS_MSG     = false;
   GOT_START_TOKEN = false;
+  CRC_INDEX       = 0;
   memset(rx_buf, 0, sizeof(rx_buf));
 }
 
@@ -242,10 +280,9 @@ void IRComm_c::powerOnAllRx() {
 // - start token, 1 byte '*'
 // - checksum token, 1 byte '@'
 // - checksum itself, 1 byte
-// - terminal character, 1 byte '!'
-// So 4 bytes subtracted from the buffer
-// So the maxmimum length string we can send is 28 bytes
-void IRComm_c::formatString(char* str_to_send, int len) {
+// So 3 bytes subtracted from the buffer
+// So the maxmimum length string we can send is 29 bytes
+void IRComm_c::formatString(char* str_to_send, byte len) {
   char buf[MAX_MSG];
   int count;
 
@@ -270,7 +307,7 @@ void IRComm_c::formatString(char* str_to_send, int len) {
   buf[count++] = '@';
 
   // Add checksum
-  buf[count++] = CRC(buf, strlen(buf));
+  buf[count++] = CRC8(buf, strlen(buf));
 
 
   // Copy to tx buffer
@@ -279,15 +316,11 @@ void IRComm_c::formatString(char* str_to_send, int len) {
     tx_buf[i] = buf[i]; // copy
   }
 
-
-
-  // Add terminal token
-  tx_buf[count] = '!';
-
-
-  //Serial.println("Created:");
-  //Serial.print( buf );
-  //Serial.println("END");
+  if ( IR_DEBUG_OUTPUT ) {
+    Serial.println("Format string created >>");
+    Serial.print( buf );
+    Serial.println("<< END");
+  }
 
 }
 
@@ -313,21 +346,36 @@ void IRComm_c::formatFloat(float f_to_send) {
 }
 
 
-uint8_t IRComm_c::CRC(char* buf, int len) {
-  uint8_t cs;
-  int i;
+/*
+   9/12/24
+   Working from an arduino forum post:
+   https://forum.arduino.cc/t/crc-8-i2c-cyclic-redundancy-check/644812/3
 
-  cs = 0;
-  for (i = 0; i < len; i++) {
-    cs = cs ^ buf[i];
+   Which references a microchip appnote:
+   https://ww1.microchip.com/downloads/en/AppNotes/00730a.pdf
+
+   For the arduino nano, I observed approximately 188us
+   to compute for randomised 31 byte messages.
+
+*/
+char IRComm_c::CRC8(char * bytes, byte len) {
+  const char generator = B00101111;   // polynomial = x^8 + x^5 + x^3 + x^2 + x + 1 (ignore MSB which is always 1)
+  byte crc = 0;
+  byte index = 0;
+  while (len--) { // while len > 0
+
+    crc ^= bytes[index++]; /* XOR-in the next input byte */
+
+    for (int i = 0; i < 8; i++) {
+      if ((crc & 0x80) != 0) {
+        crc = (uint8_t)((crc << 1) ^ generator);
+      } else {
+        crc <<= 1;
+      }
+    }
   }
-  cs &= 0xff;
-
-  return cs;
+  return crc;
 }
-
-
-
 
 // Attempting an asynchronous send
 // and listen procedure because we
@@ -340,29 +388,38 @@ uint8_t IRComm_c::CRC(char* buf, int len) {
 // I think here we could do something intelligent
 // like look at how many bytes we are going to transmit
 // and then double this.
-void IRComm_c::setRxDelay() {
+void IRComm_c::setRxTimeout() {
 
-  if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
-    float t = rx_len;
-    t *= PREDICT_RX_MULTIPLIER; // twice as long to listen
-    t *= MS_PER_BYTE; // How many ms per byte to transmit?
-    
+  if ( ir_config.rx_predict_timeout && ir_config.rx_length > 0 ) {
+
+    float t = (float)ir_config.rx_length;
+    t *= (float)ir_config.rx_timeout_multi; // twice as long to listen
+
+#ifdef IR_FREQ_58
+    t *= MS_PER_BYTE_58KHZ; // How many ms per byte to transmit?
+#endif
+
+#ifdef IR_FREQ_38
+    t *= MS_PER_BYTE_38KHZ; // How many ms per byte to transmit?
+#endif
+
     float mod = t;
     mod *= 0.25; // take 25% of the total time, and we'll add
-                 // this on again to desync robots
+    // this on again to desync robots
     mod = (float)random(0, (long)mod);
     t += mod;
-    rx_delay = (unsigned long)t;
+    ir_config.rx_timeout = (unsigned long)t;
 
   } else {
 
     // Use global and fixed parameters
-    float t = (float)random(0, RX_DELAY_MOD);
-    t += RX_DELAY_BIAS;
+    float t = (float)random(0, 40);
+    t += (float)DEFAULT_TX_PERIOD;
+    t *= (float)RX_PREDICT_MULTIPLIER;
     // Insert random delay to help
     // break up synchronous tranmission
     // between robots.
-    rx_delay = (unsigned long)t;
+    ir_config.rx_timeout = (unsigned long)t;
 
 
   }
@@ -372,22 +429,15 @@ void IRComm_c::setRxDelay() {
   rx_ts = millis();
 }
 
-void IRComm_c::setTxDelay() {
+void IRComm_c::setTxPeriod() {
 
 
-  if ( PREDICT_TX_RX_DELAY && rx_len > -1 ) {
-    // send every 2 receiver cycles?
-    // rx_delay does vary, so it won't stay
-    // completely in sync with every 2
-    tx_delay = rx_delay * PREDICT_RX_MULTIPLIER;
-  } else {
+  float t = (float)random(0, TX_DELAY_MOD);
+  t += TX_DELAY_BIAS;
+  // break up synchronous tranmission
+  // between robots.
+  ir_config.tx_period = (unsigned long)t;
 
-    float t = (float)random(0, TX_DELAY_MOD);
-    t += TX_DELAY_BIAS;
-    // break up synchronous tranmission
-    // between robots.
-    tx_delay = (unsigned long)t;
-  }
 
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
@@ -437,14 +487,28 @@ void IRComm_c::setupTimer2() {
   // system clock of 16Mhz (16,000,000)
   TCCR2B |= (1 << CS20);
 
+  // Setup for 37khz, 4800 baud
+#ifdef IR_FREQ_38
+  // match value
+  // TSDP34138 datasheet says 38.4Khz
+  // Therefore, 16000000/208 = 76923.07
+  // We need to toggle on then off.
+  // 76923.07/2 = 38461.53hz (38.4khz)
+  OCR2A = 208; // was 210?
+#endif
+
+
+  // Setup for 58khz, 9600 baud
+#ifdef IR_FREQ_58
   // match value
   // TSDP34156 datasheet says 57.6Khz
   // Therefore, 16000000/139 = 115107.9
   // We need to toggle on then off.
   // 115107.9/2 = 57553.96hz (57.6khz)
-  OCR2A = 139;  
-  
- 
+  OCR2A = 139;
+#endif
+
+
 
   // Set up which interupt flag is triggered
   TIMSK2 = 0;
@@ -480,219 +544,253 @@ float IRComm_c::getFloatValue(int which) {
 
 
 /*
-   This update routine needs to switch betweeen
-   listening: providing enough time to receive a message
-     sending: just Serial.print/flush a message out.
+   This is the main update routine.  It needs to switch
+   between:
+     listening: providing enough time to receive a message
+     sending:   Serial.print and flush a message out.
 
    How long it will take to send a message will depend
-   on the message length (number of bytes).
+   on the message length (number of bytes).  This also
+   means there will be an unknown optimal time to wait for
+   incoming messages.
 
-   The more important aspect is probably how long it takes
-   to receive a message, and this is made more complicated
-   because the sender will not be synchronised with
-   the receiver.  So, if we allowed only a fixed period to
-   receive, the sender needs to start and finish within this
-   period, but may not start sending at the beginning.
+   Because there is no hardware synchronisation/handshake
+   between our IR devices, we use tokens to recognise the
+   start and end of a data structure. These are:
 
-   The message format implemented has some tokens to help
-   make sense of whether a message has been transmitted
-   successfully:
-
- * * = start of the message
+     = start of the message
    @ = end message content, checksum byte after
-   ! = end of whole message
 
-   So for example *2839.23@E!
+   So for example *2839.23@E
+
+   The checkbyte is 1 byte, so our maximum message can be
+   29 bytes.
+
+   This update() function is called iteratively and so it
+   will read in bytes from the Serial device in a
+   non-blocking way. update() will trigger processMsg()
+   once it has received both the start token '*' and the
+   checkbyte token '@'.
+
+   If update() has received the start token '*' but the
+   buffer index exceeds 29, it will abort the message
+   receiving process and reset.
+
+   update() will keep reseting the message index to 0
+   until it receives the start token '*', which means
+   it should gracefully handle trailing messages and/or
+   the checkbyte token '@' without the start token '*'
 
 */
 void IRComm_c::update() {
 
-  // Clear status LED
-  if ( millis() - led_ts > 100 ) {
-    led_ts = millis();
-    digitalWrite( 13, LOW );
-  }
+  //  reportConfiguration();
+  //  Serial.print( millis() ); Serial.print(" : " ); Serial.println( rx_ts );
+  //  Serial.print( (millis() - rx_ts ) );
+  //  Serial.print( " vs " );
+  //  Serial.println( ir_config.rx_timeout );
 
+  if ( ir_config.rx_overrun && GOT_START_TOKEN ) {
+    // If overrun is true, it means we will allow a partially
+    // received message the chance to be completely received
+    // before anything else.
+    // This top level if() means that it will override
+    // any of the below behaviours.
+    getNewIRBytes();
 
-
-
-  // time for RECEIVER ROTATION
-  if (millis() - rx_ts > rx_delay) {
-    //rx_ts = millis(); // setRxDelay() handles this
-
-    // Debugging...
-    //    Serial.println( (millis() - rx_ts) );
-
-
-
-    if ( TX_MODE == TX_MODE_INTERLEAVED ) {
-
-      if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
-
-        // don't attempt send, empty buffer.
-
-      } else {  // Message from Master to send.
-
-        // We have a problem where we pick up
-        // our own reflected transmission through
-        // a parallel implementation in hardware.
-        disableRx();
-
-        // Using Serial.print transmits over
-        // IR.  Serial TX is modulated with
-        // the 38Khz carrier in hardware.
-        //unsigned long start_t = millis();
-        Serial.println(tx_buf);
-        Serial.flush();  // wait for send to complete
-
-
-
-      }
-
-    } else if ( TX_MODE == TX_MODE_PERIODIC ) {
-
-
-      // Transmission only happens once the current
-      // receiver has finished AND if the delay
-      // between tranmissions has elapsed.
-      if ( millis() - tx_ts > tx_delay ) {
-
-        // Check whether we actually have something to
-        // transmit
-        if (strlen(tx_buf) == 0 || tx_buf[0] == '!' || tx_buf[0] == 0 ) {
-
-          // don't attempt send, empty buffer.
-
-        } else {
-          //tx_ts = millis(); // setTxDelay() handles this
-
-          //unsigned long s = micros();
-          // We have a problem where we pick up
-          // our own reflected transmission through
-          // a parallel implementation in hardware.
-          disableRx();
-
-          // Using Serial.print transmits over
-          // IR.  Serial TX is modulated with
-          // the 38Khz carrier in hardware.
-          //unsigned long start_t = micros();
-          for ( int i = 0; i < TX_REPEAT; i++ ) {
-            Serial.print(tx_buf);
-            Serial.flush();  // wait for send to complete
-          }
-          //Serial.println( (micros() - s ) );
-          //unsigned long end_t = micros();
-          //Serial.println( (end_t - start_t ) );
-
-
-
-        }
-        // set the new transmission delay
-        setTxDelay();
-
-
-      }
-
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.println("Waiting for message RX to finish");
     }
 
-    // Switch receiver.  This also does a full
-    // disable/enable cycle and resets all rx flags
-    cyclePowerRx();
-    // Set a different delay for next
-    // iteration
-    setRxDelay();
 
+  } else if ( ir_config.tx_mode == TX_MODE_PERIODIC ) {
+    // If we are in PERIODIC mode for transmission,
+    // we check if it now time to send a message.
+    // If so, it will abort any receiving process and
+    // flush the buffer, regardless of any timeout
+    // process on message receiving (rx_timeout)
 
-  } // endif( millis() - rx_ts > rx_delay )
+    if ( millis() - tx_ts > ir_config.tx_period ) {
+      tx_ts = millis();
 
+      if ( IR_DEBUG_OUTPUT ) {
+        Serial.println("TX_MODE_PERIODIC: expired, do Tx");
+      }
 
-  // Check for new message in serial buffer
-  // Reads in currently available char's, should
-  // not take long.
-  // Importantly, we use the PROCESS_MSG flag
-  // to trigger when we should attempt to process
-  // the message.  Therefore, we're not expecting
-  // to get a complete message within one cycle of
-  // this while loop - it just reads out the
-  // currently available bytes.
-  while (Serial.available() && !PROCESS_MSG) {
-    // If we find a newline, we flag we have
-    // a message to attempt to process.
-    rx_buf[rx_count] = Serial.read();
+      // By default, this will cycle the receiver
+      doTransmit();
+
+    } else {
+      if ( IR_DEBUG_OUTPUT ) {
+        Serial.println("TX_MODE_PERIODIC: checking for new IR bytes");
+      }
+      getNewIRBytes();
+    }
+
+  } else if ( millis() - rx_ts > ir_config.rx_timeout) {
+    // This means we've exceeded the listening time
+    // for this receiver. It means we will initate
+    // a change of receiver, and so flush out the
+    // buffers, reset flags.
+
+    //rx_ts = millis(); // setRxDelay() handles this
+
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.println("RX_TIMEOUT: expired, checking for new IR bytes");
+    }
+
+    // Last check for a valid message
+    getNewIRBytes();
+
+    if ( ir_config.tx_mode == TX_MODE_INTERLEAVED ) {
+
+      if ( IR_DEBUG_OUTPUT ) {
+        Serial.println("TX_MODE_INTERLEAVED: do Tx");
+      }
+
+      // Do a transmission, also cycles receiver
+      doTransmit();
+
+    } else {
+      if ( IR_DEBUG_OUTPUT ) {
+        Serial.println(" - cycling Rx");
+      }
+
+      // Switch receiver.  This also does a full
+      // disable/enable cycle and resets all rx flags
+      cyclePowerRx();
+    }
+
+  } else {
+
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.println("update(): checking for new IR bytes");
+    }
+    getNewIRBytes();
+
+  }
+
+}
+
+// Check for new message in serial buffer
+// Reads in currently available char's, should
+// not take long.
+// Importantly, we use the PROCESS_MSG flag
+// to trigger when we should attempt to process
+// the message.  Therefore, we're not expecting
+// to get a complete message within one cycle of
+// this while loop - it just reads out the
+// currently available bytes.
+void IRComm_c::getNewIRBytes() {
+
+  while ( Serial.available() ) {
+
+    rx_buf[rx_index] = Serial.read();
 
     // Start token? If yes, we can start to fill the
     // receiver buffer (rx_buf), and after setting
-    // GOT_START_TOKEN=true rx_count will start to
+    // GOT_START_TOKEN=true rx_index will start to
     // be incremented.
-    if ( rx_buf[ rx_count ] == '*' ) GOT_START_TOKEN = true;
+    if ( rx_buf[ rx_index ] == '*' ) GOT_START_TOKEN = true;
 
-    if( GOT_START_TOKEN && (rx_buf[rx_count] == '\n' || rx_buf[rx_count] == '!') )  {
-      if ( IR_DEBUG_OUTPUT ) Serial.println("Processing because token");
-      PROCESS_MSG = true;
-    }
+    // CRC token?  CRC_INDEX will be 0 when we haven't yet
+    // found the token.  We set this to the index of where
+    // the crc token has been found. We will want to process
+    // the buffer once we have got the next byte after this.
+    if ( rx_buf[ rx_index ] == '@' ) CRC_INDEX = rx_index;
 
-
-    // Note that, the next line might seem like rx_count will
+    // Note that, the next line might seem like rx_index will
     // exceed the buffer.
     // This while(Serial.available() ) may not read in a whole
     // message, so this section of code is called iteratively.
-    // Processing the message will reset rx_count
+    // Processing the message will reset rx_index
     // to 0.
     // By using GOT_START_TOKEN, I think that we should
     // always have a full message starting from index 0 in
     // rx_buf
-    // If rx_count does exceed max_message, we break.
-    if ( GOT_START_TOKEN ) rx_count++;
+    // If rx_index does exceed max_message, we break.
+    if ( GOT_START_TOKEN ) rx_index++;
 
     // If we exceed the buffer size, we also
     // will try to process the message.
-    if (rx_count >= MAX_MSG) {
-      if ( IR_DEBUG_OUTPUT ) Serial.println("Processing because buffer full");
-      PROCESS_MSG = true;
+    if (rx_index >= MAX_MSG) {
+      if ( IR_DEBUG_OUTPUT ) Serial.println("Buffer full before CRC token");
+
+      error_type[TOO_LONG]++;
+      fail_count[rx_pwr_index]++;
+
+      // Reset the flags but don't rotate the receiver.
+      // This allows the message capture process to start
+      // again.
+      resetRxFlags();
+    }
+
+    // If CRC_INDEX is non-zero (found), and rx_index is
+    // now CRC_INDEX +2 (we read another byte and incremented
+    // index again) it means we processed the checkbyte and
+    // can move to processing the message.
+    if ( CRC_INDEX != 0 && (rx_index >= (CRC_INDEX + 2)) ) {
+      if ( IR_DEBUG_OUTPUT ) Serial.println("Got CRC token and +1 byte");
+      processRxBuf();
     }
   }
+}
+
+void IRComm_c::doTransmit() {
+
+  // Don't do anything if there is no message
+  // to transmit.
+  if ( strlen( tx_buf ) == 0 || tx_buf[0] == 0 ) {
+
+    // This resets and re-enables RX
+    // by virtue of changing the receiver
+    cyclePowerRx();
+
+    // Schedule next transmission
+    // Redundant if set to INTERLEAVED
+    setTxPeriod();
+
+  } else {
 
 
-  // Do we think we have a message to process?
-  if (PROCESS_MSG) {
 
-    // Debug
-    //Serial.print("got "); Serial.print(rx_buf); Serial.print(":"); Serial.println(rx_count);
+    // Stop receiving
+    disableRx();
 
-    // Invalid conditions:
-//    if (rx_count <= 0 || rx_buf[0] == 0) {
-//      // bad read.
-//      if ( IR_DEBUG_OUTPUT ) {
-//        Serial.print("bad serial on rx ");
-//        Serial.println( rx_pwr_index );
-//      }
-//
-//      fail_count[rx_pwr_index]++;
-//
-//      // I was doing a hardware reset of UART.
-//      // However, the UART buffer is 64 bytes, and so
-//      // it could be full of other potentially valid
-//      // messages. Therefore, we just reset the flags.
-//      //resetRxBuf();
-//      resetRxFlags();
-//
-//    } else {
+    // Using Serial.print transmits over
+    // IR.  Serial TX is modulated with
+    // the 38Khz carrier in hardware.
+    //unsigned long start_t = micros();
+    for ( int i = 0; i < ir_config.tx_repeat; i++ ) {
+      Serial.print(tx_buf);
+      Serial.flush();  // wait for send to complete
+    }
+    //Serial.println( (micros() - s ) );
+    //unsigned long end_t = micros();
+    //Serial.println( (end_t - start_t ) );
 
-      // From testing, this processRxBuf() takes less than
-      // 1ms to execute.
-      processRxBuf();
+    // This resets and re-enables RX
+    // by virtue of changing the receiver
+    cyclePowerRx();
 
-//    }
+    // Schedule next transmission
+    // Redundant if set to INTERLEAVED
+    setTxPeriod();
   }
-
 
 }
 
-// Needs to validate what is in the rx buffer
-// by recalculating and comparing the checksum
-int IRComm_c::processRxBuf() {
 
-  unsigned long s = micros();
+
+// Needs to validate what is in the rx buffer by
+// recalculating and comparing the checksum
+// Assumes that the getNewIRBytes() function started
+// storing after * and ended at @+1. Therefore, we
+// don't do any sanity checking on the buffer.
+// Instead, we'll rely on the result of the CRC
+// to identify if the message has been received
+// correctly or not.
+int IRComm_c::processRxBuf() {
 
   if ( IR_DEBUG_OUTPUT ) {
 
@@ -700,173 +798,134 @@ int IRComm_c::processRxBuf() {
     Serial.print( rx_pwr_index );
     Serial.print(": ");
     Serial.print( rx_buf );
-    Serial.print(" rx_count = " );
-    Serial.println( rx_count );
-  }
-  // Check for start byte
-  int start = findChar('*', rx_buf, rx_count);  // -1 = default error state
-
-  if ( IR_DEBUG_OUTPUT ) {
-    Serial.print("Start at: " );
-    Serial.println( start );
+    Serial.print(" rx_index = " );
+    Serial.println( rx_index );
   }
 
-  // Message too short or bad
-  // e.g. a good message would be:
-  //      *abcdef@a  (start,message,CRC token, CRC value)
-  //      a useless message would be:
-  //      minimum (absurd) message would be *@_
-  //      min message length = 3
-  // if start < 0, then no * symbol was found
-  if ( start < 0 ) {
-    // No start token.
-    // But a newline or buffer full must have brought
-    // us here.
-    if ( IR_DEBUG_OUTPUT ) Serial.println("No start token");
-    error_type[ NO_START ]++;
-    fail_count[rx_pwr_index]++;
 
-
-  } else if ((rx_count - start) <= 3 ) {
+  // The smallest possible message we can get is 4
+  // bytes, e.g. *a@F, where 'a' is the actual data.
+  if ( strlen( rx_buf ) <= 3 ) {
     if ( IR_DEBUG_OUTPUT ) Serial.println("message too short :(");
     error_type[TOO_SHORT]++;
     fail_count[rx_pwr_index]++;
 
-
-  } else {  // message valid, * index found
-
-
-    // Check CRC, find @ token to separate
-    // out CRC value.
-    int last = findChar('@', rx_buf, rx_count);
+  } else { // string has valid length
 
     if ( IR_DEBUG_OUTPUT ) {
       Serial.print(" checksum after ");
-      Serial.println( last );
+      Serial.println( CRC_INDEX );
     }
 
-    // Start should be 0 or more
-    // Note, we include the start byte *
-    // in the checksum
-    if (last > start && last < (rx_count - 1)) {
-      char buf[rx_count];
-      memset(buf, 0, sizeof( buf ));
-      int b = 0;  // count how many bytes
 
-      // we copy.
-      for (int i = start; i <= last; i++) {
-        buf[b] = rx_buf[i];
-        b++;
+    char buf[rx_index];
+    memset(buf, 0, sizeof( buf ));
+    int b = 0;  // count how many bytes
+
+    // we copy upto and including the @
+    for (int i = 0; i <= CRC_INDEX; i++) {
+      buf[b] = rx_buf[i];
+      b++;
+    }
+
+
+
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.print("copied: " );
+      Serial.print( buf );
+      Serial.print( " b = ");
+      Serial.println(b);
+      Serial.print(" strlen = ");
+      Serial.println( strlen(buf));
+    }
+
+    // Reconstruct checksum
+    char cs;
+    cs = CRC8(buf, strlen(buf));
+
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.print( cs );
+      Serial.print( " vs ");
+      Serial.println( (uint8_t)rx_buf[CRC_INDEX + 1]);
+    }
+
+    // Do the checksums match?
+    if (cs == rx_buf[CRC_INDEX + 1]) {
+
+      if ( IR_DEBUG_OUTPUT ) Serial.println("CRC GOOD!");
+
+      // Flash so we can see when robots are
+      // receiving messages correctly
+      digitalWrite(13, HIGH);
+
+
+      // Since we are successful, we record the length
+      // of the message received.  We are including
+      // all tokens.
+      ir_config.rx_length = strlen( rx_buf );
+
+
+      msg_dt[ rx_pwr_index ] = millis() - msg_t[ rx_pwr_index ];
+      msg_t[ rx_pwr_index ] = millis();
+
+
+      // Make sure where we will store this
+      // received message is clear.
+      memset(i2c_msg[rx_pwr_index], 0, sizeof(i2c_msg[rx_pwr_index]));
+
+      // Copy message across, stopping at (not including) @
+      for (int i = 1; i < CRC_INDEX; i++) {
+        i2c_msg[rx_pwr_index][i - 1] = rx_buf[i];
       }
 
-      // We need at least 1 byte of data
-      // between start and checksum
-      if (b >= 1) {
+      // Add a ! to the message, which will be
+      // used when later sending down I2C to
+      // the Master to indicate the end of the
+      // string.
+      // Note: all characters were shifted back
+      // by 1 because we removed the *
+      i2c_msg[rx_pwr_index][CRC_INDEX - 1] = '!';
 
-        if ( IR_DEBUG_OUTPUT ) {
-          Serial.print("copied: " );
-          Serial.print( buf );
-          Serial.print( " b = ");
-          Serial.println(b);
-          Serial.print(" strlen = ");
-          Serial.println( strlen(buf));
-        }
+      float id = atof( i2c_msg[rx_pwr_index] );
+      if ( id == 1.00 ) {
+        hist[0]++;
+      } else if ( id == 2.00 ) {
+        hist[1]++;
+      } else if ( id == 3.00 ) {
+        hist[2]++;
+      } else {
+        hist[3]++;
+      }
 
-        // Reconstruct checksum
-        uint8_t cs;
-        cs = CRC(buf, strlen(buf));
+      // Since we are successful, we increase the message
+      // count for this receiver
+      pass_count[ rx_pwr_index ]++;
 
-        if ( IR_DEBUG_OUTPUT ) {
-          Serial.print( cs );
-          Serial.print( " vs ");
-          Serial.println( (uint8_t)rx_buf[last + 1]);
-        }
+      if ( IR_DEBUG_OUTPUT ) {
+        Serial.print("Saved: \n" ) ;
+        Serial.println( rx_buf );
+        Serial.println( i2c_msg[rx_pwr_index] );
+        Serial.println( msg_dt[ rx_pwr_index ] );
+        Serial.println( msg_t[ rx_pwr_index ] );
+        Serial.println( pass_count[ rx_pwr_index ] );
+        Serial.println( fail_count[ rx_pwr_index ] );
+      }
 
-        // Do the checksums match?
-        if (cs == rx_buf[last + 1]) {
-
-          if ( IR_DEBUG_OUTPUT ) Serial.println("CRC GOOD!");
-
-          // Flash so we can see when robots are
-          // receiving messages correctly
-          digitalWrite(13, HIGH);
-
-
-          // Since we are successful, we can now use the last
-          // and start index values to work out how long this
-          // message was for PREDICT_TX_RX_DELAY
-          // Checksum token (@) was at last, so we need to
-          // add the checksum byte and final token (+2).
-          int len = (last - start) + 2;
-          if ( len > rx_len ) rx_len = len;
-
-
-          msg_dt[ rx_pwr_index ] = millis() - msg_t[ rx_pwr_index ];
-          msg_t[ rx_pwr_index ] = millis();
-
-
-          // Make sure where we will store this
-          // received message is clear.
-          memset(i2c_msg[rx_pwr_index], 0, sizeof(i2c_msg[rx_pwr_index]));
-
-          // Copy message across, ignoring the *
-          for (int i = 0; i < b - 2; i++) {
-            i2c_msg[rx_pwr_index][i] = buf[i + 1];
-          }
-
-          // Add a ! to the message, which will be
-          // used when later sending down I2C to
-          // the Master to indicate the end of the
-          // string.
-          i2c_msg[rx_pwr_index][b - 1] = '!';
-
-          float id = atof( i2c_msg[rx_pwr_index] );
-          if( id == 1.00 ) {
-            hist[0]++;
-          } else if( id == 2.00 ) {
-            hist[1]++;
-          } else if( id == 3.00 ) {
-            hist[2]++; 
-          } else {
-            hist[3]++;
-          }
-          
-          // Since we are successful, we increase the message
-          // count for this receiver
-          pass_count[ rx_pwr_index ]++;
-
-          if ( IR_DEBUG_OUTPUT ) {
-            Serial.print("Saved: " ) ;
-            Serial.println( i2c_msg[rx_pwr_index] );
-            Serial.println( msg_dt[ rx_pwr_index ] );
-            Serial.println( msg_t[ rx_pwr_index ] );
-            Serial.println( pass_count[ rx_pwr_index ] );
-            Serial.println( fail_count[ rx_pwr_index ] );
-          }
-
-          //Serial.println( millis() );
-          //          Serial.println(( micros() - s) );
+      //Serial.println( millis() );
+      //          Serial.println(( micros() - s) );
 
 
 
 
-        } else {
+    } else {
 
-          fail_count[rx_pwr_index]++;
-          error_type[BAD_CS]++;
-          // Checksums do not match, corrupt message.
-          if ( IR_DEBUG_OUTPUT ) Serial.println("bad checksum");
-
-        }
-      } // message was complete, but CRC pass or failed.
-
-    } else { // Message was not complete
-
-      // checksum token missing or invalid
-      if ( IR_DEBUG_OUTPUT ) Serial.println("invalid message");
-      error_type[INVALID]++;
       fail_count[rx_pwr_index]++;
+      error_type[BAD_CS]++;
+      // Checksums do not match, corrupt message.
+      if ( IR_DEBUG_OUTPUT ) Serial.println("bad checksum");
+
     }
+
   }
 
   // Register activity on this receiver, whether pass or fail
@@ -877,15 +936,14 @@ int IRComm_c::processRxBuf() {
   if ( CYCLE_ON_RX ) {
 
     cyclePowerRx(); // Rotate to next receiver
-    setRxDelay();   // reset receiver rotation delay
 
   } else {
-    resetRxBuf();
+
     resetRxFlags();
   }
 }
 
-int IRComm_c::findChar(char c, char* str, int len) {
+int IRComm_c::findChar(char c, char* str, byte len) {
   for (int i = 0; i < len; i++) {
     if (str[i] == c) {
       return i;
