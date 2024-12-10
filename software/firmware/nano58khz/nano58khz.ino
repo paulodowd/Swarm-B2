@@ -4,6 +4,15 @@
    I2C limits the string to max 32 bytes.  However, using
    4 bytes as start, token, checkbyte and terminal.
    Serial UART can buffer 64bytes.
+
+   9 / 12 / 24
+   I just realised that we can send 32 bytes up to
+   the ir comm board, which will then add the 3 token
+   bytes afterwards.  It is fine to transmit 35 bytes,
+   decode these, and pass the remaining 32 back over
+   i2c.
+
+
 */
 
 
@@ -26,7 +35,7 @@
 // A timestamp used only to configure various
 // testing/debugging activities.
 unsigned long test_ts;
-//#define TEST_MS 10 // Good for test tx
+#define TEST_MS 50 // Good for test tx
 #define TEST_MS 1000 // good for test rx
 
 
@@ -324,17 +333,6 @@ void setup() {
 
   test_ts = millis();
 
-  // We can trick the board into sending messages
-  // much faster by setting rx_len to a value
-  // greater than -1.
-  // rx_delay = (2 * rx_len * 2.5 )ms
-  // tx_delay = rx_delay * 2
-  // rx_len = 1 -> 2 * 1 * 2.5 = 5ms -> tx_delay = 10ms.
-  if ( SELF_TEST_MODE == TEST_TX ) {
-    ircomm.ir_config.rx_length = 6;
-
-  }
-
 
 }
 
@@ -360,6 +358,9 @@ void testFunctions() {
 
     if ( SELF_TEST_MODE == TEST_TX ) {
       // Create a test string up to 29 chars long
+
+
+      // Let's test variable message lengths
       int max_chars = 8;
       char buf[ 29 ];
 
@@ -383,8 +384,16 @@ void testFunctions() {
       //      Serial.print( ircomm.rx_delay );
       //      Serial.print(",");
       //      for ( int i = 0; i < 4; i++ ) {
+      //        Serial.print( i );
+      //        Serial.print(":");
       //        Serial.print( ircomm.msg_dt[i] );
       //        Serial.print(",");
+      //        Serial.print( ircomm.msg_t[i] );
+      //        Serial.print(",");
+      //        Serial.print( ircomm.pass_count[i] );
+      //        Serial.print(",");
+      //        Serial.print( ircomm.fail_count[i] );
+      //        Serial.println();
       //      }
       //
       for ( int i = 0; i < 4; i++ ) {
@@ -395,18 +404,31 @@ void testFunctions() {
         Serial.print( 0 - (int)ircomm.fail_count[i] );
         Serial.print(",");
       }
+      Serial.println();
       // what type of errors on receive are we getting?
       //      for ( int i = 0; i < 4; i++ ) {
       //        Serial.print( ircomm.error_type[i] );
       //        Serial.print(",");
       //      }
-//      for( int i = 0; i < 4; i++ ) {
-//        Serial.print( ircomm.rx_buf[i] );
-//        Serial.print(", ");
-//      }
-//      Serial.println();
-      
-      Serial.println();
+      //      for( int i = 0; i < 4; i++ ) {
+      //        Serial.print( ircomm.rx_buf[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.println();
+      //      for( int i = 0; i < 4; i++ ) {
+      //        Serial.print( ircomm.rx_vectors[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.println();
+
+      //      float x = (ircomm.rx_vectors[0] - ircomm.rx_vectors[2]);
+      //    float y = (ircomm.rx_vectors[1] - ircomm.rx_vectors[3]);
+      //    float theta = atan2( y, x );
+      //    Serial.println( theta,4 );
+
+
+      //ircomm.reportConfiguration();
+
       Serial.flush();
       ircomm.enableRx();
     }
