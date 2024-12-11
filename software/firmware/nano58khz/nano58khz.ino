@@ -333,7 +333,6 @@ void setup() {
 
   test_ts = millis();
 
-
 }
 
 
@@ -344,7 +343,7 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
-
+  
   testFunctions();
 
 }
@@ -404,6 +403,10 @@ void testFunctions() {
         Serial.print( 0 - (int)ircomm.fail_count[i] );
         Serial.print(",");
       }
+      for ( int i = 0; i < 4; i++ ) {
+        Serial.print( ircomm.error_type[i] );
+        Serial.print(",");
+      }
       Serial.println();
       // what type of errors on receive are we getting?
       //      for ( int i = 0; i < 4; i++ ) {
@@ -428,7 +431,7 @@ void testFunctions() {
 
 
       //ircomm.reportConfiguration();
-
+      
       Serial.flush();
       ircomm.enableRx();
     }

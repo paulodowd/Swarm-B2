@@ -11,8 +11,10 @@
 // Uncomment depending on your IR
 // Receiver module.  This will determine
 // the correct Serial Baud rate and the
-// configuration of timer3 for the carrier
+// configuration of timer2 for the carrier
 // signal
+// Other parts of the code depend on this
+// being set correctly.
 //#define IR_FREQ_38  // For chip TSDP34138
 #define IR_FREQ_58    // For chip TSDP34156
 
@@ -23,10 +25,6 @@
 // adjusting how i2c works, but
 // I'm not sure it is worth the effort.
 #define MAX_MSG 32
-
-
-
-
 
 
 
@@ -75,10 +73,10 @@
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
 
 #ifdef IR_FREQ_58
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*3)     
+#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4.0)     
 #endif
 #ifdef IR_FREQ_38
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*3)     
+#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4.0)     
 #endif
 
 // 38Khz signal generated on
@@ -95,8 +93,8 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // set a period for when to do a tx
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
-#define TX_MODE (TX_MODE_PERIODIC)
-//#define TX_MODE (TX_MODE_INTERLEAVED)
+//#define TX_MODE (TX_MODE_PERIODIC)
+#define TX_MODE (TX_MODE_INTERLEAVED)
 
 #ifdef IR_FREQ_38
 #define DEFAULT_TX_PERIOD (000)
@@ -152,11 +150,11 @@ class IRComm_c {
     // Two operational states
     int state;
     unsigned long activity_ts;
-    int OVERRUN = 0;
-    int BAD_CS = 1;
-    int TOO_SHORT = 2;
-    int TOO_LONG = 3;
-    int error_type[4];
+    int INCOMPLETE  = 0;
+    int BAD_CS      = 1;
+    int TOO_SHORT   = 2;
+    int TOO_LONG    = 3;
+    unsigned long error_type[4];
 
     // Decoding Flags
     bool GOT_START_TOKEN;
@@ -220,7 +218,7 @@ class IRComm_c {
     void formatString( char * str_to_send, byte len );
     void formatFloat( float f_to_send );
 
-    boolean getNewIRBytes();  // false = byte timeout occured
+    void getNewIRBytes();  // false = byte timeout occured
     int hasMsg(int which);
 
     int findChar( char c, char * str, byte len);

@@ -100,14 +100,12 @@ void IRComm_c::init() {
 
   msg_dir = 0.0;
 
-  hist[0] = 0;
-  hist[1] = 0;
 
-  led_ts = millis();
-  rx_ts = millis();
-  tx_ts = millis();
-  activity_ts = millis();
-  byte_ts = millis();
+  led_ts = millis();      // debug led
+  rx_ts = millis();       // rx timeout
+  tx_ts = millis();       // tx period
+  activity_ts = millis(); // bearing update
+  byte_ts = millis();     // byte timeout
 
   resetRxProcess();
 }
@@ -126,7 +124,7 @@ void IRComm_c::reportConfiguration() {
   Serial.print("- rx timeout: \t" ); Serial.println( ir_config.rx_timeout );
   Serial.print("- rx to-multi: \t" ); Serial.println( ir_config.rx_timeout_multi );
   Serial.print("- rx pwr index:\t" ); Serial.println( ir_config.rx_pwr_index );
-  Serial.print("- rx byte to: \t");Serial.println( ir_config.rx_byte_timeout );
+  Serial.print("- rx byte to: \t"); Serial.println( ir_config.rx_byte_timeout );
 }
 
 void IRComm_c::cyclePowerRx() {
@@ -683,11 +681,13 @@ void IRComm_c::update() {
     // without changing the receiver.
     //
     // If we fail to receive a consecutive byte in good time
-    // then we reset the flags and stop this overrun process.
+    // then getNewBytes() reset the flags and stop this overrun
+    // process.
     // Without this, it is possible to get a start token, and
     // then receive no more bytes (at all!), and be stuck on
     // one receiver (no cycling).
-    if( !getNewIRBytes() ) resetRxFlags();
+    getNewIRBytes();
+
 
     if ( IR_DEBUG_OUTPUT ) {
       Serial.println("RX OVERRUN: Waiting for message RX to finish");
@@ -698,9 +698,8 @@ void IRComm_c::update() {
     // This means we've exceeded the listening time
     // for this receiver. It means we will initate
     // a change of receiver, and so flush out the
-    // buffers, reset flags.
-
-    //rx_ts = millis(); // setRxDelay() handles this
+    // buffers, reset flags.  We don't update the
+    // rx_ts here, setRxDelay() handles this.
 
     if ( IR_DEBUG_OUTPUT ) {
       Serial.println("RX_TIMEOUT: expired, checking for new IR bytes");
@@ -720,7 +719,8 @@ void IRComm_c::update() {
     }
 
     // Switch receiver.  This also does a full
-    // disable/enable cycle and resets all rx flags
+    // disable/enable cycle, resets all rx flags
+    // and calls setRxDelay()
     cyclePowerRx();
 
     if ( IR_DEBUG_OUTPUT ) {
@@ -733,9 +733,11 @@ void IRComm_c::update() {
     // If so, it will abort any receiving process and
     // flush the buffer, regardless of any timeout
     // process on message receiving (rx_timeout)
+    // We don't need to update tx_ts here, it is
+    // updated by setTxPeriod() within doTransmit()
 
     if ( millis() - tx_ts > ir_config.tx_period ) {
-      tx_ts = millis();
+
 
       if ( IR_DEBUG_OUTPUT ) {
         Serial.println("TX_MODE_PERIODIC: expired, do Tx");
@@ -746,6 +748,7 @@ void IRComm_c::update() {
       // period, and at the moment I'm not sure if this
       // means we should by default cycle the receiver,
       // or let it complete. For now, let's not cycle.
+      // doTransmit() calls setTxPeriod()
       doTransmit();
 
     } else {
@@ -779,7 +782,7 @@ void IRComm_c::update() {
 // to get a complete message within one cycle of
 // this while loop - it just reads out the
 // currently available bytes.
-boolean IRComm_c::getNewIRBytes() {
+void IRComm_c::getNewIRBytes() {
 
   while ( Serial.available() ) {
 
@@ -846,11 +849,18 @@ boolean IRComm_c::getNewIRBytes() {
     }
   }
 
-  // Did we receive a consecutive byte?
-  if( millis() - byte_ts > ir_config.rx_byte_timeout ) {
-    return false;
+  // Did we receive a consecutive byte?  
+  // We only really care if we have started to collect bytes
+  // for a message (start token = true).  
+  // If too much time has elapsed between bytes, we have a 
+  // broken message.  This could be because the source moved 
+  // out of range or became obstructed.
+  if ( GOT_START_TOKEN) {
+    if ( millis() - byte_ts > ir_config.rx_byte_timeout ) {
+      error_type[INCOMPLETE]++;
+      resetRxFlags();
+    }
   }
-  return true;
 }
 
 boolean IRComm_c::doTransmit() {
