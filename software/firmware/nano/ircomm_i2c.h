@@ -12,8 +12,9 @@
 // 32 bytes.
 typedef struct i2c_status { 
   uint8_t mode;                   // 1  bytes
-  uint16_t fail_count[4];          // 8 bytes
-  uint16_t pass_count[4];         // 8 bytes 
+  uint16_t fail_count[4];         // 2x4 = 8 bytes
+  uint16_t pass_count[4];         // 2x4  = 8 bytes
+  uint16_t error_type[4];         // 2x4  = 8 bytes 
 } i2c_status_t;
 
 // Small struct used to change mode.
@@ -34,8 +35,8 @@ typedef struct i2c_msg_status {
 typedef struct i2c_msg_timings {
   uint16_t msg_dt[4];         // 8 bytes
   uint16_t msg_t[4];          // 8 bytes
-  uint16_t rx_delay;          // 2 bytes
-  uint16_t tx_delay;          // 2 bytes
+  uint16_t rx_timeout;          // 2 bytes
+  uint16_t tx_period;          // 2 bytes
 } i2c_msg_timings_t;
 
 // Struct to track the activity levels
@@ -84,8 +85,7 @@ typedef struct i2c_sensors {
 #define MODE_REPORT_TIMINGS 21
 #define MODE_REPORT_HIST    22
 #define MODE_CLEAR_HIST     23
-#define MAX_MODE            24
-
-
+#define MODE_FULL_RESET     24
+#define MAX_MODE            25
 
 #endif

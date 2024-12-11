@@ -4,6 +4,15 @@
    I2C limits the string to max 32 bytes.  However, using
    4 bytes as start, token, checkbyte and terminal.
    Serial UART can buffer 64bytes.
+
+   9 / 12 / 24
+   I just realised that we can send 32 bytes up to
+   the ir comm board, which will then add the 3 token
+   bytes afterwards.  It is fine to transmit 35 bytes,
+   decode these, and pass the remaining 32 back over
+   i2c.
+
+
 */
 
 
@@ -21,13 +30,13 @@
 
 #define SELF_TEST_MODE TEST_DISABLED
 //#define SELF_TEST_MODE TEST_TX
-//#define SELF_TEST_MODE TEST_RX
+#define SELF_TEST_MODE TEST_RX
 
 // A timestamp used only to configure various
 // testing/debugging activities.
 unsigned long test_ts;
-#define TEST_MS 10 // Good for test tx
-//#define TEST_MS 300 // good for test rx
+#define TEST_MS 50 // Good for test tx
+#define TEST_MS 1000 // good for test rx
 
 
 // Pin definitions for extra sensors
@@ -49,14 +58,14 @@ volatile i2c_status_t status;
 // Function to receive commands from the master device.
 // This will typically be in the format of a mode change
 // and then any appropriate data.
-void i2c_recv( int len ) {
+void i2c_receive( int len ) {
 
 
   // Mode changes are always 1 byte long.  We use these to
   // ready the board to send back information or to ask the
-  // board to complete specific actions (e.g, delete a 
+  // board to complete specific actions (e.g, delete a
   // message).
-  // 
+  //
   if ( len == 1 ) { // receiving a mode change.
     i2c_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
@@ -76,34 +85,34 @@ void i2c_recv( int len ) {
 
     } else if ( new_mode.mode == MODE_RESET_COUNTS ) {
       memset( &status, 0, sizeof( status ) );
-      for( int i = 0; i < 4; i++ ) {
+      for ( int i = 0; i < 4; i++ ) {
         ircomm.pass_count[i] = 0;
         ircomm.fail_count[i] = 0;
       }
-      
+
 
     } else if ( new_mode.mode == MODE_CLEAR_MSG0 ) {
-    // Delete message
-    ircomm.clearRxMsg( 0 );
+      // Delete message
+      ircomm.clearRxMsg( 0 );
 
-  } else if ( new_mode.mode == MODE_CLEAR_MSG1 ) {
-    // Delete message
-    ircomm.clearRxMsg( 1 );
+    } else if ( new_mode.mode == MODE_CLEAR_MSG1 ) {
+      // Delete message
+      ircomm.clearRxMsg( 1 );
 
-  } else if ( new_mode.mode == MODE_CLEAR_MSG2 ) {
-    // Delete message
-    ircomm.clearRxMsg( 2 );
+    } else if ( new_mode.mode == MODE_CLEAR_MSG2 ) {
+      // Delete message
+      ircomm.clearRxMsg( 2 );
 
-  } else if ( new_mode.mode == MODE_CLEAR_MSG3 ) {
-    // Delete message
-    ircomm.clearRxMsg( 3 );
+    } else if ( new_mode.mode == MODE_CLEAR_MSG3 ) {
+      // Delete message
+      ircomm.clearRxMsg( 3 );
 
-  } else if( new_mode.mode == MODE_CLEAR_HIST ) {
-    ircomm.hist[0] = 0;
-    ircomm.hist[1] = 0;
-    ircomm.hist[2] = 0;
-    ircomm.hist[3] = 0;
-  }
+    } else if ( new_mode.mode == MODE_CLEAR_HIST ) {
+      ircomm.hist[0] = 0;
+      ircomm.hist[1] = 0;
+      ircomm.hist[2] = 0;
+      ircomm.hist[3] = 0;
+    }
 
 
   } else { // Receiving a new message to transmit.
@@ -136,7 +145,7 @@ void i2c_recv( int len ) {
 
 // When the 3Pi or Core2 calls an i2c request, this function
 // is executed.
-void i2c_send() {
+void i2c_request() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
@@ -160,8 +169,8 @@ void i2c_send() {
       msg_timings.msg_dt[i] = (uint16_t)ircomm.msg_dt[i];
       msg_timings.msg_t[i] = (uint16_t)ircomm.msg_t[i];
     }
-    msg_timings.rx_delay = (uint16_t)ircomm.rx_delay;
-    msg_timings.tx_delay = (uint16_t)ircomm.tx_delay;
+    msg_timings.rx_timeout = (uint16_t)ircomm.ir_config.rx_timeout;
+    msg_timings.tx_period = (uint16_t)ircomm.ir_config.tx_period;
     Wire.write( (byte*)&msg_timings, sizeof( msg_timings ) );
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
@@ -275,16 +284,16 @@ void i2c_send() {
 
     // Transmit
     Wire.write( (byte*)&sensors, sizeof( sensors ) );
-    
-  } else if( last_mode.mode == MODE_REPORT_HIST ) {
-    
+
+  } else if ( last_mode.mode == MODE_REPORT_HIST ) {
+
     i2c_id_hist_t hist;
     hist.id[0] = ircomm.hist[0];
     hist.id[1] = ircomm.hist[1];
     hist.id[2] = ircomm.hist[2];
     hist.id[3] = ircomm.hist[3];
     Wire.write( (byte*)&hist, sizeof( hist ) );
-    
+
   }
 }
 
@@ -292,8 +301,6 @@ void i2c_send() {
 
 
 void setup() {
-
-
 
   // Set random seed.
   initRandomSeed();
@@ -310,8 +317,8 @@ void setup() {
 
   // Begin I2C as a slave device.
   Wire.begin( I2C_ADDR );
-  Wire.onReceive( i2c_recv );
-  Wire.onRequest( i2c_send );
+  Wire.onReceive( i2c_receive );
+  Wire.onRequest( i2c_request );
 
   // Start the IR communication board.
   ircomm.init();
@@ -326,18 +333,6 @@ void setup() {
 
   test_ts = millis();
 
-  // We can trick the board into sending messages
-  // much faster by setting rx_len to a value
-  // greater than -1.
-  // rx_delay = (2 * rx_len * 2.5 )ms
-  // tx_delay = rx_delay * 2
-  // rx_len = 1 -> 2 * 1 * 2.5 = 5ms -> tx_delay = 10ms.
-  if ( SELF_TEST_MODE == TEST_TX ) {
-    ircomm.rx_len = 6;
-
-  }
-
-
 }
 
 
@@ -345,15 +340,26 @@ void setup() {
 
 void loop() {
 
+  // This line must be called to process new
+  // received messages and transmit new messages
+  ircomm.update();
+  
+  testFunctions();
 
+}
+
+// Enabled/disabled with the #define TEST_ at
+// the top of the code.
+void testFunctions() {
   // Periodic update of other board status
   if ( millis() - test_ts > TEST_MS ) {
     test_ts = millis();
 
-
-
     if ( SELF_TEST_MODE == TEST_TX ) {
       // Create a test string up to 29 chars long
+
+
+      // Let's test variable message lengths
       int max_chars = 8;
       char buf[ 29 ];
 
@@ -368,14 +374,64 @@ void loop() {
       }
       ircomm.formatString(buf, strlen(buf) );
 
-      
+
     } else if ( SELF_TEST_MODE == TEST_RX ) {
+
       ircomm.disableRx();
+
+      // What is rx delay being set to?
+      //      Serial.print( ircomm.rx_delay );
+      //      Serial.print(",");
+      //      for ( int i = 0; i < 4; i++ ) {
+      //        Serial.print( i );
+      //        Serial.print(":");
+      //        Serial.print( ircomm.msg_dt[i] );
+      //        Serial.print(",");
+      //        Serial.print( ircomm.msg_t[i] );
+      //        Serial.print(",");
+      //        Serial.print( ircomm.pass_count[i] );
+      //        Serial.print(",");
+      //        Serial.print( ircomm.fail_count[i] );
+      //        Serial.println();
+      //      }
+      //
       for ( int i = 0; i < 4; i++ ) {
         Serial.print( ircomm.pass_count[i] );
         Serial.print(",");
       }
+      for ( int i = 0; i < 4; i++ ) {
+        Serial.print( 0 - (int)ircomm.fail_count[i] );
+        Serial.print(",");
+      }
+      for ( int i = 0; i < 4; i++ ) {
+        Serial.print( ircomm.error_type[i] );
+        Serial.print(",");
+      }
       Serial.println();
+      // what type of errors on receive are we getting?
+      //      for ( int i = 0; i < 4; i++ ) {
+      //        Serial.print( ircomm.error_type[i] );
+      //        Serial.print(",");
+      //      }
+      //      for( int i = 0; i < 4; i++ ) {
+      //        Serial.print( ircomm.rx_buf[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.println();
+      //      for( int i = 0; i < 4; i++ ) {
+      //        Serial.print( ircomm.rx_vectors[i] );
+      //        Serial.print(", ");
+      //      }
+      //      Serial.println();
+
+      //      float x = (ircomm.rx_vectors[0] - ircomm.rx_vectors[2]);
+      //    float y = (ircomm.rx_vectors[1] - ircomm.rx_vectors[3]);
+      //    float theta = atan2( y, x );
+      //    Serial.println( theta,4 );
+
+
+      //ircomm.reportConfiguration();
+      
       Serial.flush();
       ircomm.enableRx();
     }
@@ -383,33 +439,9 @@ void loop() {
 
   }
 
-
-
-
-
-  // If you don't want your board to transmit,
-  // you can use the following command.
-  //ircomm.stopTx();
-  //ircomm.disableTx();
-
-  // This line must be called to process new
-  // received messages and transmit new messages
-  ircomm.update();
-
-  // If you want to use Serial.print() to print your
-  // debug statements, you need to tell the board to
-  // stop receiving temporarily. Othewise, you will
-  // receive your own debug statements!
-  //ircomm.disableRx();
-
-
-  // I'm copying like this because in the future I think we
-  // can use this to detect new messages by comparing counts
-  //  for( int i = 0; i < 4; i++ ) status.msg_count[ i ] = ircomm.msg_dt[i];//pass_count[ircomm.rx_pwr_index];
-
-
-
 }
+
+
 
 // Experiment to see if reading the LSB
 // of an analog read can generate a
