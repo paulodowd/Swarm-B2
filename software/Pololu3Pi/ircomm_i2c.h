@@ -1,9 +1,9 @@
-#ifndef IRCOMM_DATA_H
-#define IRCOMM_DATA_H
-
-
+#ifndef IRCOMM_I2C_H
+#define IRCOMM_I2C_H
 
 #pragma pack 1
+
+#define IRCOMM_I2C_ADDR  0xB2
 
 // A general status structure to discover
 // what mode the board is in, and the number
@@ -11,10 +11,10 @@
 // The max possible size of an i2c struct is
 // 32 bytes.
 typedef struct i2c_status { 
-  uint8_t mode;                   // 1  bytes
   uint16_t fail_count[4];         // 2x4 = 8 bytes
   uint16_t pass_count[4];         // 2x4  = 8 bytes
   uint16_t error_type[4];         // 2x4  = 8 bytes 
+  uint16_t activity[4];           // 2x4  = 8 bytes
 } i2c_status_t;
 
 // Small struct used to change mode.
@@ -79,7 +79,7 @@ typedef struct i2c_sensors {
 #define MODE_CLEAR_MSG2     15
 #define MODE_CLEAR_MSG3     16
 #define MODE_REPORT_SENSORS 17
-#define MODE_RESET_COUNTS   18
+#define MODE_RESET_STATUS   18
 #define MODE_REPORT_RX_ACTIVITY 19
 #define MODE_REPORT_RX_DIRECTION 20
 #define MODE_REPORT_TIMINGS 21

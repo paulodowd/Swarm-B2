@@ -27,6 +27,7 @@ void IRComm_c::init() {
   }
 
   ir_config.rx_cycle            = RX_CYCLE;
+  ir_config.rx_cycle_on_rx      = RX_CYCLE_ON_RX;
   ir_config.rx_predict_timeout  = RX_PREDICT_TIMEOUT;
   ir_config.rx_overrun          = RX_OVERRUN;
   ir_config.rx_length           = RX_DEFAULT_MSG_LEN;
@@ -96,6 +97,8 @@ void IRComm_c::init() {
 
     msg_dt[i] = 0;
     msg_t[i] = millis();
+
+    activity[i] = 0;
   }
 
   msg_dir = 0.0;
@@ -165,22 +168,17 @@ void IRComm_c::updateActivity() {
     for ( int i = 0; i < 4; i++ ) {
       rx_vectors[i] = (rx_vectors[i] * 0.3 ) + ((rx_activity[i] / sum) * 0.7);
     }
+    
   } else {
 
+    // No activity?  
     for ( int i = 0; i < 4; i++ ) {
-      rx_vectors[i] = (rx_vectors[i] * 0.3 );
+      rx_vectors[i] = (rx_vectors[i] * 0.3 ); // + ( 0 * 0.7);
     }
   }
   rx_activity[0] = rx_activity[1] = rx_activity[2] = rx_activity[3] = 0;
 
-  //for ( int i = 0; i < 4; i++ ) {
-  //
-  //    // I use 4 here because I think the most number of messages
-  //    // we should get per cycle is 4 (unless CYCLE_ON_RX = false).
-  //    // This will reduce recorded activity per iteration if no
-  //    // messages are received
-  //    rx_activity[i] /= 4.0;
-  //  }
+
 }
 
 int IRComm_c::getActiveRx() {
@@ -295,23 +293,23 @@ void IRComm_c::powerOnAllRx() {
   digitalWrite( RX_PWR_3, HIGH);
 }
 
-// Buffer size is 32
-// We have to add:
-// - start token, 1 byte '*'
-// - checksum token, 1 byte '@'
-// - checksum itself, 1 byte
-// So 3 bytes subtracted from the buffer
-// So the maxmimum length string we can send is 29 bytes
+
+
+// This function is used to format our message payload
+// with the start token, CRC token, and 2 bytes of CRC.
 void IRComm_c::formatString(char* str_to_send, byte len) {
-  char buf[MAX_MSG];
+  char buf[MAX_BUF]; 
   int count;
 
+  // Message payload should be 32 bytes
+  // maximum, set with MAX_MSG
   // String to big? Drop the tail
-  if (len > 29) len = 29;
+  if (len > MAX_MSG) len = MAX_MSG;
 
   // Clear buffer
   memset(buf, 0, sizeof(buf));
 
+  // Start indexing at 0
   count = 0;
 
   // set first character as our message
@@ -327,7 +325,12 @@ void IRComm_c::formatString(char* str_to_send, byte len) {
   buf[count++] = '@';
 
   // Add checksum
-  buf[count++] = CRC8(buf, strlen(buf));
+  uint16_t crc = CRC16(buf, strlen(buf));
+  byte lb,ub;
+  splitCRC16( &ub, &lb, crc );
+  buf[count++] = ub;
+  buf[count++] = lb;
+  
 
 
   // Copy to tx buffer
@@ -377,9 +380,25 @@ void IRComm_c::formatFloat(float f_to_send) {
    For the arduino nano, I observed approximately 188us
    to compute for randomised 31 byte messages.
 
+   Polynomial x^8 + x^5 + x^3 + x^2 + x + 1 is CRC8-AUTOSAR
+   according to this wiki article:
+   https://en.wikipedia.org/wiki/Cyclic_redundancy_check
+
+   I think it would be better to use a larger CRC sum if we
+   really want to transmit 32 bytes.  Since the CRC is computed
+   and sent outside of the i2c transaction, we can extend the
+   message by more bytes (up to 64 for UART I think).  For the
+   time being, I will use this CRC8 and do most of my evaluations
+   with messages less than 32bytes.
+
+   There is some more interesting information here:
+   https://www.sunshine2k.de/articles/coding/crc/understanding_crc.html
+
 */
+
 char IRComm_c::CRC8(char * bytes, byte len) {
-  const char generator = B00101111;   // polynomial = x^8 + x^5 + x^3 + x^2 + x + 1 (ignore MSB which is always 1)
+  // polynomial = x^8 + x^5 + x^3 + x^2 + x + 1 (ignore MSB which is always 1)
+  const char generator = B00101111;
   byte crc = 0;
   byte index = 0;
   while (len--) { // while len > 0
@@ -397,6 +416,34 @@ char IRComm_c::CRC8(char * bytes, byte len) {
   return crc;
 }
 
+void IRComm_c::splitCRC16( byte * u_byte, byte * l_byte, uint16_t crc ) {
+  *l_byte = crc & 0xFF;
+  *u_byte = crc >> 8;
+}
+uint16_t IRComm_c::mergeCRC16( byte u_byte, byte l_byte ) {
+  return ((u_byte << 8 ) | l_byte );
+}
+
+ 
+uint16_t IRComm_c::CRC16( char * bytes, byte len ) {
+  const uint16_t generator = 0x1021; /* divisor is 16bit */
+  uint16_t crc = 0; /* CRC value is 16bit */
+  byte index = 0;
+  while( len-- ) {
+    crc ^= (uint16_t)(bytes[index++] << 8); /* move byte into MSB of 16bit CRC */
+
+            for (int i = 0; i < 8; i++) {
+    if ((crc & 0x8000) != 0) { /* test for MSB = bit 15 */
+        crc = (uint16_t)( (crc << 1) ^ generator);
+      } else {
+        crc <<= 1;
+      }
+    }
+  }
+
+  return crc;
+}
+
 // Attempting an asynchronous send
 // and listen procedure because we
 // can't do both at the same time.
@@ -404,10 +451,6 @@ char IRComm_c::CRC8(char * bytes, byte len) {
 // We are using 4800 baud, which is
 // 4800 bits per second.
 // 1.042ms per byte.
-// We can transmit up to 32 bytes.
-// I think here we could do something intelligent
-// like look at how many bytes we are going to transmit
-// and then double this.
 void IRComm_c::setRxTimeout() {
 
   // Is the board configured to dynamically adjust the
@@ -415,9 +458,14 @@ void IRComm_c::setRxTimeout() {
   // messages it is receiving?
   if ( ir_config.rx_predict_timeout && ir_config.rx_length > 0 ) {
 
+    // What is the length of the messages we are 
+    // receiving?
     float t = (float)ir_config.rx_length;
-    t *= (float)ir_config.rx_timeout_multi; // twice as long to listen?
 
+    // How many full message-lengths to listen for?
+    t *= (float)ir_config.rx_timeout_multi; 
+
+    // Scale for milliseconds
 #ifdef IR_FREQ_58
     t *= MS_PER_BYTE_58KHZ; // How many ms per byte to transmit?
 #endif
@@ -791,6 +839,7 @@ void IRComm_c::getNewIRBytes() {
 
     // Register activity on this receiver, whether pass or fail
     rx_activity[ ir_config.rx_pwr_index ] += 1;
+    activity[ ir_config.rx_pwr_index ]++;
 
     // Start token? If yes, we can start to fill the
     // receiver buffer (rx_buf), and after setting
@@ -823,7 +872,12 @@ void IRComm_c::getNewIRBytes() {
 
     // If we exceed the buffer size, we also
     // will try to process the message.
-    if (rx_index >= MAX_MSG) {
+    // Because crc_index is assigned from rx_index, it
+    // means crc_index should also never be more than 
+    // MAX_BUF, resetRxFlags() will always be called if so.
+    // Therefore we avoid trying to call processMsg() with
+    // unsafe index values.
+    if (rx_index > MAX_BUF) {
       if ( IR_DEBUG_OUTPUT ) {
         Serial.println("Buffer full before CRC token");
         Serial.print("rx_buf: " );
@@ -840,20 +894,20 @@ void IRComm_c::getNewIRBytes() {
     }
 
     // If crc_index is non-zero (found), and rx_index is
-    // now crc_index +2 (we read another byte and incremented
-    // index again) it means we processed the checkbyte and
-    // can move to processing the message.
-    if ( crc_index != 0 && (rx_index >= (crc_index + 2)) ) {
-      if ( IR_DEBUG_OUTPUT ) Serial.println("Got CRC token and +1 byte");
+    // now crc_index +3 it means found the @ token and then
+    // read another 2 bytes,  we can move to processing the 
+    // message.
+    if ( crc_index != 0 && (rx_index >= (crc_index + 3)) ) {
+      if ( IR_DEBUG_OUTPUT ) Serial.println("Got CRC token and +2 bytes");
       processRxBuf();
     }
   }
 
-  // Did we receive a consecutive byte?  
+  // Did we receive a consecutive byte?
   // We only really care if we have started to collect bytes
-  // for a message (start token = true).  
-  // If too much time has elapsed between bytes, we have a 
-  // broken message.  This could be because the source moved 
+  // for a message (start token = true).
+  // If too much time has elapsed between bytes, we have a
+  // broken message.  This could be because the source moved
   // out of range or became obstructed.
   if ( GOT_START_TOKEN) {
     if ( millis() - byte_ts > ir_config.rx_byte_timeout ) {
@@ -966,17 +1020,24 @@ int IRComm_c::processRxBuf() {
     }
 
     // Reconstruct checksum
-    char cs;
-    cs = CRC8(buf, strlen(buf));
+    uint16_t crc;
+    crc = CRC16(buf, strlen(buf));
 
-    if ( IR_DEBUG_OUTPUT ) {
-      Serial.print( cs );
-      Serial.print( " vs ");
-      Serial.println( (uint8_t)rx_buf[crc_index + 1]);
-    }
 
     // Do the checksums match?
-    if (cs == rx_buf[crc_index + 1]) {
+    // We will only have called processMsg() if we
+    // had read 2 more bytes after the @ token
+    byte ub = rx_buf[crc_index + 1];
+    byte lb = rx_buf[crc_index + 2];
+    uint16_t rx_crc = mergeCRC16( ub, lb );
+
+    
+    if ( IR_DEBUG_OUTPUT ) {
+      Serial.print( crc );
+      Serial.print( " vs ");
+      Serial.println( rx_crc );
+    }
+    if (crc == rx_crc) {
 
       if ( IR_DEBUG_OUTPUT ) Serial.println("CRC GOOD!");
 
@@ -991,7 +1052,7 @@ int IRComm_c::processRxBuf() {
       // At this point, it is more reliable to use
       // buf[] to determine length, as we will discard
       // any junk after the checkbyte
-      ir_config.rx_length = strlen( buf ) + 1;
+      ir_config.rx_length = strlen( buf ) + 2;// +2 crc bytes
 
       unsigned long dt = millis() - msg_t[ir_config.rx_pwr_index ];
       msg_dt[ ir_config.rx_pwr_index ] = dt;
@@ -1021,6 +1082,18 @@ int IRComm_c::processRxBuf() {
       // Since we are successful, we increase the message
       // count for this receiver
       pass_count[ ir_config.rx_pwr_index ]++;
+
+      // If this message was received correctly, and the
+      // board is configured for cycle_on_rx, it means we
+      // need to trigger an rx_cycle. Rather than call
+      // cyclePowerRx() directly, we will set the rx_ts
+      // to 0 to force update() to handle the cycling of
+      // rx with other functionality, such as 
+      // TX_MODE_INTERLEAVED
+      if( ir_config.rx_cycle_on_rx ) {
+        rx_ts = 0;
+      }
+      
 
       if ( IR_DEBUG_OUTPUT ) {
         Serial.print("Saved: \n" ) ;

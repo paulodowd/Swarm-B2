@@ -19,9 +19,8 @@
 #include <avr/io.h>
 #include <Wire.h>
 #include "ircomm.h"
-#include "ircomm_data.h"
+#include "ircomm_i2c.h"
 
-#define I2C_ADDR  0x08
 
 // Test/Debug modes
 #define TEST_DISABLED 0
@@ -30,7 +29,7 @@
 
 #define SELF_TEST_MODE TEST_DISABLED
 //#define SELF_TEST_MODE TEST_TX
-#define SELF_TEST_MODE TEST_RX
+//#define SELF_TEST_MODE TEST_RX
 
 // A timestamp used only to configure various
 // testing/debugging activities.
@@ -83,11 +82,13 @@ void i2c_receive( int len ) {
       // Clearing tx  buff will stop transmission of messages
       ircomm.clearTxBuf();
 
-    } else if ( new_mode.mode == MODE_RESET_COUNTS ) {
+    } else if ( new_mode.mode == MODE_RESET_STATUS ) {
       memset( &status, 0, sizeof( status ) );
       for ( int i = 0; i < 4; i++ ) {
         ircomm.pass_count[i] = 0;
         ircomm.fail_count[i] = 0;
+        ircomm.error_type[i] = 0;
+        ircomm.activity[i] = 0;
       }
 
 
@@ -129,7 +130,7 @@ void i2c_receive( int len ) {
     // If it is a malformed message from the robot,
     // or the ! symbol
     // we clear the tx_buf and so stop sending messages
-    if ( count <= 1 || buf[1] == '!' ) {
+    if ( count <= 1 ) {
       //Serial.println(" Cleared");
 
       // CLEAR TX BUF, DISABLE TX
@@ -151,10 +152,11 @@ void i2c_request() {
 
 
     for ( int i = 0; i < 4; i++ ) {
-      status.pass_count[ i ] = ircomm.pass_count[i];
-      status.fail_count[ i ] = ircomm.fail_count[i];
+      status.pass_count[ i ] = (uint16_t)ircomm.pass_count[i];
+      status.fail_count[ i ] = (uint16_t)ircomm.fail_count[i];
+      status.error_type[ i ] = (uint16_t)ircomm.error_type[i];
+      status.activity[i] = (uint16_t)ircomm.activity[i];
     }
-    status.mode = last_mode.mode;
 
     Wire.write( (byte*)&status, sizeof( status ) );
 
@@ -316,7 +318,7 @@ void setup() {
   pinMode( 13, OUTPUT );
 
   // Begin I2C as a slave device.
-  Wire.begin( I2C_ADDR );
+  Wire.begin( IRCOMM_I2C_ADDR );
   Wire.onReceive( i2c_receive );
   Wire.onRequest( i2c_request );
 
@@ -325,7 +327,6 @@ void setup() {
 
   last_mode.mode = MODE_REPORT_STATUS;
 
-  status.mode = MODE_REPORT_STATUS;
   for ( int i = 0; i < 4; i++ ) {
     status.pass_count[i] = 0;
     status.fail_count[i] = 0;
@@ -361,7 +362,7 @@ void testFunctions() {
 
       // Let's test variable message lengths
       int max_chars = 8;
-      char buf[ 29 ];
+      char buf[ MAX_MSG ];
 
       memset( buf, 0, sizeof( buf ) );
 

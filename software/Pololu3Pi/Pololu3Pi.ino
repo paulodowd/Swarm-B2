@@ -1,7 +1,6 @@
 #include <Wire.h>           // i2c to connect to IR communication board.
-#define IRCOMM_I2C_ADDR  8
 
-#include "ircomm_data.h"
+#include "ircomm_i2c.h"
 
 #define BUZZER_PIN 6
 
@@ -16,25 +15,48 @@ i2c_mode_t ircomm_mode;
 i2c_status_t ircomm_status;
 
 
-  // struct to store sensor data
-  i2c_sensors_t sensors;
+// There is 2560 bytes available for global variables
+// Our data takes up 32 bytes per trial.  Let's use
+// 2000 bytes.
+// 2000 / 32 = 62.5
+#define MAX_TRIALS 10
+#define MAX_POSITIONS 6
+i2c_status_t results[MAX_TRIALS][MAX_POSITIONS];
+
+
+// struct to store sensor data
+i2c_sensors_t sensors;
 
 // Timestamps to periodically
 // - check if there are new messages
 // - update the message we are sending
 unsigned long check_message_ts;
 unsigned long update_message_ts;
+unsigned long status_ts;
 
 // What time interval in ms should we
 // check / send new messages?
 unsigned long check_message_ms = 100;    // every 100ms
 unsigned long update_message_ms = 1000; // every 1000ms
-
+unsigned long status_update = 4000; // every 4s
 
 void setup() {
   Serial.begin(115200);
- 
+
   Wire.begin();
+
+
+  for( int trial = 0; trial < MAX_TRIALS; trial++ ) {
+    for( int pos = 0; pos < MAX_POSITIONS; pos++ ) {
+      for( int rx = 0; rx < 4; rx++ ) {
+        results[trial][pos].pass_count[rx] = 0;
+        results[trial][pos].fail_count[rx] = 0;
+        results[trial][pos].error_type[rx] = 0;
+        results[trial][pos].activity[rx] = 0;
+      }
+    }
+  
+  }
 
 
   // Let's use the buzzer pin so we can
@@ -42,23 +64,12 @@ void setup() {
   // message
   pinMode(BUZZER_PIN, OUTPUT);
 
-
-  // Short delay so the robots can be
-  // positioned
-  // 2seconds of beeping
-  for ( int i = 0; i < 20; i++ ) {
-
-    // 100ms total
-    analogWrite(6, 120);
-    delay(50);
-    analogWrite(6, 0);
-    delay(50);
-  }
-
-
   check_message_ts = millis();
   update_message_ts = millis();
-  
+
+
+
+  status_ts = millis();
 
 }
 
@@ -74,8 +85,21 @@ void loop() {
   //getSensors();
   // Decide what to do
   //if( sensors.ldr[0] < 500 ) {
-    // ???
+  // ???
   //}
+  if( millis() - status_ts > status_update ) {
+
+    reportStatusCSV();
+    analogWrite(6, 120 );
+    delay(50);
+    analogWrite(6, 0);
+    doResetStatus();
+    
+
+    status_ts = millis();
+  }
+
+  return;
 
   // Periodically check to see if there are new messages
   // waiting to be read from the communication board.
@@ -108,12 +132,12 @@ void loop() {
       // the number of bytes to read down from the
       // communication board through receiver 'i'
       // (0,1,2 or 3).
-      // 
+      //
       if ( n > 0 ) {
 
         got_message = true;
 
-        // If we don't care what the message says 
+        // If we don't care what the message says
         // because we just want the statistics
         // (e.g., the count of messages or the
         // timing), we can just tell the board to
@@ -121,7 +145,7 @@ void loop() {
         // do this.  In fact, using getIRMessage()
         // will do it automatically.
         //deleteMessage(i);
-        
+
         // This function gets the message on receiver
         // 'i', and currently prints the message over
         // Serial.print().  You can decide what new
@@ -172,7 +196,7 @@ void loop() {
     // in millis() so that we can see it changing over
     // time on another robot that receives it.
 
-    char buf[29]; // Important! The max we can send is 29 bytes
+    char buf[32]; // Important! The max we can send is 32 bytes
 
     // Let's get millis() as a float. I think you will want
     // to send a value like 0.55 in the future.
@@ -236,6 +260,13 @@ void loop() {
 */
 
 
+void doResetStatus() {
+  ircomm_mode.mode = MODE_RESET_STATUS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+}
+
 void getMsgTimings() {
   ircomm_mode.mode = MODE_REPORT_TIMINGS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -263,8 +294,8 @@ void getMsgTimings() {
     Serial.println();
   }
 
-  Serial.print("Tx Delay: "); Serial.println( msg_timings.tx_delay );
-  Serial.print("Rx Delay: "); Serial.println( msg_timings.rx_delay );
+  Serial.print("Tx Delay: "); Serial.println( msg_timings.tx_period );
+  Serial.print("Rx Delay: "); Serial.println( msg_timings.rx_timeout );
 
 }
 
@@ -414,17 +445,28 @@ void reportStatusCSV() {
   // so that we can view both at the same time on the plotter
   // to compare pass versus fail.
   for ( int i = 0; i < 4; i++ ) {
-    float m = (float)ircomm_status.fail_count[i];
-
-    Serial.print( -m );
+    Serial.print( ircomm_status.fail_count[i] );
     Serial.print(",");
   }
+
+  // The type of failures
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( ircomm_status.error_type[i] );
+    Serial.print(",");
+  }
+
+  // Quantity of bytes received
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( ircomm_status.activity[i] );
+    Serial.print(",");
+  }
+  
   Serial.println();
 
 }
 
 void reportStatus() {
-  
+
   //         Set mode to status request
   ircomm_mode.mode = MODE_REPORT_STATUS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
