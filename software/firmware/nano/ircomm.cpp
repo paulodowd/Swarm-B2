@@ -1,11 +1,8 @@
 #include "ircomm.h"
 
 
-
 IRComm_c::IRComm_c() {
 }
-
-
 
 void IRComm_c::init() {
 
