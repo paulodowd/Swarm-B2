@@ -58,7 +58,9 @@ typedef struct i2c_mode {
 #define MODE_REPORT_HIST    22
 #define MODE_CLEAR_HIST     23
 #define MODE_FULL_RESET     24
-#define MAX_MODE            25
+#define MODE_REPORT_CYCLES  25
+#define MODE_REPORT_ERRORS  26
+#define MAX_MODE            27
 
 
 // A general status structure to discover
@@ -69,9 +71,17 @@ typedef struct i2c_mode {
 typedef struct i2c_status { 
   uint16_t fail_count[4];         
   uint16_t pass_count[4];         
-  uint16_t error_type[4];         
   uint16_t activity[4];           
 } i2c_status_t;
+
+typedef struct i2c_errors {
+  uint16_t error_type[4][4];// 4*4 = 16 (*2bytes)
+} i2c_errors_t;
+
+typedef struct i2c_cycles {
+  uint16_t rx_cycles;
+  uint16_t long tx_count;
+} i2c_cycles_t;
 
 // To find out if a message is ready
 // to collect

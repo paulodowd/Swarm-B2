@@ -9,7 +9,7 @@
 
 // Uncomment depending on your IR
 // Receiver module.  This will determine
-// the correct Serial Baud rate and the
+// the correct NeoSerial Baud rate and the
 // configuration of timer2 for the carrier
 // signal
 // Other parts of the code depend on this
@@ -57,8 +57,8 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // set a period for when to do a tx
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
-//#define TX_MODE (TX_MODE_PERIODIC)
-#define TX_MODE (TX_MODE_INTERLEAVED)
+#define TX_MODE (TX_MODE_PERIODIC)
+//#define TX_MODE (TX_MODE_INTERLEAVED)
 
 #ifdef IR_FREQ_38
 #define DEFAULT_TX_PERIOD (0)
@@ -74,7 +74,7 @@
 #define DEFAULT_TX_REPEAT 1
 
 // Uncomment to see debug output.  Note that, we
-// are going to use the serial port for debugging,
+// are going to use the NeoSerial port for debugging,
 // which means we will effectively be transmitting
 // debug output to other boards, and without disabling
 // the rx component we'll also receive our own

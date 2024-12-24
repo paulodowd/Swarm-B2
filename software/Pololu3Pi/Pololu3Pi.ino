@@ -20,7 +20,7 @@ i2c_status_t ircomm_status;
 // 2000 bytes.
 // 2000 / 32 = 62.5
 #define MAX_TRIALS 10
-#define MAX_POSITIONS 6
+#define MAX_POSITIONS 4
 i2c_status_t results[MAX_TRIALS][MAX_POSITIONS];
 
 
@@ -38,25 +38,21 @@ unsigned long status_ts;
 // check / send new messages?
 unsigned long check_message_ms = 100;    // every 100ms
 unsigned long update_message_ms = 1000; // every 1000ms
-unsigned long status_update = 4000; // every 4s
+unsigned long status_update = 1000; // every 4s
+
+unsigned long trial_len_ms = 1000;
+int trial;
+int pos;
 
 void setup() {
   Serial.begin(115200);
 
+  delay(1000);
+
+  Serial.println("Pos,Trial,Rx,Pass,Fail,Incomplete,CS Error,Too Short,Too Long,Bytes,Tx count,Rx Cycles");
+
   Wire.begin();
 
-
-  for( int trial = 0; trial < MAX_TRIALS; trial++ ) {
-    for( int pos = 0; pos < MAX_POSITIONS; pos++ ) {
-      for( int rx = 0; rx < 4; rx++ ) {
-        results[trial][pos].pass_count[rx] = 0;
-        results[trial][pos].fail_count[rx] = 0;
-        results[trial][pos].error_type[rx] = 0;
-        results[trial][pos].activity[rx] = 0;
-      }
-    }
-  
-  }
 
 
   // Let's use the buzzer pin so we can
@@ -67,8 +63,10 @@ void setup() {
   check_message_ts = millis();
   update_message_ts = millis();
 
+  trial = 0;
+  pos = 0;
 
-
+  doResetStatus();
   status_ts = millis();
 
 }
@@ -87,14 +85,41 @@ void loop() {
   //if( sensors.ldr[0] < 500 ) {
   // ???
   //}
-  if( millis() - status_ts > status_update ) {
+  if ( millis() - status_ts > trial_len_ms ) {
 
-    reportStatusCSV();
-    analogWrite(6, 120 );
-    delay(50);
-    analogWrite(6, 0);
+    saveResults();
+    trial++;
+
+    // Finished trials for this position.
+    if ( trial >= MAX_TRIALS ) {
+
+      analogWrite(6, 120 );
+      delay(50);
+      analogWrite(6, 0);
+      delay(50);
+      analogWrite(6, 120 );
+      delay(50);
+      analogWrite(6, 0);
+
+      delay(3000); // move robot
+
+      analogWrite(6, 120 );
+      delay(50);
+      analogWrite(6, 0);
+      delay(50);
+      analogWrite(6, 120 );
+      delay(50);
+      analogWrite(6, 0);
+
+      pos++;
+
+      trial = 0;
+    }
+    //analogWrite(6, 120 );
+    //delay(20);
+    //analogWrite(6, 0);
     doResetStatus();
-    
+
 
     status_ts = millis();
   }
@@ -420,8 +445,61 @@ int checkRxMsgReady(int which_rx) {
 
 }
 
+void saveResults() {
+  //         Set mode to status request
+  ircomm_mode.mode = MODE_REPORT_STATUS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
+  Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
 
 
+  //         Set mode to status request
+  ircomm_mode.mode = MODE_REPORT_CYCLES;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  i2c_cycles_t cycles;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( cycles ));
+  Wire.readBytes( (uint8_t*)&cycles, sizeof( cycles ));
+
+
+  ircomm_mode.mode = MODE_REPORT_ERRORS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+
+  i2c_errors_t errors;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( errors ));
+  Wire.readBytes( (uint8_t*)&errors, sizeof( errors ));
+
+  for ( int i = 0; i < 4; i++ ) {
+
+    Serial.print(pos ); Serial.print(",");
+    Serial.print( trial + 1 ); Serial.print(",");
+    Serial.print( i ); Serial.print(",");
+    Serial.print( ircomm_status.pass_count[i] ); Serial.print(",");
+    Serial.print( ircomm_status.fail_count[i] ); Serial.print(",");
+    for ( int j = 0; j < 4; j++ ) {
+      Serial.print( errors.error_type[i][j] ); Serial.print(",");
+    }
+    Serial.print( ircomm_status.activity[i] ); Serial.print(",");
+
+    Serial.print( cycles.tx_count ); Serial.print(","); Serial.println( cycles.rx_cycles );
+  }
+  //  for ( int i = 0; i < 4; i++ ) {
+  //    Serial.println(ircomm_status.pass_count[i]);
+  //    results[trial][pos].pass_count[i] = ircomm_status.pass_count[i];
+  //    results[trial][pos].fail_count[i] = ircomm_status.fail_count[i];
+  //    results[trial][pos].error_type[i] = ircomm_status.error_type[i];
+  //    results[trial][pos].activity[i] = ircomm_status.activity[i];
+  //  }
+
+}
 
 void reportStatusCSV() {
   //         Set mode to status request
@@ -449,18 +527,18 @@ void reportStatusCSV() {
     Serial.print(",");
   }
 
-  // The type of failures
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.error_type[i] );
-    Serial.print(",");
-  }
+  //  // The type of failures
+  //  for ( int i = 0; i < 4; i++ ) {
+  //    Serial.print( ircomm_status.error_type[i] );
+  //    Serial.print(",");
+  //  }
 
   // Quantity of bytes received
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.activity[i] );
     Serial.print(",");
   }
-  
+
   Serial.println();
 
 }

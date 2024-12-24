@@ -74,8 +74,8 @@ class IRComm_c {
     //       here.
     int  rx_index;           // tracks how full the rx buffer is.
     int  crc_index;          // logs where the CRC token was found
-    byte tx_buf[MAX_BUF];  // buffer for IR out (serial)
-    byte rx_buf[MAX_BUF];  // buffer for IR in  (serial)
+    byte tx_buf[MAX_BUF];  // buffer for IR out (NeoSerial)
+    byte rx_buf[MAX_BUF];  // buffer for IR in  (NeoSerial)
 
     // magnitudes to construct an angle of
     // message reception.  We simply sum the

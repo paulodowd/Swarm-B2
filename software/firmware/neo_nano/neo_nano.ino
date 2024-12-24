@@ -4,7 +4,7 @@
 
 */
 
-
+#include <NeoHWSerial.h>
 #include <avr/io.h>
 #include <Wire.h>
 #include "ircomm.h"
@@ -17,7 +17,7 @@
 #define TEST_RX 2
 
 #define SELF_TEST_MODE TEST_DISABLED
-//#define SELF_TEST_MODE TEST_TX
+#define SELF_TEST_MODE TEST_TX
 //#define SELF_TEST_MODE TEST_RX
 
 // A timestamp used only to configure various
@@ -130,14 +130,14 @@ void i2c_receive( int len ) {
     // or the ! symbol
     // we clear the tx_buf and so stop sending messages
     if ( count < 1 ) {
-      //Serial.println(" Cleared");
+      //NeoSerial.println(" Cleared");
 
       // CLEAR TX BUF, DISABLE TX
       //memset( tx_buf, 0, sizeof( tx_buf ) );
       ircomm.clearTxBuf();
     }
-    //Serial.print("I2C Received:" );
-    //Serial.println(buf);
+    //NeoSerial.print("I2C Received:" );
+    //NeoSerial.println(buf);
     ircomm.formatString( buf, strlen(buf));
   }
 
@@ -253,7 +253,7 @@ void i2c_request() {
 
     for ( int i = 0; i < 4; i++ ) {
       for ( int j = 0; j < 4; j++ ) {
-        errors.error_type[i][j] = ircomm.error_type[i][j];
+        errors.error_type[i][j] = ircomm.error_type[i][j] = 0;
       }
     }
 
@@ -377,10 +377,10 @@ void setRandomMsg(int len) {
 
 void loop() {
 //
-//  if ( millis() - test_ts > 100 ) {
-//    test_ts = millis();
-//    setRandomMsg(8);
-//  }
+  if ( millis() - test_ts > 100 ) {
+    test_ts = millis();
+    setRandomMsg(8);
+  }
 
 
   // This line must be called to process new
@@ -407,59 +407,59 @@ void testFunctions() {
       ircomm.disableRx();
 
       // What is rx delay being set to?
-      //      Serial.print( ircomm.rx_delay );
-      //      Serial.print(",");
+      //      NeoSerial.print( ircomm.rx_delay );
+      //      NeoSerial.print(",");
       //      for ( int i = 0; i < 4; i++ ) {
-      //        Serial.print( i );
-      //        Serial.print(":");
-      //        Serial.print( ircomm.msg_dt[i] );
-      //        Serial.print(",");
-      //        Serial.print( ircomm.msg_t[i] );
-      //        Serial.print(",");
-      //        Serial.print( ircomm.pass_count[i] );
-      //        Serial.print(",");
-      //        Serial.print( ircomm.fail_count[i] );
-      //        Serial.println();
+      //        NeoSerial.print( i );
+      //        NeoSerial.print(":");
+      //        NeoSerial.print( ircomm.msg_dt[i] );
+      //        NeoSerial.print(",");
+      //        NeoSerial.print( ircomm.msg_t[i] );
+      //        NeoSerial.print(",");
+      //        NeoSerial.print( ircomm.pass_count[i] );
+      //        NeoSerial.print(",");
+      //        NeoSerial.print( ircomm.fail_count[i] );
+      //        NeoSerial.println();
       //      }
       //
       //      for ( int i = 0; i < 4; i++ ) {
-      //        Serial.print( ircomm.pass_count[i] );
-      //        Serial.print(",");
+      //        NeoSerial.print( ircomm.pass_count[i] );
+      //        NeoSerial.print(",");
       //      }
       //      for ( int i = 0; i < 4; i++ ) {
-      //        Serial.print( 0 - (int)ircomm.fail_count[i] );
-      //        Serial.print(",");
+      //        NeoSerial.print( 0 - (int)ircomm.fail_count[i] );
+      //        NeoSerial.print(",");
       //      }
       //      for ( int i = 0; i < 4; i++ ) {
-      //        Serial.print( ircomm.error_type[i] );
-      //        Serial.print(",");
+      //        NeoSerial.print( ircomm.error_type[i] );
+      //        NeoSerial.print(",");
       //      }
-      //      Serial.println();
+      //      NeoSerial.println();
       // what type of errors on receive are we getting?
       //      for ( int i = 0; i < 4; i++ ) {
-      //        Serial.print( ircomm.error_type[i] );
-      //        Serial.print(",");
+      //        NeoSerial.print( ircomm.error_type[i] );
+      //        NeoSerial.print(",");
       //      }
       //      for( int i = 0; i < 4; i++ ) {
-      //        Serial.print( ircomm.rx_buf[i] );
-      //        Serial.print(", ");
+      //        NeoSerial.print( ircomm.rx_buf[i] );
+      //        NeoSerial.print(", ");
       //      }
-      //      Serial.println();
+      //      NeoSerial.println();
       //      for( int i = 0; i < 4; i++ ) {
-      //        Serial.print( ircomm.rx_vectors[i] );
-      //        Serial.print(", ");
+      //        NeoSerial.print( ircomm.rx_vectors[i] );
+      //        NeoSerial.print(", ");
       //      }
-      //      Serial.println();
+      //      NeoSerial.println();
 
       //      float x = (ircomm.rx_vectors[0] - ircomm.rx_vectors[2]);
       //    float y = (ircomm.rx_vectors[1] - ircomm.rx_vectors[3]);
       //    float theta = atan2( y, x );
-      //    Serial.println( theta,4 );
+      //    NeoSerial.println( theta,4 );
 
 
       //ircomm.reportConfiguration();
 
-      Serial.flush();
+      NeoSerial.flush();
       ircomm.enableRx();
     }
 
@@ -481,11 +481,11 @@ void initRandomSeed() {
   for ( int i = 0; i < 8; i++ ) {
     byte b = (byte)analogRead(A3);
     b = b & 0x01;
-    //Serial.println(b, BIN);
+    //NeoSerial.println(b, BIN);
 
     r |= (b << i);
     delayMicroseconds(10);
   }
-  //Serial.println(r, BIN);
+  //NeoSerial.println(r, BIN);
   randomSeed( r );
 }

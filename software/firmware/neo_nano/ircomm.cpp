@@ -1,3 +1,4 @@
+#include <NeoHWSerial.h>
 #include "ircomm.h"
 
 
@@ -39,11 +40,11 @@ void IRComm_c::init() {
 
 
 #ifdef IR_FREQ_38
-  Serial.begin( 4800 );
+  NeoSerial.begin( 4800 );
 #endif
 
 #ifdef IR_FREQ_58
-  Serial.begin( 9600 );
+  NeoSerial.begin( 9600 );
 #endif
 
   //reportConfiguration();
@@ -115,18 +116,18 @@ void IRComm_c::init() {
 void IRComm_c::reportConfiguration() {
 
 
-  Serial.print("Configured to:\n" );
-  Serial.print("- tx mode: \t" ); Serial.println( ir_config.tx_mode );
-  Serial.print("- tx repeat: \t" ); Serial.println( ir_config.tx_repeat );
-  Serial.print("- tx period: \t" ); Serial.println( ir_config.tx_period );
-  Serial.print("- rx cycle: \t" ); Serial.println( ir_config.rx_cycle );
-  Serial.print("- rx predict: \t" ); Serial.println( ir_config.rx_predict_timeout );
-  Serial.print("- rx overrun: \t" ); Serial.println( ir_config.rx_overrun );
-  Serial.print("- rx length: \t" ); Serial.println( ir_config.rx_length );
-  Serial.print("- rx timeout: \t" ); Serial.println( ir_config.rx_timeout );
-  Serial.print("- rx to-multi: \t" ); Serial.println( ir_config.rx_timeout_multi );
-  Serial.print("- rx pwr index:\t" ); Serial.println( ir_config.rx_pwr_index );
-  Serial.print("- rx byte to: \t"); Serial.println( ir_config.rx_byte_timeout );
+  NeoSerial.print("Configured to:\n" );
+  NeoSerial.print("- tx mode: \t" ); NeoSerial.println( ir_config.tx_mode );
+  NeoSerial.print("- tx repeat: \t" ); NeoSerial.println( ir_config.tx_repeat );
+  NeoSerial.print("- tx period: \t" ); NeoSerial.println( ir_config.tx_period );
+  NeoSerial.print("- rx cycle: \t" ); NeoSerial.println( ir_config.rx_cycle );
+  NeoSerial.print("- rx predict: \t" ); NeoSerial.println( ir_config.rx_predict_timeout );
+  NeoSerial.print("- rx overrun: \t" ); NeoSerial.println( ir_config.rx_overrun );
+  NeoSerial.print("- rx length: \t" ); NeoSerial.println( ir_config.rx_length );
+  NeoSerial.print("- rx timeout: \t" ); NeoSerial.println( ir_config.rx_timeout );
+  NeoSerial.print("- rx to-multi: \t" ); NeoSerial.println( ir_config.rx_timeout_multi );
+  NeoSerial.print("- rx pwr index:\t" ); NeoSerial.println( ir_config.rx_pwr_index );
+  NeoSerial.print("- rx byte to: \t"); NeoSerial.println( ir_config.rx_byte_timeout );
 }
 
 void IRComm_c::cyclePowerRx() {
@@ -234,12 +235,12 @@ void IRComm_c::powerOnRx( byte index ) {
   }
 
   // After changing which receiver is active,
-  // the serial buffer is full of old data.
+  // the NeoSerial buffer is full of old data.
   // We clear it now.
   resetRxProcess();
 }
 
-// The arduino nano has a parallel serial
+// The arduino nano has a parallel NeoSerial
 // interface,meaning with IR it can receive
 // it's own tranmission. There, we access the
 // UART register to disable RX functionality.
@@ -252,7 +253,7 @@ void IRComm_c::disableRx() {
   sei();
 }
 
-// Re-enable the serial port RX hardware.
+// Re-enable the NeoSerial port RX hardware.
 void IRComm_c::enableRx() {
   cli();
   UCSR0A &= ~(1 << FE0);
@@ -279,8 +280,8 @@ void IRComm_c::resetRxProcess() {
   enableRx();
 
   if ( IR_DEBUG_OUTPUT ) {
-    Serial.print("Buffer reset to: ");
-    Serial.println( (char*)rx_buf );
+    NeoSerial.print("Buffer reset to: ");
+    NeoSerial.println( (char*)rx_buf );
   }
 }
 
@@ -387,9 +388,9 @@ void IRComm_c::formatString(char* str_to_send, byte len) {
 //    test_ts = millis();
 //    setRandomMsg(8);
 //  }
-    Serial.println("Format string created >>");
-    Serial.print( (char*)buf );
-    Serial.println("<< END");
+    NeoSerial.println("Format string created >>");
+    NeoSerial.print( (char*)buf );
+    NeoSerial.println("<< END");
   }
 
 }
@@ -494,7 +495,7 @@ uint16_t IRComm_c::CRC16( byte * bytes, byte len ) {
 // Attempting an asynchronous send
 // and listen procedure because we
 // can't do both at the same time.
-// https://lucidar.me/en/serialib/most-used-baud-rates-table/
+// https://lucidar.me/en/NeoSerialib/most-used-baud-rates-table/
 // We are using 4800 baud, which is
 // 4800 bits per second.
 // 1.042ms per byte.
@@ -581,7 +582,7 @@ void IRComm_c::setTxPeriod() {
 }
 
 
-// To stop serial transmission on the IR LEDs
+// To stop NeoSerial transmission on the IR LEDs
 // we stop timer2 by setting the clock source
 // to 0.  We also set pin 4 to HIGH? LOW? to
 // keep the IR LEDs off.
@@ -603,7 +604,7 @@ void IRComm_c::enableTx() {
 
 // We use Timer2 to generate a 38khz clock
 // which is electronically OR'd with the
-// serial TX.
+// NeoSerial TX.
 void IRComm_c::setupTimer2() {
 
   // Termporarily stop interupts
@@ -684,7 +685,7 @@ float IRComm_c::getFloatValue(int which) {
    This is the main update routine.  It needs to switch
    between:
      listening: providing enough time to receive a message
-     sending:   Serial.print and flush a message out.
+     sending:   NeoSerial.print and flush a message out.
 
    How long it will take to send a message will depend
    on the message length (number of bytes).  This also
@@ -704,7 +705,7 @@ float IRComm_c::getFloatValue(int which) {
    29 bytes.
 
    This update() function is called iteratively and so it
-   will read in bytes from the Serial device in a
+   will read in bytes from the NeoSerial device in a
    non-blocking way. update() will trigger processMsg()
    once it has received both the start token '*' and the
    checkbyte token '@'.
@@ -783,7 +784,7 @@ void IRComm_c::update() {
 
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println("RX OVERRUN: Waiting for message RX to finish");
+      NeoSerial.println("RX OVERRUN: Waiting for message RX to finish");
     }
 
 
@@ -796,7 +797,7 @@ void IRComm_c::update() {
     // rx_ts here, setRxDelay() handles this.
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println("RX_TIMEOUT: expired, checking for new IR bytes");
+      NeoSerial.println("RX_TIMEOUT: expired, checking for new IR bytes");
     }
 
     // If we are in TX_MODE_INTERLEAVED, it means
@@ -805,7 +806,7 @@ void IRComm_c::update() {
     if ( ir_config.tx_mode == TX_MODE_INTERLEAVED ) {
 
       if ( IR_DEBUG_OUTPUT ) {
-        Serial.println("TX_MODE_INTERLEAVED: do Tx");
+        NeoSerial.println("TX_MODE_INTERLEAVED: do Tx");
       }
 
       doTransmit();
@@ -818,7 +819,7 @@ void IRComm_c::update() {
     cyclePowerRx();
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println(" - cycling Rx");
+      NeoSerial.println(" - cycling Rx");
     }
 
 
@@ -838,7 +839,7 @@ void IRComm_c::update() {
 
 
       if ( IR_DEBUG_OUTPUT ) {
-        Serial.println("TX_MODE_PERIODIC: expired, do Tx");
+        NeoSerial.println("TX_MODE_PERIODIC: expired, do Tx");
       }
 
 
@@ -856,7 +857,7 @@ void IRComm_c::update() {
       // recevier, we still need to check for new
       // bytes
       if ( IR_DEBUG_OUTPUT ) {
-        Serial.println("TX_MODE_PERIODIC: checking for new IR bytes");
+        NeoSerial.println("TX_MODE_PERIODIC: checking for new IR bytes");
       }
       getNewIRBytes();
     }
@@ -864,7 +865,7 @@ void IRComm_c::update() {
   } else {
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println("update(): checking for new IR bytes");
+      NeoSerial.println("update(): checking for new IR bytes");
     }
     getNewIRBytes();
 
@@ -872,7 +873,7 @@ void IRComm_c::update() {
 
 }
 
-// Check for new message in serial buffer
+// Check for new message in NeoSerial buffer
 // Reads in currently available char's, should
 // not take long.
 // Importantly, we use the PROCESS_MSG flag
@@ -883,9 +884,9 @@ void IRComm_c::update() {
 // currently available bytes.
 void IRComm_c::getNewIRBytes() {
 
-  while ( Serial.available() ) {
+  while ( NeoSerial.available() ) {
 
-    rx_buf[rx_index] = Serial.read();
+    rx_buf[rx_index] = NeoSerial.read();
     byte_ts = millis(); // register when we got this byte
 
     // Register activity on this receiver, whether pass or fail
@@ -911,7 +912,7 @@ void IRComm_c::getNewIRBytes() {
 
     // Note that, the next line might seem like rx_index will
     // exceed the buffer.
-    // This while(Serial.available() ) may not read in a whole
+    // This while(NeoSerial.available() ) may not read in a whole
     // message, so this section of code is called iteratively.
     // Processing the message will reset rx_index
     // to 0.
@@ -930,9 +931,9 @@ void IRComm_c::getNewIRBytes() {
     // unsafe index values.
     if (rx_index > MAX_BUF) {
       if ( IR_DEBUG_OUTPUT ) {
-        Serial.println("Buffer full before CRC token");
-        Serial.print("rx_buf: " );
-        Serial.println( (char*)rx_buf );
+        NeoSerial.println("Buffer full before CRC token");
+        NeoSerial.print("rx_buf: " );
+        NeoSerial.println( (char*)rx_buf );
       }
 
       error_type[ir_config.rx_pwr_index][TOO_LONG]++;
@@ -949,7 +950,7 @@ void IRComm_c::getNewIRBytes() {
     // read another 2 bytes,  we can move to processing the
     // message.
     if ( crc_index != 0 && (rx_index >= (crc_index + 3)) ) {
-      if ( IR_DEBUG_OUTPUT ) Serial.println("Got CRC token and +2 bytes");
+      if ( IR_DEBUG_OUTPUT ) NeoSerial.println("Got CRC token and +2 bytes");
       processRxBuf();
     }
   }
@@ -985,25 +986,25 @@ boolean IRComm_c::doTransmit() {
     // Stop receiving
     disableRx();
 
-    // Using Serial.print transmits over
-    // IR.  Serial TX is modulated with
+    // Using NeoSerial.print transmits over
+    // IR.  NeoSerial TX is modulated with
     // the 38Khz carrier in hardware.
     //unsigned long start_t = micros();
     for ( int i = 0; i < ir_config.tx_repeat; i++ ) {
 
-      // Checking HardwareSerial.cpp, .write() is a blocking
+      // Checking HardwareNeoSerial.cpp, .write() is a blocking
       // function.  Therefore we don't need .flush()
-      //Serial.availableForWrite();
+      //NeoSerial.availableForWrite();
       for ( int j = 0; j < strlen( tx_buf ); j++ ) {
-        Serial.write( tx_buf[j] );
+        NeoSerial.write( tx_buf[j] );
       }
-      //Serial.print(tx_buf);
-      Serial.flush();  // wait for send to complete
+      //NeoSerial.print(tx_buf);
+      NeoSerial.flush();  // wait for send to complete
       tx_count++;
     }
-    //Serial.println( (micros() - s ) );
+    //NeoSerial.println( (micros() - s ) );
     //unsigned long end_t = micros();
-    //Serial.println( (end_t - start_t ) );
+    //NeoSerial.println( (end_t - start_t ) );
 
     // Since we used disableRx(), we need to
     // re-enable the UART and so clear
@@ -1033,27 +1034,27 @@ int IRComm_c::processRxBuf() {
 
   if ( IR_DEBUG_OUTPUT ) {
 
-    Serial.print("\n\nProcessing rx ");
-    Serial.print( ir_config.rx_pwr_index );
-    Serial.print(": ");
-    Serial.print( (char*)rx_buf );
-    Serial.print(" rx_index = " );
-    Serial.println( rx_index );
+    NeoSerial.print("\n\nProcessing rx ");
+    NeoSerial.print( ir_config.rx_pwr_index );
+    NeoSerial.print(": ");
+    NeoSerial.print( (char*)rx_buf );
+    NeoSerial.print(" rx_index = " );
+    NeoSerial.println( rx_index );
   }
 
 
   // The smallest possible message we can get is 4
   // bytes, e.g. *a@F, where 'a' is the actual data.
   if ( strlen( rx_buf ) <= 3 ) {
-    if ( IR_DEBUG_OUTPUT ) Serial.println("message too short :(");
+    if ( IR_DEBUG_OUTPUT ) NeoSerial.println("message too short :(");
     error_type[ir_config.rx_pwr_index][TOO_SHORT]++;
     fail_count[ir_config.rx_pwr_index]++;
 
   } else { // string has valid length
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.print(" checksum after ");
-      Serial.println( crc_index );
+      NeoSerial.print(" checksum after ");
+      NeoSerial.println( crc_index );
     }
 
 
@@ -1070,12 +1071,12 @@ int IRComm_c::processRxBuf() {
 
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.print("copied: " );
-      Serial.print( (char*)buf );
-      Serial.print( " b = ");
-      Serial.println(b);
-      Serial.print(" strlen = ");
-      Serial.println( strlen( (char*)buf));
+      NeoSerial.print("copied: " );
+      NeoSerial.print( (char*)buf );
+      NeoSerial.print( " b = ");
+      NeoSerial.println(b);
+      NeoSerial.print(" strlen = ");
+      NeoSerial.println( strlen( (char*)buf));
     }
 
     // Reconstruct checksum
@@ -1092,13 +1093,13 @@ int IRComm_c::processRxBuf() {
 
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.print( crc );
-      Serial.print( " vs ");
-      Serial.println( rx_crc );
+      NeoSerial.print( crc );
+      NeoSerial.print( " vs ");
+      NeoSerial.println( rx_crc );
     }
     if (crc == rx_crc) {
 
-      if ( IR_DEBUG_OUTPUT ) Serial.println("CRC GOOD!");
+      if ( IR_DEBUG_OUTPUT ) NeoSerial.println("CRC GOOD!");
 
       // Flash so we can see when robots are
       // receiving messages correctly
@@ -1155,17 +1156,17 @@ int IRComm_c::processRxBuf() {
 
 
       if ( IR_DEBUG_OUTPUT ) {
-        Serial.print("Saved: \n" ) ;
-        Serial.println( (char*)rx_buf );
-        Serial.println( i2c_msg[ir_config.rx_pwr_index] );
-        Serial.println( msg_dt[ ir_config.rx_pwr_index ] );
-        Serial.println( msg_t[ ir_config.rx_pwr_index ] );
-        Serial.println( pass_count[ ir_config.rx_pwr_index ] );
-        Serial.println( fail_count[ ir_config.rx_pwr_index ] );
+        NeoSerial.print("Saved: \n" ) ;
+        NeoSerial.println( (char*)rx_buf );
+        NeoSerial.println( i2c_msg[ir_config.rx_pwr_index] );
+        NeoSerial.println( msg_dt[ ir_config.rx_pwr_index ] );
+        NeoSerial.println( msg_t[ ir_config.rx_pwr_index ] );
+        NeoSerial.println( pass_count[ ir_config.rx_pwr_index ] );
+        NeoSerial.println( fail_count[ ir_config.rx_pwr_index ] );
       }
 
-      //Serial.println( millis() );
-      //          Serial.println(( micros() - s) );
+      //NeoSerial.println( millis() );
+      //          NeoSerial.println(( micros() - s) );
 
 
 
@@ -1175,7 +1176,7 @@ int IRComm_c::processRxBuf() {
       fail_count[ir_config.rx_pwr_index]++;
       error_type[ir_config.rx_pwr_index][BAD_CS]++;
       // Checksums do not match, corrupt message.
-      if ( IR_DEBUG_OUTPUT ) Serial.println("bad checksum");
+      if ( IR_DEBUG_OUTPUT ) NeoSerial.println("bad checksum");
 
     }
 
