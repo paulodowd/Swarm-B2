@@ -64,3 +64,14 @@ When the master sets a string for the slave to transmit over IR, this should be 
 
 - The docs for the M5Stack Core2 are at this <a href="https://docs.m5stack.com/en/core/core2">link</a>.
 - Follow the guides at <a href="https://docs.m5stack.com/en/arduino/arduino_ide">this link</a> to setup the Arduino IDE.
+
+## Links and resources I have found useful
+- Example code and discussion for different CRC algorithms: <a href="https://www.sunshine2k.de/articles/coding/crc/understanding_crc.html">link</a>
+- Interesting Arduino forum post debugging CRC: <a href="https://forum.arduino.cc/t/crc-8-i2c-cyclic-redundancy-check/644812/4">link</a>
+- Microchip Application Note with CRC: <a href="https://ww1.microchip.com/downloads/en/AppNotes/00730a.pdf">link</a>
+- Discussion on CRC and data length: <a href="https://stackoverflow.com/questions/2321676/data-length-vs-crc-length">link</a>
+- Some information on UART Baudrates: <a href="https://lucidar.me/en/serialib/most-used-baud-rates-table/">link</a>
+- Discussion on start/stop bit and errors with UART: <a href="https://electronics.stackexchange.com/questions/91450/what-exactly-is-the-start-bit-error-in-uart">link</a>
+- Disucssion on catching frame data overrun in UART: <a href="https://forum.arduino.cc/t/rs232-uart-frame-data-overrun-error-handling/193266/12">link</a>
+- Table of ASCII values: <a href="https://www.ascii-code.com/">link</a>
+
