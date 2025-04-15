@@ -55,7 +55,6 @@ void i2c_receive( int len ) {
   // ready the board to send back information or to ask the
   // board to complete specific actions (e.g, delete a
   // message).
-  //
   if ( len == 1 ) { // receiving a mode change.
     i2c_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
@@ -352,10 +351,14 @@ void setup() {
 
   test_ts = millis();
 
+// Paul: I was using this to test
 //  setRandomMsg(8);
 }
 
 
+// Construct a message of length len out
+// of random ascii characters, avoiding
+// * and @
 void setRandomMsg(int len) {
   // Let's test variable message lengths
   int max_chars = len;

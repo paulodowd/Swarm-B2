@@ -29,9 +29,9 @@
 // which ever of the two is longest.
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
-#define RX_CYCLE              false  // should the board poll receivers?
-#define RX_CYCLE_ON_RX        false  // is a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    false  // try to optimse performance?
+#define RX_CYCLE              true  // should the board poll receivers?
+#define RX_CYCLE_ON_RX        true  // is a message is received, cycle?
+#define RX_PREDICT_TIMEOUT    false  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
@@ -71,7 +71,7 @@
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define DEFAULT_TX_REPEAT 1
+#define DEFAULT_TX_REPEAT 3
 
 // Uncomment to see debug output.  Note that, we
 // are going to use the serial port for debugging,
@@ -97,8 +97,9 @@
 // We can't use 0x00 because that is a string null
 // character, which we're using for strlen()
 #define START_TOKEN 0xFF  // 'ÿ'  0b11111111
-#define CRC_TOKEN   '@'  // '@'  0b01000000
-
+#define CRC_TOKEN   '@'   // '@'  0b01000000
+//#define START_TOKEN '*'     //  0x2A  0b00101010
+//#define CRC_TOKEN   '@'     // '@'  0b01000000
 
 
 

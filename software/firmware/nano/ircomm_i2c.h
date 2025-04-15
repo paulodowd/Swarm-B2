@@ -16,7 +16,7 @@
 #ifndef IRCOMM_I2C_H
 #define IRCOMM_I2C_H
 
-#pragma pack 1
+#pragma pack(1)
 
 #define IRCOMM_I2C_ADDR  0xB2
 

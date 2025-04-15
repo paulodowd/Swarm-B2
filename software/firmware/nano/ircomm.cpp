@@ -540,6 +540,7 @@ void IRComm_c::setRxTimeout() {
 #ifdef IR_FREQ_38
     float t = (float)(MS_PER_BYTE_38KHZ);
 #endif
+
     t *= (float)RX_DEFAULT_MSG_LEN;
     t *= (float)RX_PREDICT_MULTIPLIER;
 

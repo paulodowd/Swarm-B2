@@ -12,8 +12,8 @@
 // bytes.  
 #define MAX_MSG 32
 
-// We then add a start token (*), 
-// CRC token (@), and 2 bytes for CRC16.
+// We then add a start token, 
+// CRC token, and 2 bytes for CRC16.
 // Therefore, we need to store at maximum
 // 32 + 4 = 36 bytes.
 #define MAX_BUF (MAX_MSG + 4)
