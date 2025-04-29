@@ -30,7 +30,7 @@
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              true  // should the board poll receivers?
-#define RX_CYCLE_ON_RX        true  // is a message is received, cycle?
+#define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
 #define RX_PREDICT_TIMEOUT    false  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_OVERRUN            true  // allow for rx message to complete? 
@@ -95,7 +95,7 @@
 // to begin receiving a message it makes sense to
 // use one of these.  
 // We can't use 0x00 because that is a string null
-// character, which we're using for strlen()
+// character, which we're using with strlen()
 #define START_TOKEN 0xFF  // 'ÿ'  0b11111111
 #define CRC_TOKEN   '@'   // '@'  0b01000000
 //#define START_TOKEN '*'     //  0x2A  0b00101010

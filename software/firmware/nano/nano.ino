@@ -26,9 +26,6 @@ unsigned long test_ts;
 #define TEST_MS 50 // Good for test tx
 #define TEST_MS 1000 // good for test rx
 
-int counts[32];
-int l_test = 1;
-
 // Pin definitions for extra sensors
 // on the communication board, if present
 #define LDR0_PIN  A0
@@ -40,7 +37,8 @@ int l_test = 1;
 // Used to control the IR communication.
 IRComm_c ircomm;
 
-
+// Used to track requests made to
+// the board over i2c
 volatile i2c_mode_t last_mode;
 volatile i2c_status_t status;
 

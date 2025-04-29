@@ -696,22 +696,23 @@ float IRComm_c::getFloatValue(int which) {
    between our IR devices, we use tokens to recognise the
    start and end of a data structure. These are:
 
-     = start of the message
+   * = start of the message
    @ = end message content, checksum byte after
 
    So for example *2839.23@E
-
-   The checkbyte is 1 byte, so our maximum message can be
-   29 bytes.
 
    This update() function is called iteratively and so it
    will read in bytes from the Serial device in a
    non-blocking way. update() will trigger processMsg()
    once it has received both the start token '*' and the
-   checkbyte token '@'.
+   checkbyte token '@', and two more bytes for the CRC.
 
+   Arduino TWI/I2C can only send/receive 32 bytes, so
+   that defines the maximum possible message length. When
+   transmitting over IR, we add *, @ and 2 bytes of CRC.
+   MAX_BUF is therefore 32+4=36
    If update() has received the start token '*' but the
-   buffer index exceeds 29, it will abort the message
+   buffer index exceeds MAX_BUF, it will abort the message
    receiving process and reset.
 
    update() will keep reseting the message index to 0
