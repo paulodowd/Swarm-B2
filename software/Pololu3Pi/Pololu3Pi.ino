@@ -1,6 +1,10 @@
-#include <Wire.h>           // i2c to connect to IR communication board.
+// for i2c to connect to IR communication board.
+#include <Wire.h>           
 
-#include "ircomm_i2c.h"
+// definition of data structs to operate IR
+// communication board
+#include "ircomm_i2c.h"     
+
 
 #define BUZZER_PIN 6
 
@@ -14,22 +18,13 @@ i2c_mode_t ircomm_mode;
 // Keep consistent between devices.
 i2c_status_t ircomm_status;
 
-
-// There is 2560 bytes available for global variables
-// Our data takes up 32 bytes per trial.  Let's use
-// 2000 bytes.
-// 2000 / 32 = 62.5
-#define MAX_TRIALS 10
-#define MAX_POSITIONS 4
-i2c_status_t results[MAX_TRIALS][MAX_POSITIONS];
-
-
 // struct to store sensor data
 i2c_sensors_t sensors;
 
 // Timestamps to periodically
 // - check if there are new messages
 // - update the message we are sending
+// - get the general messaging metrics
 unsigned long check_message_ts;
 unsigned long update_message_ts;
 unsigned long status_ts;
@@ -38,21 +33,16 @@ unsigned long status_ts;
 // check / send new messages?
 unsigned long check_message_ms = 100;    // every 100ms
 unsigned long update_message_ms = 1000; // every 1000ms
-unsigned long status_update = 1000; // every 4s
+unsigned long status_update_ms = 1000; // every 1000ms
 
-unsigned long trial_len_ms = 1000;
-int trial;
-int pos;
 
 void setup() {
   Serial.begin(115200);
 
   delay(1000);
 
-  Serial.println("Pos,Trial,Rx,Pass,Fail,Incomplete,CS Error,Too Short,Too Long,Bytes,Tx count,Rx Cycles");
-
+  // Enable i2c on the 3Pi
   Wire.begin();
-
 
 
   // Let's use the buzzer pin so we can
@@ -60,82 +50,43 @@ void setup() {
   // message
   pinMode(BUZZER_PIN, OUTPUT);
 
+
+  // Make sure the IR Communication board
+  // is reset and ready.
+  doResetStatus();
+
+  // Initialise timestamps
+  status_ts = millis();
   check_message_ts = millis();
   update_message_ts = millis();
 
-  trial = 0;
-  pos = 0;
-
-  doResetStatus();
-  status_ts = millis();
-
+  
 }
 
 
 void loop() {
 
 
-  // Get the latest light dependent resistor values
-  // I think because this was not within a millis()
-  // operation to control when it was executed, it was
-  // very quickly interupting the communication board
-  // so that it could not do it's work. (a bad thing)
-  //getSensors();
-  // Decide what to do
-  //if( sensors.ldr[0] < 500 ) {
-  // ???
-  //}
-  if ( millis() - status_ts > trial_len_ms ) {
-
-    saveResults();
-    trial++;
-
-    // Finished trials for this position.
-    if ( trial >= MAX_TRIALS ) {
-
-      analogWrite(6, 120 );
-      delay(50);
-      analogWrite(6, 0);
-      delay(50);
-      analogWrite(6, 120 );
-      delay(50);
-      analogWrite(6, 0);
-
-      delay(3000); // move robot
-
-      analogWrite(6, 120 );
-      delay(50);
-      analogWrite(6, 0);
-      delay(50);
-      analogWrite(6, 120 );
-      delay(50);
-      analogWrite(6, 0);
-
-      pos++;
-
-      trial = 0;
-    }
-    //analogWrite(6, 120 );
-    //delay(20);
-    //analogWrite(6, 0);
-    doResetStatus();
-
-
+  // Get general board status / demo other
+  // function calls.
+  if( millis() - status_ts > status_update_ms ) {
     status_ts = millis();
+
+    // Ask the board which direction messages
+    // seem to be coming from.
+    getRxDirection();
+    
   }
 
-  return;
 
   // Periodically check to see if there are new messages
   // waiting to be read from the communication board.
   if ( millis() - check_message_ts > check_message_ms ) {
     check_message_ts = millis();
 
-
-
-    // Let's use a bool to understand if we got
-    // a message or not.  Using a bool avoids a
-    // beep for every receiver, we get just 1 beep.
+    // Let's use a bool to understand if we got a message
+    // on any receiver. We'll make a beep if any receiver
+    // got an IR message.
     bool got_message = false;
 
     // Check all 4 receivers
@@ -143,6 +94,8 @@ void loop() {
 
       // If this returns more than 0, it means there
       // is a message waiting to be read.
+      // The value of n is the number of bytes we need
+      // to get from the IR Communication board
       int n = checkRxMsgReady( i );
 
       // Old debugging
@@ -157,7 +110,6 @@ void loop() {
       // the number of bytes to read down from the
       // communication board through receiver 'i'
       // (0,1,2 or 3).
-      //
       if ( n > 0 ) {
 
         got_message = true;
@@ -167,8 +119,8 @@ void loop() {
         // (e.g., the count of messages or the
         // timing), we can just tell the board to
         // delete the message.  You don't have to
-        // do this.  In fact, using getIRMessage()
-        // will do it automatically.
+        // do this.  If you use getIRMessage()
+        // it will be deleted automatically.
         //deleteMessage(i);
 
         // This function gets the message on receiver
@@ -196,24 +148,22 @@ void loop() {
 
     }
 
-    // This functions is useful to see the count of
-    // how many messages were received correctly and
-    // how many messages were received incorrectly,
-    // in a format that can be viewed on the Serial
-    // plotter.
-    //reportStatusCSV();
   }
 
 
   // Note that, the communication board will automatically
-  // keep sending the same message. Therefore, once you use
+  // keep sending the same message. Once you have set a 
+  // message to send, you don't need to do it again. 
+  // Therefore, once you use
   // the function setIRMessage() the board will periodically
   // transmit again and again.  This is actually more desirable
   // then sending a message just once, because the messaging
   // is quite unreliable (there is no guarantee that a robot
   // will receive a message sent only once).
   // Therefore, this section of code is only updating the
-  // content of the message that is being transmitted.
+  // content of the message that is being transmitted, and 
+  // this is helpful because we can see on the receiving 
+  // robot if it is getting updates messages.
   if ( millis() - update_message_ts > update_message_ms ) {
     update_message_ts = millis();
 
@@ -259,13 +209,6 @@ void loop() {
     // function is made.
     setIRMessage(buf, strlen(buf));
 
-
-    // It is possible to check how frequently
-    // the communication board is sending and
-    // receiving messages with the following
-    // function:
-    //getMsgTimings();
-
   }
 
 
@@ -284,7 +227,7 @@ void loop() {
 
 */
 
-
+// Completely resets the IR Communication board.
 void doResetStatus() {
   ircomm_mode.mode = MODE_RESET_STATUS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -292,6 +235,9 @@ void doResetStatus() {
   Wire.endTransmission();
 }
 
+
+// This will get the measurements of the timings
+// of receiving messages.  See msg_timings struct.
 void getMsgTimings() {
   ircomm_mode.mode = MODE_REPORT_TIMINGS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -324,6 +270,7 @@ void getMsgTimings() {
 
 }
 
+// Quickly delete a message on a receiver.  
 // If you use getIRMessage(), the corresponding message
 // on the communication board is deleted.  However, in
 // some cases you may not use getIRMessage(), but you
@@ -356,17 +303,17 @@ void deleteMessage( int which_rx ) {
 
   }
 
-
-
 }
 
 // Reports a range and bearing estimate
 // of messsages received.  Note that sometimes
 // this might not be sensible, such as if there
-// is a robot on opposite sides of this robot,
-// giving a large magnitude but odd angle.
-// Also note that a lack of messages could give
-// a sensible angle but a very small magnitude.
+// is a robot on opposite sides of this robot. 
+// If there are robots on either side, we would
+// expect a low magnitude (vectors cancelling)
+// and an unreliable angle.  Therefore, if we 
+// have a high magnitude (vectors adding) we can
+// be more confident of the bearing estimate.
 void getRxDirection() {
 
   ircomm_mode.mode = MODE_REPORT_RX_DIRECTION;
@@ -386,6 +333,8 @@ void getRxDirection() {
 
 // Reports the activity level of each receiver, which
 // will vary continously over time between 0 and 1
+// This activity level is what is being used to 
+// calculate the bearing information above.
 void getRxActivity() {
   ircomm_mode.mode = MODE_REPORT_RX_ACTIVITY;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -407,10 +356,8 @@ void getRxActivity() {
 
 // Use to see if there is a message available on
 // receivers 0 to 3 (which_rx).
-// If returns 0, none available.
+// If returns 0, no messages available.
 int checkRxMsgReady(int which_rx) {
-
-
 
   if ( which_rx == 0 ) {
     ircomm_mode.mode = MODE_SIZE_MSG0;
@@ -445,62 +392,8 @@ int checkRxMsgReady(int which_rx) {
 
 }
 
-void saveResults() {
-  //         Set mode to status request
-  ircomm_mode.mode = MODE_REPORT_STATUS;
-  Wire.beginTransmission( IRCOMM_I2C_ADDR );
-  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-  Wire.endTransmission();
-
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-  Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
-
-
-  //         Set mode to status request
-  ircomm_mode.mode = MODE_REPORT_CYCLES;
-  Wire.beginTransmission( IRCOMM_I2C_ADDR );
-  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-  Wire.endTransmission();
-
-  i2c_cycles_t cycles;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( cycles ));
-  Wire.readBytes( (uint8_t*)&cycles, sizeof( cycles ));
-
-
-  ircomm_mode.mode = MODE_REPORT_ERRORS;
-  Wire.beginTransmission( IRCOMM_I2C_ADDR );
-  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-  Wire.endTransmission();
-
-
-  i2c_errors_t errors;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( errors ));
-  Wire.readBytes( (uint8_t*)&errors, sizeof( errors ));
-
-  for ( int i = 0; i < 4; i++ ) {
-
-    Serial.print(pos ); Serial.print(",");
-    Serial.print( trial + 1 ); Serial.print(",");
-    Serial.print( i ); Serial.print(",");
-    Serial.print( ircomm_status.pass_count[i] ); Serial.print(",");
-    Serial.print( ircomm_status.fail_count[i] ); Serial.print(",");
-    for ( int j = 0; j < 4; j++ ) {
-      Serial.print( errors.error_type[i][j] ); Serial.print(",");
-    }
-    Serial.print( ircomm_status.activity[i] ); Serial.print(",");
-
-    Serial.print( cycles.tx_count ); Serial.print(","); Serial.println( cycles.rx_cycles );
-  }
-  //  for ( int i = 0; i < 4; i++ ) {
-  //    Serial.println(ircomm_status.pass_count[i]);
-  //    results[trial][pos].pass_count[i] = ircomm_status.pass_count[i];
-  //    results[trial][pos].fail_count[i] = ircomm_status.fail_count[i];
-  //    results[trial][pos].error_type[i] = ircomm_status.error_type[i];
-  //    results[trial][pos].activity[i] = ircomm_status.activity[i];
-  //  }
-
-}
-
+// Gets the status metrics of communication and
+// prints them as comma separated values.
 void reportStatusCSV() {
   //         Set mode to status request
   ircomm_mode.mode = MODE_REPORT_STATUS;
@@ -543,6 +436,8 @@ void reportStatusCSV() {
 
 }
 
+// Gets the status metrics of communication and
+// prints them in a more readable format.
 void reportStatus() {
 
   //         Set mode to status request
@@ -576,12 +471,13 @@ void reportStatus() {
 
 
 // Use this function to set a message to transmit to
-// other robots.
+// other robots.  Once set, the robot will keep 
+// repeating the transmission.  The tranmission will
+// occur periodically (between 150-300ms).
 void setIRMessage(char* str_to_send, int len) {
 
-  // Message must be shorter than 29 bytes
-  // and at least 1 byte.
-  if ( len <= 29 && len >= 1 ) {
+  // Message must be maximum 32 bytes
+  if ( len <= 32 ) {
 
 
     // The communication board will always default
@@ -593,7 +489,12 @@ void setIRMessage(char* str_to_send, int len) {
   }
 }
 
+// Used to get readings from the sensors on
+// the IR Communication board. These are 
+// potentially 3 LDR and 2 IR Proximity sensors.
+// Note, these need to be on the board!
 void getSensors() {
+  
   // Set mode to read fetch sensor data
   ircomm_mode.mode = MODE_REPORT_SENSORS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -633,12 +534,9 @@ void getIRMessage(int which_rx, int n_bytes ) {
   }
 
   // Invalid number of message bytes
-  if ( n_bytes < 1 || n_bytes > 29 ) {
+  if ( n_bytes < 1 || n_bytes > 32 ) {
     return;
   }
-
-
-
 
   // Format mode request for which receiver
   if ( which_rx == 0 ) {

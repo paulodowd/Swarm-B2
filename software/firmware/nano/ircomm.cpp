@@ -566,11 +566,20 @@ void IRComm_c::setRxTimeout() {
 
 void IRComm_c::setTxPeriod() {
 
+  // If configured to 0, do nothing
+  if( DEFAULT_TX_PERIOD == 0 ) return;
 
-  //float t = (float)random(0, TX_DELAY_MOD);
-  float t = DEFAULT_TX_PERIOD;
+  float t_mod = (float)random(0, DEFAULT_TX_PERIOD);
+  t_mod -= (DEFAULT_TX_PERIOD/2.0); // centre over 0
+  t_mod *= 0.25; // downscale effect
+
+  // Set tx period as default
+  float t = DEFAULT_TX_PERIOD; 
+  
   // break up synchronous tranmission
-  // between robots.
+  // between robots..
+  t += t_mod;
+  
   ir_config.tx_period = (unsigned long)t;
 
 

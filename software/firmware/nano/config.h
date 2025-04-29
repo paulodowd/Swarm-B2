@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-//#define IR_FREQ_38  // For chip TSDP34138
-#define IR_FREQ_58    // For chip TSDP34156
+#define IR_FREQ_38  // For chip TSDP34138
+//#define IR_FREQ_58    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -31,8 +31,8 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              true  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    false  // try to optimse polling performance?
-#define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
+#define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
+#define RX_PREDICT_MULTIPLIER 2.0   // how many message-size to wait?
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
@@ -55,17 +55,24 @@
 //          also transmit.  This means that if a robot is
 //          receiving messages well, the tranmission rate
 //          would also increase.  Seems complicated.
-#define TX_MODE_PERIODIC     0 // set a period for when to do a tx
+#define TX_MODE_PERIODIC     0 // tx periodically, timing set below
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
 //#define TX_MODE (TX_MODE_PERIODIC)
 #define TX_MODE (TX_MODE_INTERLEAVED)
 
+// When set in TX_MODE_PERIODIC
+// How long should the robot wait before doing another
+// transmission?  
+// For 38khz, a 32byte message will take approximately 
+// 80ms to transmit/receive.
+// For 58khz, a 32byte message will take approximately 
+// 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (0)
+#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (0)
+#define DEFAULT_TX_PERIOD (156) // in ms, 0 disables tx
 #endif
 
 // How many times should we repeat the transmission
