@@ -7,6 +7,17 @@
 
 
 #define BUZZER_PIN 6
+/*
+ * 
+ * 
+ * A simple example that sends a message via 
+ * the IR Communication board and beeps if
+ * it receives any messages.
+ * 
+ * 
+ */
+
+
 
 // A data structure to commmunicate
 // the mode.
