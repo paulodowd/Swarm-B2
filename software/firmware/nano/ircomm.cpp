@@ -1,10 +1,14 @@
 #include "ircomm.h"
 
 
+#define DEBUG_LED 13
+
 IRComm_c::IRComm_c() {
 }
 
 void IRComm_c::init() {
+
+  disabled = false;
 
   // Start by setting up the default config
   // set by the #define in ircomm.h, which
@@ -51,12 +55,12 @@ void IRComm_c::init() {
   // Debug led
   pinMode(13, OUTPUT);
 
-  for( int i = 0; i < 4; i++ ) {
-    for( int j = 0; j < 4; j++ ) {
-      error_type[i][j] = 0;  
+  for ( int i = 0; i < 4; i++ ) {
+    for ( int j = 0; j < 4; j++ ) {
+      error_type[i][j] = 0;
     }
   }
-  
+
 
 
   // RX Demodulator power pins
@@ -92,17 +96,20 @@ void IRComm_c::init() {
     pass_count[i] = 0;
     fail_count[i] = 0;
 
+    activity[i] = 0;
     rx_activity[i] = 0;
 
     msg_dt[i] = 0;
     msg_t[i] = millis();
 
-    activity[i] = 0;
+    msg_len[i] = 0;
+
   }
 
   msg_dir = 0.0;
   tx_count = 0;
   rx_cycles = 0;
+  tx_len = 0;             // start with no message to send.
   led_ts = millis();      // debug led
   rx_ts = millis();       // rx timeout
   tx_ts = millis();       // tx period
@@ -137,23 +144,21 @@ void IRComm_c::cyclePowerRx() {
   // to a new receiver.
   if ( ir_config.rx_cycle == false ) {
 
-    // Even if we are not cycling the RX receiver
+    // If we are not cycling the RX receiver
     // there seems to be an issue where the demod
-    // chip saturates (or something?).  When this 
-    // happens, no bytes are received.  The odd 
-    // thing is that waving a hand in front of
-    // the demod chip gets it working again.  
-    // I thought it was an issue with the UART 
-    // losing it's synchronisation, but simply 
+    // chip saturates (or something?).  There isn't
+    // a way to detect when this has happened.
+    // When this happens, no bytes are received.  
+    // The odd thing is that waving a hand in front of
+    // the demod chip gets it working again.
+    // I thought it was an issue with the UART
+    // losing it's synchronisation, but simply
     // resetting UART doesn't solve the issue.
-    // If the board is cycling the rx it fixes 
-    // the issue. I tried doing a toggle of the
-    // demod chip with a 10us delay, didn't work.
-    // It seems to work with a 4ms delay.  
-    // Although this isn't ideal, it is better 
+    // If the board is cycling the rx it fixes
+    // the issue. 
+    // Although this isn't ideal, it is better
     // than receiving no bytes at all.
     toggleRxPower();
-    //resetRxProcess();
     setRxTimeout();
     return;
   }
@@ -275,6 +280,11 @@ void IRComm_c::resetRxProcess() {
   crc_index       = 0;
 
   disableRx();
+
+  // Flush? 
+  unsigned char dummy;
+  while (UCSR0A & (1 << RXC0)) dummy = UDR0;
+  
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
 
@@ -300,23 +310,23 @@ void IRComm_c::resetRxFlags() {
 //       chip.  It takes 1.2ms to receive a byte
 //       at 58khz, 2.2ms at 38khz?
 void IRComm_c::toggleRxPower() {
-  
+
   if ( ir_config.rx_pwr_index == 0 ) {
     digitalWrite( RX_PWR_0, LOW );
     delayMicroseconds(250); // 0.25ms
     digitalWrite( RX_PWR_0, HIGH );
-    
+
   } else if ( ir_config.rx_pwr_index == 1 ) {
     digitalWrite( RX_PWR_1, LOW );
-    delay(4);
+    delayMicroseconds(250); // 0.25ms
     digitalWrite( RX_PWR_1, HIGH );
   } else if ( ir_config.rx_pwr_index == 2 ) {
     digitalWrite( RX_PWR_2, LOW );
-    delay(4);
+    delayMicroseconds(250); // 0.25ms
     digitalWrite( RX_PWR_2, HIGH );
   } else if ( ir_config.rx_pwr_index == 3 ) {
     digitalWrite( RX_PWR_3, LOW );
-    delay(4);
+    delayMicroseconds(250); // 0.25ms
     digitalWrite( RX_PWR_3, HIGH );
   }
 }
@@ -367,7 +377,7 @@ void IRComm_c::formatString(char* str_to_send, byte len) {
   buf[count++] = CRC_TOKEN;
 
   // Add checksum
-  uint16_t crc = CRC16(buf, strlen(buf));
+  uint16_t crc = CRC16(buf, count );
   byte lb, ub;
   splitCRC16( &ub, &lb, crc );
   buf[count++] = ub;
@@ -383,10 +393,10 @@ void IRComm_c::formatString(char* str_to_send, byte len) {
   }
 
   if ( IR_DEBUG_OUTPUT ) {
-//  if ( millis() - test_ts > 100 ) {
-//    test_ts = millis();
-//    setRandomMsg(8);
-//  }
+    //  if ( millis() - test_ts > 100 ) {
+    //    test_ts = millis();
+    //    setRandomMsg(8);
+    //  }
     Serial.println("Format string created >>");
     Serial.print( (char*)buf );
     Serial.println("<< END");
@@ -532,7 +542,7 @@ void IRComm_c::setRxTimeout() {
 
   } else {
 
-    // Use global and fixed parameters
+    // Use global and fiRxed parameters
     // to calculate a value
 #ifdef IR_FREQ_58
     float t = (float)(MS_PER_BYTE_58KHZ);
@@ -567,19 +577,19 @@ void IRComm_c::setRxTimeout() {
 void IRComm_c::setTxPeriod() {
 
   // If configured to 0, do nothing
-  if( DEFAULT_TX_PERIOD == 0 ) return;
+  if ( DEFAULT_TX_PERIOD == 0 ) return;
 
   float t_mod = (float)random(0, DEFAULT_TX_PERIOD);
-  t_mod -= (DEFAULT_TX_PERIOD/2.0); // centre over 0
+  t_mod -= (DEFAULT_TX_PERIOD / 2.0); // centre over 0
   t_mod *= 0.25; // downscale effect
 
   // Set tx period as default
-  float t = DEFAULT_TX_PERIOD; 
-  
+  float t = DEFAULT_TX_PERIOD;
+
   // break up synchronous tranmission
   // between robots..
   t += t_mod;
-  
+
   ir_config.tx_period = (unsigned long)t;
 
 
@@ -667,6 +677,7 @@ void IRComm_c::setupTimer2() {
 void IRComm_c::clearRxMsg(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
     memset(i2c_msg[which], 0, sizeof(i2c_msg[which]));
+    msg_len[which] = 0;
   }
 }
 
@@ -674,7 +685,7 @@ void IRComm_c::clearRxMsg(int which) {
 // and adds a ! to the 0th character
 void IRComm_c::clearTxBuf() {
   memset(tx_buf, 0, sizeof(tx_buf));
-  tx_buf[0] = '!';
+  tx_len = 0;
 }
 
 
@@ -705,7 +716,7 @@ float IRComm_c::getFloatValue(int which) {
    between our IR devices, we use tokens to recognise the
    start and end of a data structure. These are:
 
-   * = start of the message
+     = start of the message
    @ = end message content, checksum byte after
 
    So for example *2839.23@E
@@ -766,9 +777,11 @@ void IRComm_c::update() {
 
   if ( millis() - led_ts > 50 ) {
     led_ts = millis();
-    digitalWrite(13, LOW );
+    digitalWrite(DEBUG_LED, LOW );
 
   }
+
+  if ( disabled == true ) return;
 
   // Using if/else if here to create an order of
   // precedence for particular operations.
@@ -807,7 +820,8 @@ void IRComm_c::update() {
     // rx_ts here, setRxDelay() handles this.
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println("RX_TIMEOUT: expired, checking for new IR bytes");
+      Serial.print("RX_TIMEOUT: expired ");
+      Serial.println(ir_config.rx_timeout);
     }
 
     // If we are in TX_MODE_INTERLEAVED, it means
@@ -829,7 +843,7 @@ void IRComm_c::update() {
     cyclePowerRx();
 
     if ( IR_DEBUG_OUTPUT ) {
-      Serial.println(" - cycling Rx");
+      Serial.println(" - cycle Rx power");
     }
 
 
@@ -960,7 +974,10 @@ void IRComm_c::getNewIRBytes() {
     // read another 2 bytes,  we can move to processing the
     // message.
     if ( crc_index != 0 && (rx_index >= (crc_index + 3)) ) {
+
       if ( IR_DEBUG_OUTPUT ) Serial.println("Got CRC token and +2 bytes");
+
+
       processRxBuf();
     }
   }
@@ -983,7 +1000,7 @@ boolean IRComm_c::doTransmit() {
 
   // Don't do anything if there is no message
   // to transmit.
-  if ( strlen( tx_buf ) == 0  ) {
+  if ( tx_len == 0 ) {
 
     // Schedule next transmission
     // Redundant if set to INTERLEAVED
@@ -1005,7 +1022,7 @@ boolean IRComm_c::doTransmit() {
       // Checking HardwareSerial.cpp, .write() is a blocking
       // function.  Therefore we don't need .flush()
       //Serial.availableForWrite();
-      for ( int j = 0; j < strlen( tx_buf ); j++ ) {
+      for ( int j = 0; j < tx_len; j++ ) {
         Serial.write( tx_buf[j] );
       }
       //Serial.print(tx_buf);
@@ -1040,7 +1057,7 @@ boolean IRComm_c::doTransmit() {
 // Instead, we'll rely on the result of the CRC
 // to identify if the message has been received
 // correctly or not.
-int IRComm_c::processRxBuf() {
+int IRComm_c::processRxBuf( ) {
 
   if ( IR_DEBUG_OUTPUT ) {
 
@@ -1055,7 +1072,7 @@ int IRComm_c::processRxBuf() {
 
   // The smallest possible message we can get is 4
   // bytes, e.g. *a@F, where 'a' is the actual data.
-  if ( strlen( rx_buf ) <= 3 ) {
+  if ( rx_index <= 3 ) {
     if ( IR_DEBUG_OUTPUT ) Serial.println("message too short :(");
     error_type[ir_config.rx_pwr_index][TOO_SHORT]++;
     fail_count[ir_config.rx_pwr_index]++;
@@ -1085,13 +1102,12 @@ int IRComm_c::processRxBuf() {
       Serial.print( (char*)buf );
       Serial.print( " b = ");
       Serial.println(b);
-      Serial.print(" strlen = ");
-      Serial.println( strlen( (char*)buf));
+
     }
 
     // Reconstruct checksum
     uint16_t crc;
-    crc = CRC16(buf, strlen((char*)buf));
+    crc = CRC16(buf, (crc_index + 1));
 
 
     // Do the checksums match?
@@ -1109,20 +1125,22 @@ int IRComm_c::processRxBuf() {
     }
     if (crc == rx_crc) {
 
+
       if ( IR_DEBUG_OUTPUT ) Serial.println("CRC GOOD!");
 
       // Flash so we can see when robots are
       // receiving messages correctly
-      digitalWrite(13, HIGH);
+      digitalWrite(DEBUG_LED, HIGH);
 
 
       // Since we are successful, we record the length
       // of the message received.  We are including
       // all tokens.
-      // At this point, it is more reliable to use
-      // buf[] to determine length, as we will discard
-      // any junk after the checkbyte
-      ir_config.rx_length = strlen( buf ) + 2;// +2 crc bytes
+      // rx_length is used to set the polling timings
+      ir_config.rx_length = crc_index + 2;// +2 crc bytes
+
+
+
 
       unsigned long dt = millis() - msg_t[ir_config.rx_pwr_index ];
       msg_dt[ ir_config.rx_pwr_index ] = dt;
@@ -1134,9 +1152,16 @@ int IRComm_c::processRxBuf() {
       memset(i2c_msg[ir_config.rx_pwr_index], 0, sizeof(i2c_msg[ir_config.rx_pwr_index]));
 
       // Copy message across, stopping at (not including) @
+      byte count = 0;
       for (int i = 1; i < crc_index; i++) {
         i2c_msg[ir_config.rx_pwr_index][i - 1] = rx_buf[i];
+        count++;
       }
+
+      // Removing the start token, crc token and CRC bytes
+      // msg_len is used to transfer just the message content
+      // over i2c
+      msg_len[ ir_config.rx_pwr_index ] = count;
 
       float id = atof( i2c_msg[ir_config.rx_pwr_index] );
       if ( id == 1.00 ) {
@@ -1198,6 +1223,30 @@ int IRComm_c::processRxBuf() {
 
 }
 
+void IRComm_c::fullReset() {
+
+  for ( int i = 0; i < 4; i++ ) {
+    pass_count[i] = 0;
+    fail_count[i] = 0;
+    rx_activity[i] = 0;
+    activity[i] = 0;
+    clearRxMsg(i);
+    hist[i] = 0;
+  }
+  clearTxBuf();
+  rx_cycles = 0;
+  tx_count = 0;
+
+
+  for ( int i = 0; i < 4; i++ ) {
+    for ( int j = 0; j < 4; j++ ) {
+      error_type[i][j] = 0;
+    }
+  }
+
+  resetRxProcess();
+}
+
 // Not used.
 int IRComm_c::findChar(char c, char* str, byte len) {
   for (int i = 0; i < len; i++) {
@@ -1208,18 +1257,6 @@ int IRComm_c::findChar(char c, char* str, byte len) {
   return -1;
 }
 
-int IRComm_c::hasMsg(int which) {
-  if ( which >= 0 && which < RX_PWR_MAX) { // valid request?
-    if (i2c_msg[which][0] == '!') {      // no message?
-      return -1;
-    }
-  } else {                              // invalid request
-    return -1;
-  }
-
-  // Valid, has positive length
-  return strlen(i2c_msg[ir_config.rx_pwr_index]);
-}
 
 // This ISR simply toggles the state of
 // pin D4 to generate a 38khz clock signal.

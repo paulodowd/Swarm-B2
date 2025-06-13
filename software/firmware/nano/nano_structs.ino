@@ -16,6 +16,7 @@
 #define TEST_TX 1
 #define TEST_RX 2
 
+
 #define SELF_TEST_MODE TEST_DISABLED
 //#define SELF_TEST_MODE TEST_TX
 //#define SELF_TEST_MODE TEST_RX
@@ -42,6 +43,7 @@ IRComm_c ircomm;
 volatile i2c_mode_t last_mode;
 volatile i2c_status_t status;
 
+volatile boolean full_reset;
 
 // Function to receive commands from the master device.
 // This will typically be in the format of a mode change
@@ -71,26 +73,18 @@ void i2c_receive( int len ) {
       ircomm.clearTxBuf();
 
     } else if ( new_mode.mode == MODE_RESET_STATUS ) {
-      memset( &status, 0, sizeof( status ) );
-      for ( int i = 0; i < 4; i++ ) {
-        ircomm.pass_count[i] = 0;
-        ircomm.fail_count[i] = 0;
-        ircomm.activity[i] = 0;
-      }
-      ircomm.rx_cycles = 0;
-      ircomm.tx_count = 0;
-
-
-      for ( int i = 0; i < 4; i++ ) {
-        for ( int j = 0; j < 4; j++ ) {
-          ircomm.error_type[i][j] = 0;
-        }
-      }
-
-
+      full_reset = true;
+    } else if( new_mode.mode == MODE_STOP_RX ) {
+      ircomm.disabled = true;
+      
+    } else if( new_mode.mode == MODE_START_RX ) {
+      
+      ircomm.disabled = false;
+      
     } else if ( new_mode.mode == MODE_CLEAR_MSG0 ) {
       // Delete message
       ircomm.clearRxMsg( 0 );
+
 
     } else if ( new_mode.mode == MODE_CLEAR_MSG1 ) {
       // Delete message
@@ -103,6 +97,7 @@ void i2c_receive( int len ) {
     } else if ( new_mode.mode == MODE_CLEAR_MSG3 ) {
       // Delete message
       ircomm.clearRxMsg( 3 );
+
 
     } else if ( new_mode.mode == MODE_CLEAR_HIST ) {
       ircomm.hist[0] = 0;
@@ -132,10 +127,13 @@ void i2c_receive( int len ) {
       // CLEAR TX BUF, DISABLE TX
       //memset( tx_buf, 0, sizeof( tx_buf ) );
       ircomm.clearTxBuf();
+    } else {
+      
+      ircomm.tx_len = count;
+      //Serial.print("I2C Received:" );
+      //Serial.println(buf);
+      ircomm.formatString( buf, count );
     }
-    //Serial.print("I2C Received:" );
-    //Serial.println(buf);
-    ircomm.formatString( buf, strlen(buf));
   }
 
 }
@@ -173,25 +171,25 @@ void i2c_request() {
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
 
     i2c_mode_t msg_status;
-    msg_status.mode = strlen( ircomm.i2c_msg[0] );
+    msg_status.mode = ircomm.msg_len[0];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG1 ) {
     i2c_mode_t msg_status;
-    msg_status.mode = strlen( ircomm.i2c_msg[1] );
+    msg_status.mode = ircomm.msg_len[1];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG2 ) {
     i2c_mode_t msg_status;
-    msg_status.mode = strlen( ircomm.i2c_msg[2] );
+    msg_status.mode = ircomm.msg_len[2];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG3 ) {
     i2c_mode_t msg_status;
-    msg_status.mode = strlen( ircomm.i2c_msg[3] );
+    msg_status.mode = ircomm.msg_len[3];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
@@ -200,28 +198,28 @@ void i2c_request() {
     // reported to the master device
     //
   } else if ( last_mode.mode == MODE_REPORT_MSG0 ) {
-    if ( ircomm.i2c_msg[0] == 0 ) {
+    if ( ircomm.msg_len[0] == 0 ) {
       Wire.write("!");  // Error token
     } else {
-      Wire.write( ircomm.i2c_msg[0], strlen(ircomm.i2c_msg[0]) );
+      Wire.write( ircomm.i2c_msg[0], ircomm.msg_len[0] );
       // Delete message
       ircomm.clearRxMsg( 0 );
     }
 
   } else if ( last_mode.mode == MODE_REPORT_MSG1 ) {
-    if ( ircomm.i2c_msg[1] == 0 ) {
+    if ( ircomm.msg_len[1] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[1], strlen(ircomm.i2c_msg[1]) );
+      Wire.write( ircomm.i2c_msg[1], ircomm.msg_len[1] );
       // Delete message
       ircomm.clearRxMsg( 1 );
     }
 
   } else if ( last_mode.mode == MODE_REPORT_MSG2 ) {
-    if ( ircomm.i2c_msg[2] == 0 ) {
+    if ( ircomm.msg_len[2] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[2], strlen(ircomm.i2c_msg[2]) );
+      Wire.write( ircomm.i2c_msg[2], ircomm.msg_len[2] );
 
       // Delete message
       ircomm.clearRxMsg( 2 );
@@ -229,14 +227,15 @@ void i2c_request() {
 
 
   } else if ( last_mode.mode == MODE_REPORT_MSG3 ) {
-    if ( ircomm.i2c_msg[3] == 0 ) {
+    if ( ircomm.msg_len[3] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[3], strlen(ircomm.i2c_msg[3]) );
+      Wire.write( ircomm.i2c_msg[3], ircomm.msg_len[3] );
 
       // Delete message
       ircomm.clearRxMsg( 3 );
     }
+    
   } else if ( last_mode.mode == MODE_REPORT_CYCLES ) {
     i2c_cycles_t cycles;
     cycles.tx_count = ircomm.tx_count;
@@ -348,9 +347,9 @@ void setup() {
   }
 
   test_ts = millis();
-
-// Paul: I was using this to test
-//  setRandomMsg(8);
+  full_reset = false;
+  // Paul: I was using this to test
+  //  setRandomMsg(8);
 }
 
 
@@ -377,12 +376,11 @@ void setRandomMsg(int len) {
 }
 
 void loop() {
-//
-//  if ( millis() - test_ts > 100 ) {
-//    test_ts = millis();
-//    setRandomMsg(8);
-//  }
 
+  if( full_reset ) {
+    ircomm.fullReset();
+    full_reset = false;
+  }
 
   // This line must be called to process new
   // received messages and transmit new messages

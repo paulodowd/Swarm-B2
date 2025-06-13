@@ -72,17 +72,27 @@ class IRComm_c {
     // Note: we can only receive from one receiver
     //       at a time, so we don't use 2d arrays
     //       here.
-    int  rx_index;           // tracks how full the rx buffer is.
-    int  crc_index;          // logs where the CRC token was found
-    byte tx_buf[MAX_BUF];  // buffer for IR out (serial)
-    byte rx_buf[MAX_BUF];  // buffer for IR in  (serial)
+    volatile int  rx_index;           // tracks how full the rx buffer is.
+    volatile int  crc_index;          // logs where the CRC token was found
+    volatile byte tx_buf[MAX_BUF];  // buffer for IR out (serial)
+    volatile byte rx_buf[MAX_BUF];  // buffer for IR in  (serial)
 
     // magnitudes to construct an angle of
     // message reception.  We simply sum the
     // message counts within a period of time
     float rx_activity[4];
     float rx_vectors[4];
-    unsigned long activity[4];
+    uint16_t activity[4];
+
+    // To avoid using strlen, we will keep a record
+    // of how long the message to transmit is. If 
+    // set to 0, transmission will not happen.
+    // Avoiding strlen because it searches for the
+    // null character, which may occur within a 
+    // datastruct.
+    uint8_t tx_len;
+
+    boolean disabled;
 
     float msg_dir;
 
@@ -94,6 +104,7 @@ class IRComm_c {
     //       store a message per receiver to send back
     //       over i2c
     char i2c_msg[RX_PWR_MAX][MAX_MSG];
+    uint8_t msg_len[RX_PWR_MAX];
 
     // Message receiving stats
     unsigned long pass_count[RX_PWR_MAX];   // received correctly
@@ -132,18 +143,20 @@ class IRComm_c {
     void formatString( char * str_to_send, byte len );
     void formatFloat( float f_to_send );
 
-    void getNewIRBytes();  // false = byte timeout occured
-    int hasMsg(int which);
+    void getNewIRBytes(); 
+    
 
     int findChar( char c, char * str, byte len);
     void resetRxProcess();
     void resetRxFlags();
-    int processRxBuf();
+    int processRxBuf( );
     char CRC8(byte * bytes, byte len);
     uint16_t CRC16(byte * bytes, byte len);
     void splitCRC16( byte * u_byte, byte * l_byte, uint16_t crc );
     uint16_t mergeCRC16( byte u_byte, byte l_byte );
 
+
+    void fullReset();
 
     boolean doTransmit(); // false, nothing sent.
 

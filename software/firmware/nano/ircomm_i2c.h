@@ -60,7 +60,9 @@ typedef struct i2c_mode {
 #define MODE_FULL_RESET     24
 #define MODE_REPORT_CYCLES  25
 #define MODE_REPORT_ERRORS  26
-#define MAX_MODE            27
+#define MODE_STOP_RX        27
+#define MODE_START_RX       28
+#define MAX_MODE            29
 
 
 // A general status structure to discover
