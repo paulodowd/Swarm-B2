@@ -129,7 +129,6 @@ void i2c_receive( int len ) {
       ircomm.clearTxBuf();
     } else {
       
-      ircomm.tx_len = count;
       //Serial.print("I2C Received:" );
       //Serial.println(buf);
       ircomm.formatString( buf, count );

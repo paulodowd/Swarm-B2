@@ -148,14 +148,14 @@ void IRComm_c::cyclePowerRx() {
     // there seems to be an issue where the demod
     // chip saturates (or something?).  There isn't
     // a way to detect when this has happened.
-    // When this happens, no bytes are received.  
+    // When this happens, no bytes are received.
     // The odd thing is that waving a hand in front of
     // the demod chip gets it working again.
     // I thought it was an issue with the UART
     // losing it's synchronisation, but simply
     // resetting UART doesn't solve the issue.
     // If the board is cycling the rx it fixes
-    // the issue. 
+    // the issue.
     // Although this isn't ideal, it is better
     // than receiving no bytes at all.
     toggleRxPower();
@@ -281,10 +281,10 @@ void IRComm_c::resetRxProcess() {
 
   disableRx();
 
-  // Flush? 
+  // Flush?
   unsigned char dummy;
   while (UCSR0A & (1 << RXC0)) dummy = UDR0;
-  
+
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
 
@@ -392,6 +392,7 @@ void IRComm_c::formatString(char* str_to_send, byte len) {
     tx_buf[i] = buf[i]; // copy
   }
 
+  tx_len = count;
   if ( IR_DEBUG_OUTPUT ) {
     //  if ( millis() - test_ts > 100 ) {
     //    test_ts = millis();
