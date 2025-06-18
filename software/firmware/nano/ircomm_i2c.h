@@ -62,7 +62,9 @@ typedef struct i2c_mode {
 #define MODE_REPORT_ERRORS  26
 #define MODE_STOP_RX        27
 #define MODE_START_RX       28
-#define MAX_MODE            29
+#define MODE_SET_RX         29
+#define MODE_SET_TX         30
+#define MAX_MODE            31
 
 
 // A general status structure to discover
@@ -121,6 +123,25 @@ typedef struct i2c_sensors {
   int16_t ldr[3];     // 6 bytes
   int16_t prox[2];    // 4 bytes
 } i2c_sensors_t;
+
+
+
+typedef struct i2c_set_tx {        // 6 bytes
+  byte          tx_mode;           // 0 = periodic, 1 = interleaved
+  byte          tx_repeat;         // interleaved: how many repeated IR transmissions?
+  unsigned long tx_period;         // periodic:    how frequently in ms to send messages?
+} i2c_set_tx_t;
+
+typedef struct i2c_set_rx {        // 17 bytes.
+  bool          rx_cycle;          // 1 for testing
+  bool          rx_cycle_on_rx;    // 1 if message received ok, cycle rx?
+  bool          rx_predict_timeout;// 1 true/false
+  bool          rx_overrun;        // 1 if a start token received, wait to finish? 
+  unsigned long rx_timeout;        // 4 how long to wait in ms before switching receiver?
+  float         rx_timeout_multi;  // 4 how many message-lengths for the timeout period?
+  byte          rx_pwr_index;      // 1 Which receiver is active?
+  unsigned long rx_byte_timeout;   // 4 If we haven't received a consecutive byte, timout
+} i2c_set_rx_t;
 
 
 

@@ -74,13 +74,13 @@ void i2c_receive( int len ) {
 
     } else if ( new_mode.mode == MODE_RESET_STATUS ) {
       full_reset = true;
-    } else if( new_mode.mode == MODE_STOP_RX ) {
+    } else if ( new_mode.mode == MODE_STOP_RX ) {
       ircomm.disabled = true;
-      
-    } else if( new_mode.mode == MODE_START_RX ) {
-      
+
+    } else if ( new_mode.mode == MODE_START_RX ) {
+
       ircomm.disabled = false;
-      
+
     } else if ( new_mode.mode == MODE_CLEAR_MSG0 ) {
       // Delete message
       ircomm.clearRxMsg( 0 );
@@ -106,6 +106,38 @@ void i2c_receive( int len ) {
       ircomm.hist[3] = 0;
     }
 
+  } else if ( last_mode.mode == MODE_SET_RX ) {
+    if ( len == sizeof( i2c_set_rx_t ) ) {
+      i2c_set_rx_t rx_settings;
+      Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
+
+      // Transfer settings here
+
+    } else {
+
+      // Something has gone wrong. Just
+      // read in the bytes to clear the
+      // data
+      while ( Wire.available() ) Wire.read();
+    }
+    last_mode.mode = MODE_REPORT_STATUS;
+
+  } else if ( last_mode.mode == MODE_SET_TX ) {
+    if ( len == sizeof( i2c_set_tx_t ) ) {
+      i2c_set_tx_t tx_settings;
+      Wire.readBytes( (uint8_t*)&tx_settings, sizeof( tx_settings ));
+
+      // Transfer settings here
+
+    } else {
+
+      // Something has gone wrong. Just
+      // read in the bytes to clear the
+      // data
+      while ( Wire.available() ) Wire.read();
+    }
+
+    last_mode.mode = MODE_REPORT_STATUS;
 
   } else { // Receiving a new message to transmit.
 
@@ -128,7 +160,7 @@ void i2c_receive( int len ) {
       //memset( tx_buf, 0, sizeof( tx_buf ) );
       ircomm.clearTxBuf();
     } else {
-      
+
       //Serial.print("I2C Received:" );
       //Serial.println(buf);
       ircomm.formatString( buf, count );
@@ -234,7 +266,7 @@ void i2c_request() {
       // Delete message
       ircomm.clearRxMsg( 3 );
     }
-    
+
   } else if ( last_mode.mode == MODE_REPORT_CYCLES ) {
     i2c_cycles_t cycles;
     cycles.tx_count = ircomm.tx_count;
@@ -376,7 +408,7 @@ void setRandomMsg(int len) {
 
 void loop() {
 
-  if( full_reset ) {
+  if ( full_reset ) {
     ircomm.fullReset();
     full_reset = false;
   }
