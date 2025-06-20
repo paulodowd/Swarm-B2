@@ -80,154 +80,154 @@ void loop() {
 
   // Get general board status / demo other
   // function calls.
-  if( millis() - status_ts > status_update_ms ) {
-    status_ts = millis();
-
-    // Ask the board which direction messages
-    // seem to be coming from.
-    getRxDirection();
-    
-  }
+//  if( millis() - status_ts > status_update_ms ) {
+//    status_ts = millis();
+//
+//    // Ask the board which direction messages
+//    // seem to be coming from.
+//    getRxDirection();
+//    
+//  }
 
 
   // Periodically check to see if there are new messages
   // waiting to be read from the communication board.
-  if ( millis() - check_message_ts > check_message_ms ) {
-    check_message_ts = millis();
+//  if ( millis() - check_message_ts > check_message_ms ) {
+//    check_message_ts = millis();
+//
+//    // Let's use a bool to understand if we got a message
+//    // on any receiver. We'll make a beep if any receiver
+//    // got an IR message.
+//    bool got_message = false;
+//
+//    // Check all 4 receivers
+//    for ( int i = 0; i < 4; i++ ) {
+//
+//      // If this returns more than 0, it means there
+//      // is a message waiting to be read.
+//      // The value of n is the number of bytes we need
+//      // to get from the IR Communication board
+//      int n = checkRxMsgReady( i );
+//
+//      // Old debugging
+//      //    Serial.print("Rx " );
+//      //    Serial.print(i);
+//      //    Serial.print(": ");
+//      //    Serial.print( n );
+//      //    Serial.println(" bytes ready");
+//
+//
+//      // If there is a message ready, we use 'n' as
+//      // the number of bytes to read down from the
+//      // communication board through receiver 'i'
+//      // (0,1,2 or 3).
+//      if ( n > 0 ) {
+//
+//        got_message = true;
+//
+//        // If we don't care what the message says
+//        // because we just want the statistics
+//        // (e.g., the count of messages or the
+//        // timing), we can just tell the board to
+//        // delete the message.  You don't have to
+//        // do this.  If you use getIRMessage()
+//        // it will be deleted automatically.
+//        //deleteMessage(i);
+//
+//        // This function gets the message on receiver
+//        // 'i', and currently prints the message over
+//        // Serial.print().  You can decide what new
+//        // thing to do with this message.
+//        // Note, calling this function gets the message
+//        // from the IR communication board and deletes
+//        // it from the communication board.
+//        getIRMessage( i, n );
+//
+//
+//      } else {
+//
+//        // n = 0, which means there were no bytes
+//        // available, no message.
+//      }
+//    }
+//
+//    // Beep if we got a message
+//    if ( got_message ) {
+//      analogWrite( BUZZER_PIN, 120 );
+//      delay(5);
+//      analogWrite( BUZZER_PIN, 0);
+//
+//    }
+//
+//  }
 
-    // Let's use a bool to understand if we got a message
-    // on any receiver. We'll make a beep if any receiver
-    // got an IR message.
-    bool got_message = false;
-
-    // Check all 4 receivers
-    for ( int i = 0; i < 4; i++ ) {
-
-      // If this returns more than 0, it means there
-      // is a message waiting to be read.
-      // The value of n is the number of bytes we need
-      // to get from the IR Communication board
-      int n = checkRxMsgReady( i );
-
-      // Old debugging
-      //    Serial.print("Rx " );
-      //    Serial.print(i);
-      //    Serial.print(": ");
-      //    Serial.print( n );
-      //    Serial.println(" bytes ready");
-
-
-      // If there is a message ready, we use 'n' as
-      // the number of bytes to read down from the
-      // communication board through receiver 'i'
-      // (0,1,2 or 3).
-      if ( n > 0 ) {
-
-        got_message = true;
-
-        // If we don't care what the message says
-        // because we just want the statistics
-        // (e.g., the count of messages or the
-        // timing), we can just tell the board to
-        // delete the message.  You don't have to
-        // do this.  If you use getIRMessage()
-        // it will be deleted automatically.
-        //deleteMessage(i);
-
-        // This function gets the message on receiver
-        // 'i', and currently prints the message over
-        // Serial.print().  You can decide what new
-        // thing to do with this message.
-        // Note, calling this function gets the message
-        // from the IR communication board and deletes
-        // it from the communication board.
-        getIRMessage( i, n );
-
-
-      } else {
-
-        // n = 0, which means there were no bytes
-        // available, no message.
-      }
-    }
-
-    // Beep if we got a message
-    if ( got_message ) {
-      analogWrite( BUZZER_PIN, 120 );
-      delay(5);
-      analogWrite( BUZZER_PIN, 0);
-
-    }
-
-  }
-
-
-  // Note that, the communication board will automatically
-  // keep sending the same message. Once you have set a 
-  // message to send, you don't need to do it again. 
-  // Therefore, once you use
-  // the function setIRMessage() the board will periodically
-  // transmit again and again.  This is actually more desirable
-  // then sending a message just once, because the messaging
-  // is quite unreliable (there is no guarantee that a robot
-  // will receive a message sent only once).
-  // Therefore, this section of code is only updating the
-  // content of the message that is being transmitted, and 
-  // this is helpful because we can see on the receiving 
-  // robot if it is getting updates messages.
-  if ( millis() - update_message_ts > update_message_ms ) {
-    update_message_ts = millis();
-
-    // Just as an example, let's send the current count
-    // in millis() so that we can see it changing over
-    // time on another robot that receives it.
-
-    char buf[32]; // Important! The max we can send is 32 bytes
-
-    // Let's get millis() as a float. I think you will want
-    // to send a value like 0.55 in the future.
-    float f_to_send = (float)millis();
-
-    // Let's divide by 1000 just to make it more interesting
-    // as a float.
-    f_to_send /= 1000.0;
-
-    // Convert float to a string, store in the
-    // message buffer.
-    // I had a lot of trouble finding a solution for this.
-    // This is an odd, non-standard function I think.
-    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
-    // https://www.programmingelectronics.com/dtostrf/
-    //  - a minimum of 6 character (e.g. 000.00)
-    //  - 2 digits after decimal
-    //  - store in buf
-    dtostrf(f_to_send, 6, 2, buf);
-
-    // We used this to test/show that we can send
-    // a string to the other robot.
-    //memset(buf, 0, sizeof(buf)); // clear the buffer
-    //sprintf( buf, "testing" );   // set some text instead
-
-
-    // Let's print what we are going to send to make sure
-    // it is sensible.
-    //    Serial.print("Going to send: ");
-    //    Serial.println( buf );
-
-    // This function call tells the communication board
-    // (the nano) to start ending the requested message.
-    // It will keep doing this until a new call to this
-    // function is made.
-    setIRMessage(buf, strlen(buf));
-
-  }
-
-
+//
+//  // Note that, the communication board will automatically
+//  // keep sending the same message. Once you have set a 
+//  // message to send, you don't need to do it again. 
+//  // Therefore, once you use
+//  // the function setIRMessage() the board will periodically
+//  // transmit again and again.  This is actually more desirable
+//  // then sending a message just once, because the messaging
+//  // is quite unreliable (there is no guarantee that a robot
+//  // will receive a message sent only once).
+//  // Therefore, this section of code is only updating the
+//  // content of the message that is being transmitted, and 
+//  // this is helpful because we can see on the receiving 
+//  // robot if it is getting updates messages.
+//  if ( millis() - update_message_ts > update_message_ms ) {
+//    update_message_ts = millis();
+//
+//    // Just as an example, let's send the current count
+//    // in millis() so that we can see it changing over
+//    // time on another robot that receives it.
+//
+//    char buf[32]; // Important! The max we can send is 32 bytes
+//
+//    // Let's get millis() as a float. I think you will want
+//    // to send a value like 0.55 in the future.
+//    float f_to_send = (float)millis();
+//
+//    // Let's divide by 1000 just to make it more interesting
+//    // as a float.
+//    f_to_send /= 1000.0;
+//
+//    // Convert float to a string, store in the
+//    // message buffer.
+//    // I had a lot of trouble finding a solution for this.
+//    // This is an odd, non-standard function I think.
+//    // dtostrf(float_value, min_width, num_digits_after_decimal, where_to_store_string)
+//    // https://www.programmingelectronics.com/dtostrf/
+//    //  - a minimum of 6 character (e.g. 000.00)
+//    //  - 2 digits after decimal
+//    //  - store in buf
+//    dtostrf(f_to_send, 6, 2, buf);
+//
+//    // We used this to test/show that we can send
+//    // a string to the other robot.
+//    //memset(buf, 0, sizeof(buf)); // clear the buffer
+//    //sprintf( buf, "testing" );   // set some text instead
+//
+//
+//    // Let's print what we are going to send to make sure
+//    // it is sensible.
+//    //    Serial.print("Going to send: ");
+//    //    Serial.println( buf );
+//
+//    // This function call tells the communication board
+//    // (the nano) to start ending the requested message.
+//    // It will keep doing this until a new call to this
+//    // function is made.
+//    setIRMessage(buf, strlen(buf));
+//
+//  }
 
 
 
 
-  delay(10);
+
+  getSensors();
+  delay(250);
 
 }
 
