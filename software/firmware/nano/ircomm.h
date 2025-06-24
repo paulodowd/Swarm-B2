@@ -103,7 +103,7 @@ class IRComm_c {
     // Note: we use a 2d array here because we will
     //       store a message per receiver to send back
     //       over i2c
-    char i2c_msg[RX_PWR_MAX][MAX_MSG];
+    char ir_msg[RX_PWR_MAX][MAX_MSG];
     uint8_t msg_len[RX_PWR_MAX];
 
     // Message receiving stats

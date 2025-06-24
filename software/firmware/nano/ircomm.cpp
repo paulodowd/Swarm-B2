@@ -84,7 +84,7 @@ void IRComm_c::init() {
   // Set message buffers to invalid (empty) state
   memset(tx_buf, 0, sizeof(tx_buf));
   memset(rx_buf, 0, sizeof(rx_buf));
-  memset(i2c_msg, 0, sizeof(i2c_msg));
+  memset(ir_msg, 0, sizeof(ir_msg));
 
   // sets up Timer2 to create 38khz/58khz carrier
   enableTx();
@@ -677,7 +677,7 @@ void IRComm_c::setupTimer2() {
 
 void IRComm_c::clearRxMsg(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
-    memset(i2c_msg[which], 0, sizeof(i2c_msg[which]));
+    memset(ir_msg[which], 0, sizeof(ir_msg[which]));
     msg_len[which] = 0;
   }
 }
@@ -695,7 +695,7 @@ void IRComm_c::clearTxBuf() {
 float IRComm_c::getFloatValue(int which) {
   if ( which >= 0 && which < RX_PWR_MAX) {
     // check for 0 length?
-    return atof( i2c_msg[which] );
+    return atof( ir_msg[which] );
   } else {
     return -1;
   }
@@ -1150,12 +1150,12 @@ int IRComm_c::processRxBuf( ) {
 
       // Make sure where we will store this
       // received message is clear.
-      memset(i2c_msg[ir_config.rx_pwr_index], 0, sizeof(i2c_msg[ir_config.rx_pwr_index]));
+      memset(ir_msg[ir_config.rx_pwr_index], 0, sizeof(ir_msg[ir_config.rx_pwr_index]));
 
       // Copy message across, stopping at (not including) @
       byte count = 0;
       for (int i = 1; i < crc_index; i++) {
-        i2c_msg[ir_config.rx_pwr_index][i - 1] = rx_buf[i];
+        ir_msg[ir_config.rx_pwr_index][i - 1] = rx_buf[i];
         count++;
       }
 
@@ -1164,7 +1164,7 @@ int IRComm_c::processRxBuf( ) {
       // over i2c
       msg_len[ ir_config.rx_pwr_index ] = count;
 
-      float id = atof( i2c_msg[ir_config.rx_pwr_index] );
+      float id = atof( ir_msg[ir_config.rx_pwr_index] );
       if ( id == 1.00 ) {
         hist[0]++;
       } else if ( id == 2.00 ) {
@@ -1194,7 +1194,7 @@ int IRComm_c::processRxBuf( ) {
       if ( IR_DEBUG_OUTPUT ) {
         Serial.print("Saved: \n" ) ;
         Serial.println( (char*)rx_buf );
-        Serial.println( i2c_msg[ir_config.rx_pwr_index] );
+        Serial.println( ir_msg[ir_config.rx_pwr_index] );
         Serial.println( msg_dt[ ir_config.rx_pwr_index ] );
         Serial.println( msg_t[ ir_config.rx_pwr_index ] );
         Serial.println( pass_count[ ir_config.rx_pwr_index ] );

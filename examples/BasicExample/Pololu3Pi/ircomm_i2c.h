@@ -18,7 +18,7 @@
 
 #pragma pack(1)
 
-#define IRCOMM_I2C_ADDR  0x11
+#define IRCOMM_IR_ADDR  0x11
 
 
 // This 1 byte struct is used to change the i2c

@@ -40,15 +40,15 @@ IRComm_c ircomm;
 
 // Used to track requests made to
 // the board over i2c
-volatile i2c_mode_t last_mode;
-volatile i2c_status_t status;
+volatile ir_mode_t last_mode;
+volatile ir_status_t status;
 
 volatile boolean full_reset;
 
 // Function to receive commands from the master device.
 // This will typically be in the format of a mode change
 // and then any appropriate data.
-void i2c_receive( int len ) {
+void ir_receive( int len ) {
 
 
   // Mode changes are always 1 byte long.  We use these to
@@ -56,7 +56,7 @@ void i2c_receive( int len ) {
   // board to complete specific actions (e.g, delete a
   // message).
   if ( len == 1 ) { // receiving a mode change.
-    i2c_mode_t new_mode;
+    ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
 
 
@@ -107,11 +107,20 @@ void i2c_receive( int len ) {
     }
 
   } else if ( last_mode.mode == MODE_SET_RX ) {
-    if ( len == sizeof( i2c_set_rx_t ) ) {
-      i2c_set_rx_t rx_settings;
+
+    if ( len == sizeof( ir_rx_params_t ) ) {
+      ir_rx_params_t rx_settings;
       Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
 
-      // Transfer settings here
+      // Transfer settings
+      ircomm.ir_config.rx_cycle = rx_settings.rx_cycle;
+      ircomm.ir_config.rx_cycle_on_rx = rx_settings.rx_cycle_on_rx;
+      ircomm.ir_config.rx_predict_timeout = rx_settings.rx_predict_timeout;
+      ircomm.ir_config.rx_overrun = rx_settings.rx_overrun;
+      ircomm.ir_config.rx_timeout = rx_settings.rx_timeout;
+      ircomm.ir_config.rx_timeout_multi = rx_settings.rx_timeout_multi;
+      ircomm.ir_config.rx_pwr_index = rx_settings.rx_pwr_index;
+      ircomm.ir_config.rx_byte_timeout = rx_settings.rx_byte_timeout;
 
     } else {
 
@@ -123,12 +132,14 @@ void i2c_receive( int len ) {
     last_mode.mode = MODE_REPORT_STATUS;
 
   } else if ( last_mode.mode == MODE_SET_TX ) {
-    if ( len == sizeof( i2c_set_tx_t ) ) {
-      i2c_set_tx_t tx_settings;
+    if ( len == sizeof( ir_tx_params_t ) ) {
+      ir_tx_params_t tx_settings;
       Wire.readBytes( (uint8_t*)&tx_settings, sizeof( tx_settings ));
 
       // Transfer settings here
-
+      ircomm.ir_config.tx_mode = tx_settings.tx_mode;
+      ircomm.ir_config.tx_repeat = tx_settings.tx_repeat;
+      ircomm.ir_config.tx_period = tx_settings.tx_period;
     } else {
 
       // Something has gone wrong. Just
@@ -171,7 +182,7 @@ void i2c_receive( int len ) {
 
 // When the 3Pi or Core2 calls an i2c request, this function
 // is executed.
-void i2c_request() {
+void ir_request() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
@@ -184,13 +195,10 @@ void i2c_request() {
 
     Wire.write( (byte*)&status, sizeof( status ) );
 
-    //
-    // Below are request for message size from the
-    // master device.
-    //
+
   } else if ( last_mode.mode == MODE_REPORT_TIMINGS ) {
 
-    i2c_msg_timings_t msg_timings;
+    ir_msg_timings_t msg_timings;
     for ( int i = 0; i < 4; i++ ) {
       msg_timings.msg_dt[i] = (uint16_t)ircomm.msg_dt[i];
       msg_timings.msg_t[i] = (uint16_t)ircomm.msg_t[i];
@@ -201,38 +209,33 @@ void i2c_request() {
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
 
-    i2c_mode_t msg_status;
+    ir_mode_t msg_status;
     msg_status.mode = ircomm.msg_len[0];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG1 ) {
-    i2c_mode_t msg_status;
+    ir_mode_t msg_status;
     msg_status.mode = ircomm.msg_len[1];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG2 ) {
-    i2c_mode_t msg_status;
+    ir_mode_t msg_status;
     msg_status.mode = ircomm.msg_len[2];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
 
   } else if ( last_mode.mode == MODE_SIZE_MSG3 ) {
-    i2c_mode_t msg_status;
+    ir_mode_t msg_status;
     msg_status.mode = ircomm.msg_len[3];
     Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
 
-
-    //
-    // Below are requests for actual message to be
-    // reported to the master device
-    //
   } else if ( last_mode.mode == MODE_REPORT_MSG0 ) {
     if ( ircomm.msg_len[0] == 0 ) {
       Wire.write("!");  // Error token
     } else {
-      Wire.write( ircomm.i2c_msg[0], ircomm.msg_len[0] );
+      Wire.write( ircomm.ir_msg[0], ircomm.msg_len[0] );
       // Delete message
       ircomm.clearRxMsg( 0 );
     }
@@ -241,7 +244,7 @@ void i2c_request() {
     if ( ircomm.msg_len[1] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[1], ircomm.msg_len[1] );
+      Wire.write( ircomm.ir_msg[1], ircomm.msg_len[1] );
       // Delete message
       ircomm.clearRxMsg( 1 );
     }
@@ -250,7 +253,7 @@ void i2c_request() {
     if ( ircomm.msg_len[2] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[2], ircomm.msg_len[2] );
+      Wire.write( ircomm.ir_msg[2], ircomm.msg_len[2] );
 
       // Delete message
       ircomm.clearRxMsg( 2 );
@@ -261,14 +264,14 @@ void i2c_request() {
     if ( ircomm.msg_len[3] == 0 ) {
       Wire.write("!");
     } else {
-      Wire.write( ircomm.i2c_msg[3], ircomm.msg_len[3] );
+      Wire.write( ircomm.ir_msg[3], ircomm.msg_len[3] );
 
       // Delete message
       ircomm.clearRxMsg( 3 );
     }
 
   } else if ( last_mode.mode == MODE_REPORT_CYCLES ) {
-    i2c_cycles_t cycles;
+    ir_cycles_t cycles;
     cycles.tx_count = ircomm.tx_count;
     cycles.rx_cycles = ircomm.rx_cycles;
 
@@ -276,7 +279,7 @@ void i2c_request() {
     Wire.write( (byte*)&cycles, sizeof( cycles ) );
 
   } else if ( last_mode.mode == MODE_REPORT_ERRORS ) {
-    i2c_errors_t errors;
+    ir_errors_t errors;
 
     for ( int i = 0; i < 4; i++ ) {
       for ( int j = 0; j < 4; j++ ) {
@@ -288,7 +291,7 @@ void i2c_request() {
     Wire.write( (byte*)&errors, sizeof( errors ) );
 
   } else if ( last_mode.mode == MODE_REPORT_RX_ACTIVITY ) {
-    i2c_activity_t activity;
+    ir_activity_t activity;
     for ( int i = 0; i < 4; i++ ) {
       activity.rx[i] = ircomm.rx_activity[i];
     }
@@ -297,7 +300,7 @@ void i2c_request() {
 
   } else if (  last_mode.mode == MODE_REPORT_RX_DIRECTION ) {
 
-    i2c_bearing_t bearing;
+    ir_bearing_t bearing;
 
     // Here, we treat each receiver as contributing to
     // either x or y, because they are aligned to the x
@@ -320,7 +323,7 @@ void i2c_request() {
   } else if ( last_mode.mode == MODE_REPORT_SENSORS ) {
 
     // Data struct
-    i2c_sensors_t sensors;
+    ir_sensors_t sensors;
 
     // Collect sensor readings - should be very quick
     sensors.ldr[0] = (int16_t)analogRead( LDR0_PIN );
@@ -334,14 +337,36 @@ void i2c_request() {
 
   } else if ( last_mode.mode == MODE_REPORT_HIST ) {
 
-    i2c_id_hist_t hist;
+    ir_id_hist_t hist;
     hist.id[0] = ircomm.hist[0];
     hist.id[1] = ircomm.hist[1];
     hist.id[2] = ircomm.hist[2];
     hist.id[3] = ircomm.hist[3];
     Wire.write( (byte*)&hist, sizeof( hist ) );
 
+  } else if ( last_mode.mode == MODE_GET_TX ) {
+
+    ir_tx_params_t tx_settings;
+    tx_settings.tx_mode = ircomm.ir_config.tx_mode;
+    tx_settings.tx_repeat = ircomm.ir_config.tx_repeat;
+    tx_settings.tx_period = ircomm.ir_config.tx_period;
+    Wire.write( (byte*)&tx_settings, sizeof( tx_settings ) );
+
+
+  } else if ( last_mode.mode == MODE_GET_RX ) {
+    ir_rx_params_t rx_settings;
+    rx_settings.rx_cycle =   ircomm.ir_config.rx_cycle;
+    rx_settings.rx_cycle_on_rx = ircomm.ir_config.rx_cycle_on_rx;
+    rx_settings.rx_predict_timeout = ircomm.ir_config.rx_predict_timeout;
+    rx_settings.rx_overrun = ircomm.ir_config.rx_overrun ;
+    rx_settings.rx_timeout = ircomm.ir_config.rx_timeout;
+    rx_settings.rx_timeout_multi = ircomm.ir_config.rx_timeout_multi;
+    rx_settings.rx_pwr_index = ircomm.ir_config.rx_pwr_index;
+    rx_settings.rx_byte_timeout = ircomm.ir_config.rx_byte_timeout;
+    Wire.write( (byte*)&rx_settings, sizeof( rx_settings ) );
+
   }
+
 }
 
 
@@ -364,8 +389,8 @@ void setup() {
 
   // Begin I2C as a slave device.
   Wire.begin( IRCOMM_I2C_ADDR );
-  Wire.onReceive( i2c_receive );
-  Wire.onRequest( i2c_request );
+  Wire.onReceive( ir_receive );
+  Wire.onRequest( ir_request );
 
   // Start the IR communication board.
   ircomm.init();
