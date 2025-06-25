@@ -45,8 +45,10 @@ volatile tracker_packet_t tracker_data;
 
 #pragma pack(1)
 typedef struct i2c_results {
-  float values[4];  // some result data.
-  byte ir_msg_from; // who we last received and IR message from
+  int16_t robotID;
+  int16_t Gen;
+  float Fitness;
+  float Vector[6];
 } i2c_results_t;
 
 volatile i2c_results_t results_data;
@@ -167,11 +169,17 @@ void loop() {
     }
   }
 
+
+  // This flag is toggled by the i2c receive interupt.
+  // This flag becomes true if the 3Pi+ has uploaded 
+  // a new i2c_results_t struct.  So we don't need to
+  // do much here, just communicate the struct over 
+  // tcp/ip and toggle the flag back to false
   if ( upload_new_results ) {
     if ( client.connected() ) {
 
       Serial.print("Received from robot: ");
-      Serial.println( results_data.ir_msg_from );
+      Serial.println( results_data.robotID );
 
       int err = client.write( (uint8_t*)&results_data, sizeof( results_data ) );
 

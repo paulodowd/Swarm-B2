@@ -19,9 +19,15 @@ volatile byte robot_id = 0;
 
 // The data struct we are going to upload to the
 // tracking system.
-typedef struct ir_results {
-  float values[4];  // some result data.
-  byte ir_msg_from; // who we last received and IR message from
+
+// robotID:
+//  - this should be the id of the robot that sent the messaage, 1 : 199 possible IP addresses.
+//  - if you set this to 0, the tracking system will just log the data as a result.
+typedef struct i2c_results {
+  int16_t robotID;
+  int16_t Gen;
+  float Fitness;
+  float Vector[6];
 } ir_results_t;
 
 volatile ir_results_t results_data;
@@ -82,17 +88,15 @@ void setup() {
   // the M5.
   memset((byte*)&tracking_data, 0, sizeof( tracking_data ));
   do {
-
     Serial.println("Waiting for tracking data");
-    getTrackingDataFromM5();
+    robot_id = getTrackingDataFromM5();
     delay(50);
-  } while ( tracking_data.valid == 0 );
+  } while ( tracking_data.valid == 0 || robot_id < 1 || robot_id > 199  );
 
 
   // Tell the IR Communication board to transmit
   // the ID number gained from the Wifi tracking
   // system as the message for this robot.
-  
   char buf[32];
   memset( buf, 0, sizeof( buf ));
   //sprintf( buf, "%f", (float)tracking_data.marker_id );
@@ -109,11 +113,12 @@ void setup() {
 }
 
 
-void getTrackingDataFromM5() {
+// returns the id from the tracking system
+int getTrackingDataFromM5() {
   Wire.requestFrom( M5_I2C_ADDR, sizeof( tracking_data ));
   Wire.readBytes( (uint8_t*)&tracking_data, sizeof( tracking_data ));
 
-  
+
   Serial.println("Got from tracker:");
   Serial.print( tracking_data.marker_id );
   Serial.print(",");
@@ -125,6 +130,8 @@ void getTrackingDataFromM5() {
   Serial.print(",");
   Serial.print( tracking_data.valid );
   Serial.println("");
+
+  return tracking_data.marker_id;
 }
 
 
@@ -145,8 +152,8 @@ void loop() {
   if ( millis() - check_message_ts > check_message_ms ) {
     check_message_ts = millis();
 
-//    Serial.println("Loop");
-   // getTrackingDataFromM5();
+    //    Serial.println("Loop");
+    // getTrackingDataFromM5();
 
 
     // Let's use a bool to understand if we got a message
@@ -182,6 +189,15 @@ void loop() {
 
 
       } else {
+
+        // We can send data to the tracking system even
+        // if there has been no communication.
+        //results_data.robotID = 0; // no valid, so the tracking system only writes this data to the csv file
+        //results_data.Vector[0] = 99.9; // etc.
+        // ...
+        //sendResultsToM5();
+
+
 
         // n = 0, which means there were no bytes
         // available, no message.
@@ -335,5 +351,7 @@ void getIRMessage(int which_rx, int n_bytes ) {
   // For this example, we are only expecting a few
   // chars which are the ID number of the robot
   // ending the message.  i.e. "3" or "12".
-  results_data.ir_msg_from = atof( buf );
+  // The other robot is just transmitting it's tracker id
+  // as a float, e.g. "3.0"
+  results_data.robotID = atof( buf );
 }
