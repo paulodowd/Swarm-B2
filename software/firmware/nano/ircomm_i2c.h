@@ -86,7 +86,7 @@ typedef struct ir_errors {
 
 typedef struct ir_cycles {
   uint16_t rx_cycles;
-  uint16_t long tx_count;
+  uint16_t tx_count;
 } ir_cycles_t;
 
 // To find out if a message is ready

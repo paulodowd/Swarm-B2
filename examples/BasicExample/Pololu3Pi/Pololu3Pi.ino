@@ -219,18 +219,22 @@ void loop() {
 
     // Let's print what we are going to send to make sure
     // it is sensible.
-    //    Serial.print("Going to send: ");
-    //    Serial.println( buf );
+        Serial.print("Going to send: ");
+        Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
+    
     setIRMessage(buf, strlen(buf));
 
   }
 
 
+  // Uncomment below for the example
+  // that changes the board configuration
+  /*
   if ( millis() - settings_ts > settings_update_ms ) {
     settings_ts = millis();
 
@@ -255,6 +259,7 @@ void loop() {
 
 
   }
+  */
 
 
   //getSensors();
