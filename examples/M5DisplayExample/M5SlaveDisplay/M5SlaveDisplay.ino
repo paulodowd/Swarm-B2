@@ -1,5 +1,5 @@
 #include <M5Core2.h>
-#include "Wire.h"
+#include <Wire.h>
 
 #define M5_I2C_ADDR 0x55
 
@@ -62,8 +62,7 @@ void setup() {
   // Might be easier to debug by
   // printing to the LCD to avoid having
   // a cable plugged in.
-  Serial.begin(115200);
-  Serial.setDebugOutput(true);
+//  Serial.begin(115200);
 
   // Start i2c as the master
   Wire.begin( M5_I2C_ADDR );
@@ -104,4 +103,5 @@ void loop() {
       M5.Lcd.println( display_buf[i] );
     }
   }
+  
 }

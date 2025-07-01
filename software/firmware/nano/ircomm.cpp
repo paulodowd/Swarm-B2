@@ -137,7 +137,7 @@ void IRComm_c::reportConfiguration() {
 }
 
 void IRComm_c::cyclePowerRx() {
-
+  
   // If the board is configured not to cycle
   // the receiver, we simply update the
   // continue functioning, without changing
@@ -162,6 +162,7 @@ void IRComm_c::cyclePowerRx() {
     setRxTimeout();
     return;
   }
+  
 
   ir_config.rx_pwr_index++;
   rx_cycles++;
@@ -237,7 +238,7 @@ void IRComm_c::powerOnRx( byte index ) {
     digitalWrite( RX_PWR_3, HIGH );
 
   }
-
+  delayMicroseconds(250);
   // After changing which receiver is active,
   // the serial buffer is full of old data.
   // We clear it now.
@@ -281,9 +282,9 @@ void IRComm_c::resetRxProcess() {
 
   disableRx();
 
-  // Flush?
-  unsigned char dummy;
-  while (UCSR0A & (1 << RXC0)) dummy = UDR0;
+//  // Flush?
+//  unsigned char dummy;
+//  while (UCSR0A & (1 << RXC0)) dummy = UDR0;
 
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
@@ -329,6 +330,11 @@ void IRComm_c::toggleRxPower() {
     delayMicroseconds(250); // 0.25ms
     digitalWrite( RX_PWR_3, HIGH );
   }
+  // Wait to stabilise when on again
+  delayMicroseconds(250);
+
+  // Potentially here, we need to reset 
+  // the UART
 }
 
 void IRComm_c::powerOffAllRx() {
@@ -776,7 +782,7 @@ void IRComm_c::update() {
     updateActivity();
   }
 
-  if ( millis() - led_ts > 50 ) {
+  if ( millis() - led_ts > 100 ) {
     led_ts = millis();
     digitalWrite(DEBUG_LED, LOW );
 
@@ -910,13 +916,29 @@ void IRComm_c::update() {
 void IRComm_c::getNewIRBytes() {
 
   while ( Serial.available() ) {
-
+    int n = Serial.available();
     rx_buf[rx_index] = Serial.read();
     byte_ts = millis(); // register when we got this byte
+    digitalWrite(13,HIGH);
 
     // Register activity on this receiver, whether pass or fail
     rx_activity[ ir_config.rx_pwr_index ] += 1;
     activity[ ir_config.rx_pwr_index ]++;
+//
+//    Debugging spurious rx_activity/activity    
+//    disableRx();
+//    Serial.print( n ); Serial.print(",");
+//    Serial.print( (char)rx_buf[rx_index] );Serial.print(",");
+//    Serial.print( (byte)rx_buf[rx_index],BIN );Serial.print(",");
+//    
+//    Serial.print( ir_config.rx_pwr_index ); Serial.print(",");
+//    Serial.print( activity[0] ); Serial.print(",");
+//        Serial.print( activity[1] ); Serial.print(",");
+//            Serial.print( activity[2] ); Serial.print(",");
+//                Serial.print( activity[3] ); Serial.print("\n");
+//    Serial.flush();
+//    enableRx();
+    
 
     // Start token? If yes, we can start to fill the
     // receiver buffer (rx_buf), and after setting
@@ -1013,7 +1035,7 @@ boolean IRComm_c::doTransmit() {
 
     // Stop receiving
     disableRx();
-
+    //enableTx();
     // Using Serial.print transmits over
     // IR.  Serial TX is modulated with
     // the 38Khz carrier in hardware.
@@ -1037,6 +1059,7 @@ boolean IRComm_c::doTransmit() {
     // Since we used disableRx(), we need to
     // re-enable the UART and so clear
     // the rx flags and rx_buf
+    //disableTx();
     resetRxFlags();
     enableRx();
 
@@ -1131,7 +1154,7 @@ int IRComm_c::processRxBuf( ) {
 
       // Flash so we can see when robots are
       // receiving messages correctly
-      digitalWrite(DEBUG_LED, HIGH);
+      //digitalWrite(DEBUG_LED, HIGH);
 
 
       // Since we are successful, we record the length

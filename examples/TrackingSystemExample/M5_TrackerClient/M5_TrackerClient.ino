@@ -26,7 +26,7 @@
 */
 
 #include <M5Core2.h>
-
+#include "esp_wifi.h"
 // For connecting to the tracking system
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -111,21 +111,24 @@ void setup() {
 
   // We start by connecting to a WiFi network
   WiFiMulti.addAP("SwarmArenaWifi2G", "swarm-b2");
-  Serial.println();
-  Serial.print("Waiting for WiFi... ");
+  //Serial.println();
+  //Serial.print("Waiting for WiFi... ");
 
   while (WiFiMulti.run() != WL_CONNECTED) {
-    Serial.print(".");
+//    Serial.print(".");
     delay(500);
   }
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+//https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/network/esp_wifi.html
+  Serial.println( esp_wifi_set_max_tx_power(8) );
+
+//  Serial.println("");
+//  Serial.println("WiFi connected");
+//  Serial.println("IP address: ");
+//  Serial.println(WiFi.localIP());
 
   local_ip = WiFi.localIP();
-  Serial.println( local_ip[3] );
+//  Serial.println( local_ip[3] );
 
   // If we are not using the screen for anything else,
   // we only need to call drawAruCo once.
@@ -154,12 +157,12 @@ void loop() {
       if ( client.available() >= sizeof( tracker_packet_t ) ) {
 
         client.readBytes( (uint8_t*)&tracker_data, sizeof( tracker_packet_t) );
-        Serial.print( tracker_data.marker_id ); Serial.print(",");
-        Serial.print( tracker_data.x ); Serial.print(",");
-        Serial.print( tracker_data.y ); Serial.print(",");
-        Serial.print( tracker_data.theta ); Serial.print(",");
-        Serial.print( tracker_data.valid ); Serial.print(",");
-        Serial.println();
+//        Serial.print( tracker_data.marker_id ); Serial.print(",");
+//        Serial.print( tracker_data.x ); Serial.print(",");
+//        Serial.print( tracker_data.y ); Serial.print(",");
+//        Serial.print( tracker_data.theta ); Serial.print(",");
+//        Serial.print( tracker_data.valid ); Serial.print(",");
+//        Serial.println();
 
       } else {
         // No data to receive
@@ -182,20 +185,20 @@ void loop() {
   if ( upload_new_results ) {
     if ( client.connected() ) {
 
-      Serial.print("Received from robot: ");
-      Serial.println( results_data.robotID );
+//      Serial.print("Received from robot: ");
+//      Serial.println( results_data.robotID );
 
       int err = client.write( (uint8_t*)&results_data, sizeof( results_data ) );
 
       if ( err == sizeof( results_data ) ) {
         // Upload was successful, toggle flag.
         upload_new_results = false;
-        Serial.println("Sent new results!");
+//        Serial.println("Sent new results!");
 
       } else {
         // We will need to try this again on the
         // next iteration of loop().
-        Serial.println("Error sending results");
+//        Serial.println("Error sending results");
       }
 
 
@@ -209,7 +212,7 @@ void loop() {
 
   // Other code to run could go here
   // ...
-
+  
 }
 
 
@@ -321,7 +324,7 @@ bool connectClient() {
 
   unsigned long start_time = millis();
   // Connect to the tracking system.
-  Serial.println("Connecting to tracking system");
+//  Serial.println("Connecting to tracking system");
   int err;
 
   err = client.connect( server_ip, server_port );
@@ -330,7 +333,7 @@ bool connectClient() {
 
   return err;
 }
-
+/*
 // This is useful for debugging the wifi.
 void WiFiEvent(WiFiEvent_t event) {
   Serial.printf("[WiFi-event] event: %d\n", event);
@@ -421,3 +424,4 @@ void WiFiEvent(WiFiEvent_t event) {
     default: break;
   }
 }
+*/
