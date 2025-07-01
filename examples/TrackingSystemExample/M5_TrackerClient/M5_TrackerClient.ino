@@ -160,10 +160,14 @@ void loop() {
         Serial.print( tracker_data.theta ); Serial.print(",");
         Serial.print( tracker_data.valid ); Serial.print(",");
         Serial.println();
+
       } else {
         // No data to receive
       }
     } else { // client not connected/disconnected
+      
+      // indicate that we've lost connection to the 3pi
+      tracker_data.valid = 0;
       client.stop();
       connectClient();
     }

@@ -8,10 +8,10 @@ const uint16_t server_port = 5000;
 // system.
 #pragma pack(push,1)
 typedef struct tracker_packet {
-  int8_t marker_id; // 1 byte
+  int16_t marker_id; // 2 byte
   float x;          // 4 bytes
   float y;          // 4 bytes
   float theta;      // 4 bytes
-  int8_t valid;     // 1 byte
+  int16_t valid;     // 2 byte
 } tracker_packet_t; // = 14 bytes
 #pragma pack(pop)

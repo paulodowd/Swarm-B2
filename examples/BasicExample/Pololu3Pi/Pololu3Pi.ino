@@ -700,7 +700,7 @@ void getIRMessage(int which_rx, int n_bytes ) {
     Serial.print( which_rx );
     Serial.print(":\t");
     for ( int i = 0; i < count; i++ ) {
-      Serial.print( buf[i]  );
+      Serial.print( (byte)buf[i]  );
     }
     Serial.println();
     //Serial.println( buf );

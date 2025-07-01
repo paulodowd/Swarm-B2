@@ -10,7 +10,7 @@
 // tracking system.
 #include "tracker_config.h"
 volatile tracker_packet_t tracking_data;
-volatile byte robot_id = 0;
+int robot_id = 0;
 
 // The i2c address for the M5, as defined in the
 // example code M5_TrackerClient
@@ -153,8 +153,21 @@ void loop() {
     check_message_ts = millis();
 
     //    Serial.println("Loop");
-    // getTrackingDataFromM5();
+    getTrackingDataFromM5();
+    if ( tracking_data.valid ) {
+      if ( tracking_data.marker_id > 0 && tracking_data.marker_id < 200 ) {
+        robot_id = tracking_data.marker_id;
 
+        char buf[32];
+        memset( buf, 0, sizeof( buf ));
+        //sprintf( buf, "%f", (float)tracking_data.marker_id );
+        dtostrf((float)robot_id, 4, 2, buf);
+        Serial.print("Setting IR message to: " );
+        Serial.println(buf);
+        setIRMessage(buf, strlen(buf));
+      }
+
+    }
 
     // Let's use a bool to understand if we got a message
     // on any receiver. We'll make a beep if any receiver
