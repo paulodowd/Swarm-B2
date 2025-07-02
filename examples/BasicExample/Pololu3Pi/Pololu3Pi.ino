@@ -18,7 +18,7 @@
    test.
 */
 
-
+float bearing_lpf = 0.0;
 
 // A data structure to commmunicate
 // the mode.
@@ -54,6 +54,7 @@ unsigned long update_message_ms = 1000; // every 1000ms
 unsigned long status_update_ms = 1000; // every 1000ms
 unsigned long settings_update_ms = 500;
 
+bool rx[4];
 
 void setup() {
   Serial.begin(115200);
@@ -111,6 +112,8 @@ void loop() {
     // Check all 4 receivers
     for ( int i = 0; i < 4; i++ ) {
 
+      rx[i] = false;
+
       // If this returns more than 0, it means there
       // is a message waiting to be read.
       // The value of n is the number of bytes we need
@@ -130,7 +133,7 @@ void loop() {
       // communication board through receiver 'i'
       // (0,1,2 or 3).
       if ( n > 0 ) {
-
+        rx[i] = true;
         got_message = true;
 
         // If we don't care what the message says
@@ -149,7 +152,7 @@ void loop() {
         // Note, calling this function gets the message
         // from the IR communication board and deletes
         // it from the communication board.
-        getIRMessage( i, n );
+         getIRMessage( i, n );
 
 
       } else {
@@ -219,8 +222,8 @@ void loop() {
 
     // Let's print what we are going to send to make sure
     // it is sensible.
-        Serial.print("Going to send: ");
-        Serial.println( buf );
+//        Serial.print("Going to send: ");
+//        Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
@@ -261,7 +264,14 @@ void loop() {
   }
   */
 
-
+//  reportStatusCSV();
+  getRxDirection();
+//  getRxActivity();
+  
+//  for( int i = 0; i < 4; i++ ) {
+//    Serial.print( rx[i] == true ? "1," : "0,"); 
+//  }
+//  Serial.println();
   //getSensors();
   delay(250);
 
@@ -451,9 +461,13 @@ void getRxDirection() {
   Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( bearing ));
   Wire.readBytes( (uint8_t*)&bearing, sizeof( bearing ));
 
+  bearing_lpf = (bearing_lpf * 0.7)+(bearing.theta*0.3);
+  Serial.print( bearing_lpf, 4);
+  Serial.print(",");
   Serial.print(bearing.theta, 4);
   Serial.print(",");
   Serial.print( bearing.mag, 4 );
+  Serial.print(",");
   Serial.println();
 }
 
@@ -472,7 +486,7 @@ void getRxActivity() {
   Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
 
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( activity.rx[i], 4 );
+    Serial.print( activity.rx[i]*1000, 4 );
     Serial.print(",");
 
   }
@@ -696,13 +710,19 @@ void getIRMessage(int which_rx, int n_bytes ) {
   // Need to decide what to do with the char array
   // once a message has been sent across.
   if ( count > 0 ) {
-    Serial.print("Received on Rx" );
-    Serial.print( which_rx );
-    Serial.print(":\t");
-    for ( int i = 0; i < count; i++ ) {
-      Serial.print( (byte)buf[i]  );
-    }
-    Serial.println();
+//    Serial.print("Received on Rx" );
+//    Serial.print( which_rx );
+//    Serial.print(":\t");
+//    for ( int i = 0; i < count; i++ ) {
+//      Serial.print( buf[i]  );
+//    }
+//    Serial.println();
+//    Serial.print("Bytes: ");
+//    for ( int i = 0; i < count; i++ ) {
+//      Serial.print( (byte)buf[i]  );
+//      Serial.print(",");
+//    }
+//    Serial.println();
     //Serial.println( buf );
   }
 

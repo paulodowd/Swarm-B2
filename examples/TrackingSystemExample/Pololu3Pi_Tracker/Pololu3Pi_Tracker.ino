@@ -23,14 +23,26 @@ int robot_id = 0;
 // robotID:
 //  - this should be the id of the robot that sent the messaage, 1 : 199 possible IP addresses.
 //  - if you set this to 0, the tracking system will just log the data as a result.
+
+
+typedef struct tracker_upload {
+int16_t robotID;
+  int16_t Gen;
+  float Fitness;
+  float Vector[ 6 ];
+} tracker_upload_t;
+tracker_upload_t upload;
+
+#define N_BYTES 6
 typedef struct i2c_results {
   int16_t robotID;
   int16_t Gen;
   float Fitness;
-  float Vector[6];
+  float Vector[ N_BYTES ];
 } ir_results_t;
 
 volatile ir_results_t results_data;
+volatile ir_results_t robot_data;
 
 
 #define BUZZER_PIN 6
@@ -77,6 +89,8 @@ void setup() {
   // Initialise our results data to known
   // values.
   memset( (byte*)&results_data, 0, sizeof( results_data ));
+  memset( (byte*)&upload, 0, sizeof( upload ));
+  
 
 
   // Make sure the IR Communication board
@@ -94,16 +108,24 @@ void setup() {
   } while ( tracking_data.valid == 0 || robot_id < 1 || robot_id > 199  );
 
 
+
+
   // Tell the IR Communication board to transmit
   // the ID number gained from the Wifi tracking
   // system as the message for this robot.
-  char buf[32];
-  memset( buf, 0, sizeof( buf ));
-  //sprintf( buf, "%f", (float)tracking_data.marker_id );
-  dtostrf((float)tracking_data.marker_id, 4, 2, buf);
-  Serial.print("Setting IR message to: " );
-  Serial.println(buf);
-  setIRMessage(buf, strlen(buf));
+  //  char buf[32];
+  //  memset( buf, 0, sizeof( buf ));
+  //  //sprintf( buf, "%f", (float)tracking_data.marker_id );
+  //  dtostrf((float)tracking_data.marker_id, 4, 2, buf);
+  //  Serial.print("Setting IR message to: " );
+  //  Serial.println(buf);
+  //  setIRMessage(buf, strlen(buf));
+
+  robot_data.robotID = tracking_data.marker_id;
+  robot_data.Gen = 0;
+  robot_data.Fitness = random(0, 100);
+  for ( int i = 0; i < N_BYTES; i++ ) robot_data.Vector[i] = random(0, 100);
+  setIRMessage( (byte*)&robot_data, sizeof( robot_data ) );
 
 
   // Initialise timestamp
@@ -140,7 +162,7 @@ int getTrackingDataFromM5() {
 // function is called immediately afterwards.  See loop().
 void sendResultsToM5() {
   Wire.beginTransmission( M5_I2C_ADDR );
-  Wire.write( (byte*)&results_data, sizeof( results_data ));
+  Wire.write( (byte*)&upload, sizeof( upload ));
   Wire.endTransmission();
 }
 
@@ -157,14 +179,12 @@ void loop() {
     if ( tracking_data.valid ) {
       if ( tracking_data.marker_id > 0 && tracking_data.marker_id < 200 ) {
         robot_id = tracking_data.marker_id;
+        robot_data.robotID = robot_id;
+        robot_data.Gen = 0;
+        robot_data.Fitness = random(0, 100);
+        for ( int i = 0; i < N_BYTES; i++ ) robot_data.Vector[i] = random(0, 100);
+        setIRMessage( (byte*)&robot_data, sizeof( robot_data ) );
 
-        char buf[32];
-        memset( buf, 0, sizeof( buf ));
-        //sprintf( buf, "%f", (float)tracking_data.marker_id );
-        dtostrf((float)robot_id, 4, 2, buf);
-        Serial.print("Setting IR message to: " );
-        Serial.println(buf);
-        setIRMessage(buf, strlen(buf));
       }
 
     }
@@ -198,6 +218,7 @@ void loop() {
         getIRMessage( i, n );
 
         // Tell the M5 to upload our new results
+        
         sendResultsToM5();
 
 
@@ -289,20 +310,16 @@ int checkRxMsgReady(int which_rx) {
 // other robots.  Once set, the robot will keep
 // repeating the transmission.  The tranmission will
 // occur periodically (between 150-300ms).
-void setIRMessage(char* str_to_send, int len) {
+void setIRMessage(byte* data_to_send, int len) {
 
-  // Message must be maximum 32 bytes
-  if ( len <= 32 ) {
-
-
-    // The communication board will always default
-    // to waiting to receive a message to transmit
-    // so we don't need to change the mode.
-    Wire.beginTransmission( IRCOMM_I2C_ADDR );
-    Wire.write( (byte*)str_to_send, len);
-    Wire.endTransmission();
-  }
+  // The communication board will always default
+  // to waiting to receive a message to transmit
+  // so we don't need to change the mode.
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)data_to_send, len);
+  Wire.endTransmission();
 }
+
 
 
 // Get the latest message from the communication board
@@ -316,10 +333,6 @@ void getIRMessage(int which_rx, int n_bytes ) {
     return;
   }
 
-  // Invalid number of message bytes
-  if ( n_bytes < 1 || n_bytes > 32 ) {
-    return;
-  }
 
   // Format mode request for which receiver
   if ( which_rx == 0 ) {
@@ -339,32 +352,15 @@ void getIRMessage(int which_rx, int n_bytes ) {
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  // char array to store message into
-  char buf[32];
-  int count = 0;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, n_bytes );
-  while ( Wire.available() && count <= 32 ) {
-    char c = Wire.read();
-    buf[count] = c;
-    count++;
-  }
+  ir_results_t rx_msg;
+  memset( &rx_msg, 0, sizeof( rx_msg ) );
 
-  // Mainly debugging here.
-  // Need to decide what to do with the char array
-  // once a message has been sent across.
-  if ( count > 0 ) {
-    Serial.print("Received on Rx" );
-    Serial.print( which_rx );
-    Serial.print(":\t");
-    Serial.print( buf  );
-    Serial.println();
-    //Serial.println( buf );
-  }
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_msg ));
+  Wire.readBytes( (byte*)&rx_msg, sizeof( rx_msg ));
 
-  // For this example, we are only expecting a few
-  // chars which are the ID number of the robot
-  // ending the message.  i.e. "3" or "12".
-  // The other robot is just transmitting it's tracker id
-  // as a float, e.g. "3.0"
-  results_data.robotID = atof( buf );
+
+
+  // Transmit the ID we received up to the tracking
+  // system.
+  upload.robotID = rx_msg.robotID;
 }

@@ -293,7 +293,7 @@ void ir_request() {
   } else if ( last_mode.mode == MODE_REPORT_RX_ACTIVITY ) {
     ir_activity_t activity;
     for ( int i = 0; i < 4; i++ ) {
-      activity.rx[i] = ircomm.rx_activity[i];
+      activity.rx[i] = ircomm.rx_vectors[i];
     }
     // Transmit
     Wire.write( (byte*)&activity, sizeof( activity ) );
@@ -309,12 +309,12 @@ void ir_request() {
     // rx2 is -y, and rx3 is -x. We then treat them as
     // vectors, using atan2 to find the resultant
     // direction.  This is relative (local) to the robot.
-    bearing.mag = ircomm.rx_activity[0];
-    bearing.mag += ircomm.rx_activity[1];
-    bearing.mag += ircomm.rx_activity[2];
-    bearing.mag += ircomm.rx_activity[3];
-    float x = (ircomm.rx_activity[0] - ircomm.rx_activity[2]);
-    float y = (ircomm.rx_activity[1] - ircomm.rx_activity[3]);
+    bearing.mag = ircomm.rx_vectors[0];
+    bearing.mag += ircomm.rx_vectors[1];
+    bearing.mag += ircomm.rx_vectors[2];
+    bearing.mag += ircomm.rx_vectors[3];
+    float x = (ircomm.rx_vectors[0] - ircomm.rx_vectors[2]);
+    float y = (ircomm.rx_vectors[1] - ircomm.rx_vectors[3]);
     bearing.theta = atan2( y, x );
 
     // Transmit

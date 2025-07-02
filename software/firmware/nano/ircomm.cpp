@@ -98,6 +98,7 @@ void IRComm_c::init() {
 
     activity[i] = 0;
     rx_activity[i] = 0;
+    rx_vectors[0] = 0;
 
     msg_dt[i] = 0;
     msg_t[i] = millis();
@@ -193,11 +194,12 @@ void IRComm_c::updateActivity() {
 
   } else {
 
-    // No activity?
+    // No activity? Just decay
     for ( int i = 0; i < 4; i++ ) {
       rx_vectors[i] = (rx_vectors[i] * 0.3 ); // + ( 0 * 0.7);
     }
   }
+  // Reset to allow to accumulate over next ACTIVITY_MS period
   rx_activity[0] = rx_activity[1] = rx_activity[2] = rx_activity[3] = 0;
 
 
@@ -928,14 +930,14 @@ void IRComm_c::getNewIRBytes() {
 //    Debugging spurious rx_activity/activity    
 //    disableRx();
 //    Serial.print( n ); Serial.print(",");
-//    Serial.print( (char)rx_buf[rx_index] );Serial.print(",");
-//    Serial.print( (byte)rx_buf[rx_index],BIN );Serial.print(",");
+//    //Serial.print( (char)rx_buf[rx_index] );Serial.print(",");
+//    //Serial.print( (byte)rx_buf[rx_index],BIN );Serial.print(",");
 //    
 //    Serial.print( ir_config.rx_pwr_index ); Serial.print(",");
-//    Serial.print( activity[0] ); Serial.print(",");
-//        Serial.print( activity[1] ); Serial.print(",");
-//            Serial.print( activity[2] ); Serial.print(",");
-//                Serial.print( activity[3] ); Serial.print("\n");
+//    Serial.print( rx_activity[0] ); Serial.print(",");
+//        Serial.print( rx_activity[1] ); Serial.print(",");
+//            Serial.print( rx_activity[2] ); Serial.print(",");
+//                Serial.print( rx_activity[3] ); Serial.print("\n");
 //    Serial.flush();
 //    enableRx();
     
