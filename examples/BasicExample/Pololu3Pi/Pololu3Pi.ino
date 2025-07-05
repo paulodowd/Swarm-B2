@@ -264,7 +264,7 @@ void loop() {
   }
   */
 
-//  reportStatusCSV();
+  reportStatusCSV();
 //  getRxDirection();
 //  getRxActivity();
   
@@ -486,7 +486,7 @@ void getRxActivity() {
   Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
 
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( activity.rx[i]*1000, 4 );
+    Serial.print( activity.rx[i], 4 );
     Serial.print(",");
 
   }

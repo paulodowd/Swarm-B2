@@ -90,7 +90,7 @@ void IRComm_c::init() {
   // Paul 5/7/2025 moved enableTx/disableTx around
   // the transmission process to try and remove some
   // noise on the demodulators.
-  enableTx();
+  //enableTx();
   //disableTx();
 
 
@@ -917,7 +917,17 @@ int IRComm_c::update() {
 
 }
 
+void IRComm_c::update2() {
 
+
+  if ( millis() - led_ts > 100 ) {
+    led_ts = millis();
+    digitalWrite(DEBUG_LED, LOW );
+
+  }
+  getNewIRBytes();
+
+}
 
 // Check for new message in serial buffer
 // Reads in currently available char's, should
@@ -1051,7 +1061,7 @@ boolean IRComm_c::doTransmit() {
 
     // Stop receiving
     disableRx();
-    //enableTx();
+    enableTx();
     // Using Serial.print transmits over
     // IR.  Serial TX is modulated with
     // the 38Khz carrier in hardware.
@@ -1075,7 +1085,7 @@ boolean IRComm_c::doTransmit() {
     // Since we used disableRx(), we need to
     // re-enable the UART and so clear
     // the rx flags and rx_buf
-    //disableTx();
+    disableTx();
     resetRxFlags();
     enableRx();
 
