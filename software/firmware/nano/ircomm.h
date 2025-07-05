@@ -124,7 +124,7 @@ class IRComm_c {
 
     IRComm_c();
     void init();
-    void update();
+    int update();
     void setupTimer2();
     void setRxTimeout();  // how long to listen for?
     void setTxPeriod();   // how often to transmit in periodic mode?

@@ -87,6 +87,9 @@ void IRComm_c::init() {
   memset(ir_msg, 0, sizeof(ir_msg));
 
   // sets up Timer2 to create 38khz/58khz carrier
+  // Paul 5/7/2025 moved enableTx/disableTx around
+  // the transmission process to try and remove some
+  // noise on the demodulators.
   enableTx();
   //disableTx();
 
@@ -138,7 +141,7 @@ void IRComm_c::reportConfiguration() {
 }
 
 void IRComm_c::cyclePowerRx() {
-  
+
   // If the board is configured not to cycle
   // the receiver, we simply update the
   // continue functioning, without changing
@@ -159,11 +162,11 @@ void IRComm_c::cyclePowerRx() {
     // the issue.
     // Although this isn't ideal, it is better
     // than receiving no bytes at all.
-    toggleRxPower();
+    //toggleRxPower(); // Paul 5/7/25 this is causing trouble
     setRxTimeout();
     return;
   }
-  
+
 
   ir_config.rx_pwr_index++;
   rx_cycles++;
@@ -284,9 +287,9 @@ void IRComm_c::resetRxProcess() {
 
   disableRx();
 
-//  // Flush?
-//  unsigned char dummy;
-//  while (UCSR0A & (1 << RXC0)) dummy = UDR0;
+  //  // Flush?
+  //  unsigned char dummy;
+  //  while (UCSR0A & (1 << RXC0)) dummy = UDR0;
 
   memset(rx_buf, 0, sizeof(rx_buf));
   enableRx();
@@ -335,7 +338,7 @@ void IRComm_c::toggleRxPower() {
   // Wait to stabilise when on again
   delayMicroseconds(250);
 
-  // Potentially here, we need to reset 
+  // Potentially here, we need to reset
   // the UART
 }
 
@@ -549,7 +552,7 @@ void IRComm_c::setRxTimeout() {
 
     ir_config.rx_timeout = (unsigned long)t;
 
-  } else {
+  } else { // Not using predict timeout
 
     // Use global and fiRxed parameters
     // to calculate a value
@@ -586,7 +589,9 @@ void IRComm_c::setRxTimeout() {
 void IRComm_c::setTxPeriod() {
 
   // If configured to 0, do nothing
-  if ( DEFAULT_TX_PERIOD == 0 ) return;
+  if ( ir_config.tx_period == 0 ) return;
+
+
 
   float t_mod = (float)random(0, DEFAULT_TX_PERIOD);
   t_mod -= (DEFAULT_TX_PERIOD / 2.0); // centre over 0
@@ -773,7 +778,7 @@ float IRComm_c::getFloatValue(int which) {
       return to receiving.  Any garbled data will simply
       be processed in the byte capture process.
 */
-void IRComm_c::update() {
+int IRComm_c::update() {
 
   // We periodically track update the activity
   // of each receiver to help estimate a bearing
@@ -813,13 +818,14 @@ void IRComm_c::update() {
     // then receive no more bytes (at all!), and be stuck on
     // one receiver (no cycling).
     getNewIRBytes();
-
+    return 1;
 
     if ( IR_DEBUG_OUTPUT ) {
       Serial.println("RX OVERRUN: Waiting for message RX to finish");
     }
 
 
+    // Have we run out of time to receive?
   } else if ( millis() - rx_ts > ir_config.rx_timeout) {
 
     // This means we've exceeded the listening time
@@ -854,7 +860,7 @@ void IRComm_c::update() {
     if ( IR_DEBUG_OUTPUT ) {
       Serial.println(" - cycle Rx power");
     }
-
+    return 2;
 
   } else if ( ir_config.tx_mode == TX_MODE_PERIODIC ) {
     // If we are in PERIODIC mode for transmission,
@@ -866,10 +872,11 @@ void IRComm_c::update() {
     // updated by setTxPeriod() within doTransmit()
 
     if ( ir_config.tx_period == 0 ) {
-      doTransmit();
-      return; // done.
-    } else if ( millis() - tx_ts > ir_config.tx_period ) {
+      //doTransmit();
+      return 3; // done.
 
+
+    } else if ( millis() - tx_ts > ir_config.tx_period ) {
 
       if ( IR_DEBUG_OUTPUT ) {
         Serial.println("TX_MODE_PERIODIC: expired, do Tx");
@@ -882,9 +889,9 @@ void IRComm_c::update() {
       // or let it complete. For now, let's not cycle.
       // doTransmit() calls setTxPeriod()
       doTransmit();
-      return; //done
+      return 4; //done
 
-    } else {
+    } else { // Not time to transmit, get bytes
 
       // If we're not doing a periodic cycle of the
       // recevier, we still need to check for new
@@ -892,19 +899,25 @@ void IRComm_c::update() {
       if ( IR_DEBUG_OUTPUT ) {
         Serial.println("TX_MODE_PERIODIC: checking for new IR bytes");
       }
+
       getNewIRBytes();
+      return 5;
     }
 
-  } else {
+  } else { // Final else, need to get new bytes
 
     if ( IR_DEBUG_OUTPUT ) {
       Serial.println("update(): checking for new IR bytes");
     }
     getNewIRBytes();
+    return 6;
 
   }
+  return 7;
 
 }
+
+
 
 // Check for new message in serial buffer
 // Reads in currently available char's, should
@@ -917,30 +930,31 @@ void IRComm_c::update() {
 // currently available bytes.
 void IRComm_c::getNewIRBytes() {
 
-  while ( Serial.available() ) {
-    int n = Serial.available();
+  //while( Serial.available() ) {
+  if ( Serial.available() ) {
+
     rx_buf[rx_index] = Serial.read();
     byte_ts = millis(); // register when we got this byte
-    digitalWrite(13,HIGH);
+    digitalWrite(13, HIGH);
 
     // Register activity on this receiver, whether pass or fail
     rx_activity[ ir_config.rx_pwr_index ] += 1;
     activity[ ir_config.rx_pwr_index ]++;
-//
-//    Debugging spurious rx_activity/activity    
-//    disableRx();
-//    Serial.print( n ); Serial.print(",");
-//    //Serial.print( (char)rx_buf[rx_index] );Serial.print(",");
-//    //Serial.print( (byte)rx_buf[rx_index],BIN );Serial.print(",");
-//    
-//    Serial.print( ir_config.rx_pwr_index ); Serial.print(",");
-//    Serial.print( rx_activity[0] ); Serial.print(",");
-//        Serial.print( rx_activity[1] ); Serial.print(",");
-//            Serial.print( rx_activity[2] ); Serial.print(",");
-//                Serial.print( rx_activity[3] ); Serial.print("\n");
-//    Serial.flush();
-//    enableRx();
-    
+    //
+    //    Debugging spurious rx_activity/activity
+    //    disableRx();
+    //    Serial.print( n ); Serial.print(",");
+    //    //Serial.print( (char)rx_buf[rx_index] );Serial.print(",");
+    //    //Serial.print( (byte)rx_buf[rx_index],BIN );Serial.print(",");
+    //
+    //    Serial.print( ir_config.rx_pwr_index ); Serial.print(",");
+    //    Serial.print( rx_activity[0] ); Serial.print(",");
+    //        Serial.print( rx_activity[1] ); Serial.print(",");
+    //            Serial.print( rx_activity[2] ); Serial.print(",");
+    //                Serial.print( rx_activity[3] ); Serial.print("\n");
+    //    Serial.flush();
+    //    enableRx();
+
 
     // Start token? If yes, we can start to fill the
     // receiver buffer (rx_buf), and after setting
@@ -1069,7 +1083,9 @@ boolean IRComm_c::doTransmit() {
     // Redundant if tx_mode INTERLEAVED
     setTxPeriod();
     return true;
+
   }
+
 
 }
 

@@ -265,7 +265,7 @@ void loop() {
   */
 
 //  reportStatusCSV();
-  getRxDirection();
+//  getRxDirection();
 //  getRxActivity();
   
 //  for( int i = 0; i < 4; i++ ) {
