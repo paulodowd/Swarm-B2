@@ -133,20 +133,20 @@ typedef struct ir_tx_params {      // 11 bytes
   byte          tx_repeat;         // how many repeated IR transmissions?
   unsigned long tx_period;         // periodic:  current ms period to send messages
   unsigned long tx_period_max;     // maximum tx period allowable
-  bool          tx_desync;          // 0 use tx_period_max, 1 randomise around max
+  bool          tx_desync;          // should tx_period receive small randomisation?
 } ir_tx_params_t;
 
-typedef struct ir_rx_params {        // 18 bytes.
-  bool          rx_cycle;          // 1 for testing
-  bool          rx_cycle_on_rx;    // 1 if message received ok, cycle rx?
-  bool          rx_predict_timeout;// 1 true/false
-  bool          rx_overrun;        // 1 if a start token received, wait to finish? 
-  unsigned long rx_timeout;        // 4 how long to wait in ms before switching receiver?
-  unsigned long rx_timeout_max;    // 4 maximum rx_timeout allowable
-  byte          rx_timeout_multi;  // 4 how many message-lengths for the timeout period?
-  bool          rx_desync;          // 1 should rx_timeout also be randomised?
-  byte          rx_pwr_index;      // 1 Which receiver is active?
-  unsigned long rx_byte_timeout;   // 4 If we haven't received a consecutive byte, timout
+typedef struct ir_rx_params {      // 18 bytes.
+  bool          rx_cycle;          //  total count of rx polling rotations
+  bool          rx_cycle_on_rx;    //  if message received ok, immediately cycle rx?
+  bool          rx_predict_timeout;//  set rx_timeout based on last message length?
+  bool          rx_overrun;        //  if a start token received, wait to finish receiving? 
+  unsigned long rx_timeout;        //  current ms used to wait before switching receiver
+  unsigned long rx_timeout_max;    //  maximum rx_timeout allowable
+  byte          rx_timeout_multi;  //  with prediction, how many message-lengths to wait?
+  bool          rx_desync;         //  should rx_timeout receive small randomisation?
+  byte          rx_pwr_index;      //  Which receiver is active? if cycle is false, sets Rx
+  unsigned long rx_byte_timeout;   //  If we haven't received a consecutive byte, timeout
 } ir_rx_params_t;
 
 
