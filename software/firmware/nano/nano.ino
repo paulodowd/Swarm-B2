@@ -48,7 +48,7 @@ volatile boolean full_reset;
 // Function to receive commands from the master device.
 // This will typically be in the format of a mode change
 // and then any appropriate data.
-void ir_receive( int len ) {
+void i2c_receive( int len ) {
 
 
   // Mode changes are always 1 byte long.  We use these to
@@ -113,14 +113,16 @@ void ir_receive( int len ) {
       Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
 
       // Transfer settings
-      ircomm.ir_config.rx_cycle = rx_settings.rx_cycle;
-      ircomm.ir_config.rx_cycle_on_rx = rx_settings.rx_cycle_on_rx;
+      ircomm.ir_config.rx_cycle           = rx_settings.rx_cycle;
+      ircomm.ir_config.rx_cycle_on_rx     = rx_settings.rx_cycle_on_rx;
       ircomm.ir_config.rx_predict_timeout = rx_settings.rx_predict_timeout;
-      ircomm.ir_config.rx_overrun = rx_settings.rx_overrun;
-      ircomm.ir_config.rx_timeout = rx_settings.rx_timeout;
-      ircomm.ir_config.rx_timeout_multi = rx_settings.rx_timeout_multi;
-      ircomm.ir_config.rx_pwr_index = rx_settings.rx_pwr_index;
-      ircomm.ir_config.rx_byte_timeout = rx_settings.rx_byte_timeout;
+      ircomm.ir_config.rx_overrun         = rx_settings.rx_overrun;
+      ircomm.ir_config.rx_timeout         = rx_settings.rx_timeout;
+      ircomm.ir_config.rx_timeout_max     = rx_settings.rx_timeout_max;
+      ircomm.ir_config.rx_timeout_multi   = rx_settings.rx_timeout_multi;
+      ircomm.ir_config.rx_desync           = rx_settings.rx_desync;
+      ircomm.ir_config.rx_pwr_index       = rx_settings.rx_pwr_index;
+      ircomm.ir_config.rx_byte_timeout    = rx_settings.rx_byte_timeout;
 
     } else {
 
@@ -140,6 +142,8 @@ void ir_receive( int len ) {
       ircomm.ir_config.tx_mode = tx_settings.tx_mode;
       ircomm.ir_config.tx_repeat = tx_settings.tx_repeat;
       ircomm.ir_config.tx_period = tx_settings.tx_period;
+      ircomm.ir_config.tx_period_max = tx_settings.tx_period_max;
+      ircomm.ir_config.tx_desync = tx_settings.tx_desync;
     } else {
 
       // Something has gone wrong. Just
@@ -182,7 +186,7 @@ void ir_receive( int len ) {
 
 // When the 3Pi or Core2 calls an i2c request, this function
 // is executed.
-void ir_request() {
+void i2c_request() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
@@ -347,22 +351,26 @@ void ir_request() {
   } else if ( last_mode.mode == MODE_GET_TX ) {
 
     ir_tx_params_t tx_settings;
-    tx_settings.tx_mode = ircomm.ir_config.tx_mode;
-    tx_settings.tx_repeat = ircomm.ir_config.tx_repeat;
-    tx_settings.tx_period = ircomm.ir_config.tx_period;
+    tx_settings.tx_mode       = ircomm.ir_config.tx_mode;
+    tx_settings.tx_repeat     = ircomm.ir_config.tx_repeat;
+    tx_settings.tx_period     = ircomm.ir_config.tx_period;
+    tx_settings.tx_period_max = ircomm.ir_config.tx_period_max;
+    tx_settings.tx_desync      = ircomm.ir_config.tx_desync;
     Wire.write( (byte*)&tx_settings, sizeof( tx_settings ) );
 
 
   } else if ( last_mode.mode == MODE_GET_RX ) {
     ir_rx_params_t rx_settings;
-    rx_settings.rx_cycle =   ircomm.ir_config.rx_cycle;
-    rx_settings.rx_cycle_on_rx = ircomm.ir_config.rx_cycle_on_rx;
-    rx_settings.rx_predict_timeout = ircomm.ir_config.rx_predict_timeout;
-    rx_settings.rx_overrun = ircomm.ir_config.rx_overrun ;
-    rx_settings.rx_timeout = ircomm.ir_config.rx_timeout;
-    rx_settings.rx_timeout_multi = ircomm.ir_config.rx_timeout_multi;
-    rx_settings.rx_pwr_index = ircomm.ir_config.rx_pwr_index;
-    rx_settings.rx_byte_timeout = ircomm.ir_config.rx_byte_timeout;
+    rx_settings.rx_cycle            = ircomm.ir_config.rx_cycle;
+    rx_settings.rx_cycle_on_rx      = ircomm.ir_config.rx_cycle_on_rx;
+    rx_settings.rx_predict_timeout  = ircomm.ir_config.rx_predict_timeout;
+    rx_settings.rx_overrun          = ircomm.ir_config.rx_overrun ;
+    rx_settings.rx_timeout          = ircomm.ir_config.rx_timeout;
+    rx_settings.rx_timeout_max      = ircomm.ir_config.rx_timeout_max;
+    rx_settings.rx_timeout_multi    = ircomm.ir_config.rx_timeout_multi;
+    rx_settings.rx_desync            = ircomm.ir_config.rx_desync;
+    rx_settings.rx_pwr_index        = ircomm.ir_config.rx_pwr_index;
+    rx_settings.rx_byte_timeout     = ircomm.ir_config.rx_byte_timeout;
     Wire.write( (byte*)&rx_settings, sizeof( rx_settings ) );
 
   }
@@ -389,8 +397,8 @@ void setup() {
 
   // Begin I2C as a slave device.
   Wire.begin( IRCOMM_I2C_ADDR );
-  Wire.onReceive( ir_receive );
-  Wire.onRequest( ir_request );
+  Wire.onReceive( i2c_receive );
+  Wire.onRequest( i2c_request );
 
   // Start the IR communication board.
   ircomm.init();
@@ -441,7 +449,7 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
-
+  
 }
 
 // Enabled/disabled with the #define TEST_ at

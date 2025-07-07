@@ -47,6 +47,14 @@
 #define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4.0)     
 #endif
 
+#ifdef IR_FREQ_58
+#define RX_TIMEOUT_MAX       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
+#endif
+#ifdef IR_FREQ_38
+#define RX_TIMEOUT_MAX       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
+#endif
+
+
 
 // What system should we use for the tranmission?
 // Periodic: Decouples receiving from transmission, meaning
@@ -74,6 +82,10 @@
 #ifdef IR_FREQ_58
 #define DEFAULT_TX_PERIOD (156) // in ms, 0 disables tx
 #endif
+
+// Should we try to break synchrony between robots
+// by randomising the tx period?
+#define TX_desync  0 
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive

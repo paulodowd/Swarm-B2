@@ -56,6 +56,8 @@ unsigned long settings_update_ms = 500;
 
 bool rx[4];
 
+int random_pitch;
+
 void setup() {
   Serial.begin(115200);
 
@@ -70,6 +72,8 @@ void setup() {
   // message
   pinMode(BUZZER_PIN, OUTPUT);
 
+  randomSeed( analogRead(A0) );
+  random_pitch = random( 220, 880);
 
   // Make sure the IR Communication board
   // is reset and ready.
@@ -121,11 +125,11 @@ void loop() {
       int n = checkRxMsgReady( i );
 
       // Old debugging
-      //    Serial.print("Rx " );
-      //    Serial.print(i);
-      //    Serial.print(": ");
-      //    Serial.print( n );
-      //    Serial.println(" bytes ready");
+      //          Serial.print("Rx " );
+      //          Serial.print(i);
+      //          Serial.print(": ");
+      //          Serial.print( n );
+      //          Serial.println(" bytes ready");
 
 
       // If there is a message ready, we use 'n' as
@@ -152,7 +156,7 @@ void loop() {
         // Note, calling this function gets the message
         // from the IR communication board and deletes
         // it from the communication board.
-         getIRMessage( i, n );
+        getIRMessage( i, n );
 
 
       } else {
@@ -164,9 +168,10 @@ void loop() {
 
     // Beep if we got a message
     if ( got_message ) {
-      analogWrite( BUZZER_PIN, 120 );
-      delay(5);
-      analogWrite( BUZZER_PIN, 0);
+      tone(BUZZER_PIN, random_pitch, 10);
+      //      analogWrite( BUZZER_PIN, 120 );
+      //      delay(5);
+      //      analogWrite( BUZZER_PIN, 0);
 
     }
 
@@ -222,14 +227,14 @@ void loop() {
 
     // Let's print what we are going to send to make sure
     // it is sensible.
-//        Serial.print("Going to send: ");
-//        Serial.println( buf );
+    //        Serial.print("Going to send: ");
+    //        Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
-    
+
     setIRMessage(buf, strlen(buf));
 
   }
@@ -237,7 +242,7 @@ void loop() {
 
   // Uncomment below for the example
   // that changes the board configuration
-  /*
+
   if ( millis() - settings_ts > settings_update_ms ) {
     settings_ts = millis();
 
@@ -253,25 +258,29 @@ void loop() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    rx_settings.rx_cycle = !rx_settings.rx_cycle;
-    tx_settings.tx_mode = !tx_settings.tx_mode;
+    //    rx_settings.rx_desync = 0;          // don't randomise
+    //    rx_settings.rx_predict_timeout = 0; // don't optimise
+    //    rx_settings.rx_timeout_max = 2000;  // use 2000ms
 
-    setRxSettings();
-    delay(5);
-    setTxSettings();
+    //    tx_settings.tx_desync = 0;         // don't randomise
+    //    tx_settings.tx_period_max = 2000; // transmit every 2 seconds
+
+    //    setRxSettings();
+    //    delay(5);
+    //    setTxSettings();
 
 
   }
-  */
+
 
   reportStatusCSV();
-//  getRxDirection();
-//  getRxActivity();
-  
-//  for( int i = 0; i < 4; i++ ) {
-//    Serial.print( rx[i] == true ? "1," : "0,"); 
-//  }
-//  Serial.println();
+  //  getRxDirection();
+  //  getRxActivity();
+
+  //  for( int i = 0; i < 4; i++ ) {
+  //    Serial.print( rx[i] == true ? "1," : "0,");
+  //  }
+  //  Serial.println();
   //getSensors();
   delay(250);
 
@@ -288,32 +297,32 @@ void setTxSettings() {
 
   // First, set the mode
   ircomm_mode.mode = MODE_SET_TX;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
   delay(5);
 
   // Now send the struct
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&tx_settings, sizeof( tx_settings ));
   Wire.endTransmission();
-  
+
 }
 
 void setRxSettings() {
 
   // First, set the mode
   ircomm_mode.mode = MODE_SET_RX;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
   delay(5);
 
   // Now send the struct
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&rx_settings, sizeof( rx_settings ));
   Wire.endTransmission();
-  
+
 }
 
 // ask the ir communication board what it's current
@@ -322,20 +331,22 @@ void getRxSettings() {
 
   // Set correct mode.
   ircomm_mode.mode = MODE_GET_RX;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( rx_settings ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_settings ));
   Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
 
   // Show data for debugging
   Serial.println("Rx settings:");
   Serial.print(" - cycle: ");       Serial.println(rx_settings.rx_cycle > 0 ? "true" : "false");
   Serial.print(" - cycle on rx: ");  Serial.println(rx_settings.rx_cycle_on_rx > 0 ? "true" : "false");
+  Serial.print(" - desync rx: ");  Serial.println(rx_settings.rx_desync > 0 ? "true" : "false");
   Serial.print(" - predict timeout: "); Serial.println(rx_settings.rx_predict_timeout > 0 ? "true" : "false");
   Serial.print(" - overrun: ");    Serial.println(rx_settings.rx_overrun > 0 ? "true" : "false");
-  Serial.print(" - timeout: ");    Serial.println(rx_settings.rx_timeout);
+  Serial.print(" - current timeout: ");    Serial.println(rx_settings.rx_timeout);
+  Serial.print(" - timeout max: ");    Serial.println(rx_settings.rx_timeout_max);
   Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.rx_timeout_multi);
   Serial.print(" - power index: ");    Serial.println(rx_settings.rx_pwr_index);
   Serial.print(" - byte timeout: ");    Serial.println(rx_settings.rx_byte_timeout);
@@ -346,18 +357,20 @@ void getTxSettings() {
 
   // Set correct mode.
   ircomm_mode.mode = MODE_GET_TX;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( rx_settings ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_settings ));
   Wire.readBytes( (uint8_t*)&tx_settings, sizeof( tx_settings ));
 
   // Show data for debugging
   Serial.println("Tx settings:");
   Serial.print(" - mode: ");       Serial.println(tx_settings.tx_mode > 0 ? "interleaved" : "periodic");
+  Serial.print(" - desync: ");       Serial.println(tx_settings.tx_desync > 0 ? "true" : "false");
   Serial.print(" - repeat: ");  Serial.println(tx_settings.tx_repeat );
-  Serial.print(" - period: "); Serial.println(tx_settings.tx_period);
+  Serial.print(" - current period: "); Serial.println(tx_settings.tx_period);
+  Serial.print(" - max period: "); Serial.println(tx_settings.tx_period_max);
   Serial.println();
 
 }
@@ -366,7 +379,7 @@ void getTxSettings() {
 // Completely resets the IR Communication board.
 void doResetStatus() {
   ircomm_mode.mode = MODE_RESET_STATUS;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 }
@@ -376,12 +389,12 @@ void doResetStatus() {
 // of receiving messages.  See msg_timings struct.
 void getMsgTimings() {
   ircomm_mode.mode = MODE_REPORT_TIMINGS;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
   ir_msg_timings_t msg_timings;
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( msg_timings ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_timings ));
   Wire.readBytes( (uint8_t*)&msg_timings, sizeof( msg_timings ));
 
   Serial.println("ms between messages:");
@@ -415,25 +428,25 @@ void getMsgTimings() {
 void deleteMessage( int which_rx ) {
   if ( which_rx == 0 ) {
     ircomm_mode.mode = MODE_CLEAR_MSG0;
-    Wire.beginTransmission( IRCOMM_IR_ADDR );
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
     Wire.endTransmission();
 
   } else if ( which_rx == 1 ) {
     ircomm_mode.mode = MODE_CLEAR_MSG1;
-    Wire.beginTransmission( IRCOMM_IR_ADDR );
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
     Wire.endTransmission();
 
   } else if ( which_rx == 2 ) {
     ircomm_mode.mode = MODE_CLEAR_MSG2;
-    Wire.beginTransmission( IRCOMM_IR_ADDR );
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
     Wire.endTransmission();
 
   } else if ( which_rx == 3 ) {
     ircomm_mode.mode = MODE_CLEAR_MSG3;
-    Wire.beginTransmission( IRCOMM_IR_ADDR );
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
     Wire.endTransmission();
 
@@ -453,15 +466,15 @@ void deleteMessage( int which_rx ) {
 void getRxDirection() {
 
   ircomm_mode.mode = MODE_REPORT_RX_DIRECTION;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
   ir_bearing_t bearing;
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( bearing ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( bearing ));
   Wire.readBytes( (uint8_t*)&bearing, sizeof( bearing ));
 
-  bearing_lpf = (bearing_lpf * 0.7)+(bearing.theta*0.3);
+  bearing_lpf = (bearing_lpf * 0.7) + (bearing.theta * 0.3);
   Serial.print( bearing_lpf, 4);
   Serial.print(",");
   Serial.print(bearing.theta, 4);
@@ -477,12 +490,12 @@ void getRxDirection() {
 // calculate the bearing information above.
 void getRxActivity() {
   ircomm_mode.mode = MODE_REPORT_RX_ACTIVITY;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
   ir_activity_t activity;
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( activity ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( activity ));
   Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
 
   for ( int i = 0; i < 4; i++ ) {
@@ -514,7 +527,7 @@ int checkRxMsgReady(int which_rx) {
 
   // Set mode to read back how many bytes are
   // available.
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
@@ -525,7 +538,7 @@ int checkRxMsgReady(int which_rx) {
 
   // Request the message size to be sent across into
   // msg_status
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( msg_status ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_status ));
   Wire.readBytes( (uint8_t*)&msg_status, sizeof( msg_status ));
 
   return msg_status.n_bytes;// 0 : 29
@@ -537,11 +550,11 @@ int checkRxMsgReady(int which_rx) {
 void reportStatusCSV() {
   //         Set mode to status request
   ircomm_mode.mode = MODE_REPORT_STATUS;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( ircomm_status ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
   Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
 
 
@@ -582,11 +595,11 @@ void reportStatus() {
 
   //         Set mode to status request
   ircomm_mode.mode = MODE_REPORT_STATUS;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( ircomm_status ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
   Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
 
 
@@ -623,7 +636,7 @@ void setIRMessage(char* str_to_send, int len) {
     // The communication board will always default
     // to waiting to receive a message to transmit
     // so we don't need to change the mode.
-    Wire.beginTransmission( IRCOMM_IR_ADDR );
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
     Wire.write( (byte*)str_to_send, len);
     Wire.endTransmission();
   }
@@ -637,14 +650,14 @@ void getSensors() {
 
   // Set mode to read fetch sensor data
   ircomm_mode.mode = MODE_REPORT_SENSORS;
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
 
 
   // Read across bytes
-  Wire.requestFrom( IRCOMM_IR_ADDR, sizeof( sensors ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( sensors ));
   Wire.readBytes( (uint8_t*)&sensors, sizeof( sensors ));
 
   Serial.println("Sensors:");
@@ -692,14 +705,14 @@ void getIRMessage(int which_rx, int n_bytes ) {
   }
 
   // Set mode to send across a full message
-  Wire.beginTransmission( IRCOMM_IR_ADDR );
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
   // char array to store message into
   char buf[32];
   int count = 0;
-  Wire.requestFrom( IRCOMM_IR_ADDR, n_bytes );
+  Wire.requestFrom( IRCOMM_I2C_ADDR, n_bytes );
   while ( Wire.available() && count < 32 ) {
     char c = Wire.read();
     buf[count] = c;
@@ -710,20 +723,20 @@ void getIRMessage(int which_rx, int n_bytes ) {
   // Need to decide what to do with the char array
   // once a message has been sent across.
   if ( count > 0 ) {
-//    Serial.print("Received on Rx" );
-//    Serial.print( which_rx );
-//    Serial.print(":\t");
-//    for ( int i = 0; i < count; i++ ) {
-//      Serial.print( buf[i]  );
-//    }
-//    Serial.println();
-//    Serial.print("Bytes: ");
-//    for ( int i = 0; i < count; i++ ) {
-//      Serial.print( (byte)buf[i]  );
-//      Serial.print(",");
-//    }
-//    Serial.println();
-    //Serial.println( buf );
+    Serial.print("Received on Rx" );
+    Serial.print( which_rx );
+    Serial.print(":\t");
+    for ( int i = 0; i < count; i++ ) {
+      Serial.print( buf[i]  );
+    }
+    Serial.println();
+    Serial.print("Bytes: ");
+    for ( int i = 0; i < count; i++ ) {
+      Serial.print( (byte)buf[i]  );
+      Serial.print(",");
+    }
+    Serial.println();
+    Serial.println( buf );
   }
 
 }

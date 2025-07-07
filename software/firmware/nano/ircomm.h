@@ -34,19 +34,24 @@
 // A struct to store the configuration, because in
 // future work I anticipate optimising these parameters
 // in real time.
-typedef struct ircomm_config {
-  byte          tx_mode;           // 0 = periodic, 1 = interleaved
-  byte          tx_repeat;         // how many repeated IR transmissions?
-  unsigned long tx_period;         // how frequently in ms to send messages?
-  boolean       rx_cycle;           // for testing
-  boolean       rx_cycle_on_rx;     // if message received ok, cycle rx?
-  boolean       rx_predict_timeout; // true/false
-  boolean       rx_overrun;        // if a start token received, wait to finish?
-  byte          rx_length;         // current measured length of received messages
-  unsigned long rx_timeout;        // how long to wait in ms before switching receiver?
-  float         rx_timeout_multi;  // how many message-lengths for the timeout period?
-  byte          rx_pwr_index;      // Which receiver is active?
-  unsigned long rx_byte_timeout;   // If we haven't received a consecutive byte, timout
+typedef struct ircomm_config {     // 31 bytes
+  
+  byte          tx_mode;           // 1 // 0 = periodic, 1 = interleaved
+  byte          tx_repeat;         // 1 // how many repeated IR transmissions?
+  unsigned long tx_period;         // 4 // how frequently in ms to send messages?
+  unsigned long tx_period_max;     // 4 // to store the maximum tx period allowable
+  bool          tx_desync;         // 1 // false: use tx_period_max. true: add random time 
+  bool          rx_cycle;          // 1 // how many receiver rotations have occured?
+  bool          rx_cycle_on_rx;    // 1 // if message received ok, cycle rx?
+  bool          rx_predict_timeout;// 1 // adjust rx_timeout based on rx_length?
+  bool          rx_overrun;        // 1 // if a start token received, wait to finish?
+  byte          rx_length;         // 1 // current measured length of received messages
+  unsigned long rx_timeout;        // 4 // current ms wait before switching receiver
+  unsigned long rx_timeout_max;    // 4 // max allowable ms wait between switching receiver
+  bool          rx_desync;          // 1 // randomise rx timeout?
+  byte          rx_timeout_multi;  // 1 // how many message-lengths for the timeout period?
+  byte          rx_pwr_index;      // 1 // Which receiver is active?
+  unsigned long rx_byte_timeout;   // 4 // If we haven't received a consecutive byte, timeout
   
 } ircomm_config_t;
 

@@ -14,18 +14,20 @@ void IRComm_c::init() {
   // set by the #define in ircomm.h, which
   // can then be over-rided by i2c.
   if ( TX_MODE == TX_MODE_PERIODIC ) {
-    ir_config.tx_mode   = TX_MODE_PERIODIC;
-    ir_config.tx_repeat = DEFAULT_TX_REPEAT;
-    ir_config.tx_period = DEFAULT_TX_PERIOD;
+    ir_config.tx_mode       = TX_MODE_PERIODIC;
+    ir_config.tx_repeat     = DEFAULT_TX_REPEAT;
+    ir_config.tx_period_max = DEFAULT_TX_PERIOD;
 
   } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
-    ir_config.tx_mode   = TX_MODE_INTERLEAVED;
-    ir_config.tx_repeat = DEFAULT_TX_REPEAT;
-    ir_config.tx_period = 0; // updated below
+    ir_config.tx_mode       = TX_MODE_INTERLEAVED;
+    ir_config.tx_repeat     = DEFAULT_TX_REPEAT;
+    ir_config.tx_period_max = 0; // updated below
 
   } else {
     // You need to set TX_MODE in ircomm.h
   }
+
+  ir_config.tx_desync = TX_desync;
 
   ir_config.rx_cycle            = RX_CYCLE;
   ir_config.rx_cycle_on_rx      = RX_CYCLE_ON_RX;
@@ -33,6 +35,7 @@ void IRComm_c::init() {
   ir_config.rx_overrun          = RX_OVERRUN;
   ir_config.rx_length           = RX_DEFAULT_MSG_LEN;
   ir_config.rx_timeout          = 0; // updated below
+  ir_config.rx_timeout_max     = RX_TIMEOUT_MAX;
   ir_config.rx_timeout_multi    = RX_PREDICT_MULTIPLIER;
   ir_config.rx_pwr_index        = 0;
   ir_config.rx_byte_timeout     = MS_BYTE_TIMEOUT;
@@ -513,7 +516,7 @@ uint16_t IRComm_c::CRC16( byte * bytes, byte len ) {
   return crc;
 }
 
-// Attempting an asynchronous send
+// Attempting an desynchronous send
 // and listen procedure because we
 // can't do both at the same time.
 // https://lucidar.me/en/serialib/most-used-baud-rates-table/
@@ -522,6 +525,8 @@ uint16_t IRComm_c::CRC16( byte * bytes, byte len ) {
 // 1.042ms per byte.
 void IRComm_c::setRxTimeout() {
 
+  float t;
+
   // Is the board configured to dynamically adjust the
   // rx_timeout value depending on the length of the
   // messages it is receiving?
@@ -529,7 +534,7 @@ void IRComm_c::setRxTimeout() {
 
     // What is the length of the messages we are
     // receiving?
-    float t = (float)ir_config.rx_length;
+    t = (float)ir_config.rx_length;
 
     // How many full message-lengths to listen for?
     t *= (float)ir_config.rx_timeout_multi;
@@ -543,43 +548,27 @@ void IRComm_c::setRxTimeout() {
     t *= MS_PER_BYTE_38KHZ; // How many ms per byte to transmit?
 #endif
 
-    //float mod = t;
-    //mod *= 0.25; // take 25% of the total time, and we'll add
-    // this on again to desync robots
-    //mod = (float)random(0, (long)mod);
-    //t += mod;
 
-
-    ir_config.rx_timeout = (unsigned long)t;
 
   } else { // Not using predict timeout
 
     // Use global and fiRxed parameters
     // to calculate a value
-#ifdef IR_FREQ_58
-    float t = (float)(MS_PER_BYTE_58KHZ);
-#endif
-#ifdef IR_FREQ_38
-    float t = (float)(MS_PER_BYTE_38KHZ);
-#endif
-
-    t *= (float)RX_DEFAULT_MSG_LEN;
-    t *= (float)RX_PREDICT_MULTIPLIER;
-
-    // Insert random delay to help
-    // break up synchronous tranmission
-    // between robots.
-    //float mod = t;
-    //mod *= 0.25; // take 25% of the total time, and we'll add
-    // this on again to desync robots
-    //mod = (float)random(0, (long)mod);
-    //t += mod;
-
-
-    ir_config.rx_timeout = (unsigned long)t;
-
+    t = (float)(ir_config.rx_timeout_max);
 
   }
+
+  if( ir_config.rx_desync == true ) {
+    float mod = t;
+    mod *= 0.25; // take 25% of the total time
+    // add modifier between 0: mod
+    mod = (float)random(0, (long)mod);
+    mod = mod - (mod/2.0); // center
+    t += mod;
+  }
+
+
+  ir_config.rx_timeout = (unsigned long)t;
 
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
@@ -589,20 +578,23 @@ void IRComm_c::setRxTimeout() {
 void IRComm_c::setTxPeriod() {
 
   // If configured to 0, do nothing
-  if ( ir_config.tx_period == 0 ) return;
-
-
-
-  float t_mod = (float)random(0, DEFAULT_TX_PERIOD);
-  t_mod -= (DEFAULT_TX_PERIOD / 2.0); // centre over 0
-  t_mod *= 0.25; // downscale effect
+  if ( ir_config.tx_period_max == 0 ) return;
 
   // Set tx period as default
-  float t = DEFAULT_TX_PERIOD;
+  float t = ir_config.tx_period_max;
 
-  // break up synchronous tranmission
-  // between robots..
-  t += t_mod;
+  if ( ir_config.tx_desync == true ) {
+
+    float t_mod = (float)random(0, ir_config.tx_period_max);
+    t_mod -= (float)(ir_config.tx_period_max / 2.0); // centre over 0
+    t_mod *= 0.25; // downscale effect
+
+    // break up synchronous tranmission
+    // between robots..
+    t += t_mod;
+    
+  }
+
 
   ir_config.tx_period = (unsigned long)t;
 
@@ -917,17 +909,6 @@ int IRComm_c::update() {
 
 }
 
-void IRComm_c::update2() {
-
-
-  if ( millis() - led_ts > 100 ) {
-    led_ts = millis();
-    digitalWrite(DEBUG_LED, LOW );
-
-  }
-  getNewIRBytes();
-
-}
 
 // Check for new message in serial buffer
 // Reads in currently available char's, should
