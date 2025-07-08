@@ -47,7 +47,7 @@ volatile ir_results_t robot_data;
 
 #define BUZZER_PIN 6
 
-
+int random_tone;
 
 
 // A data structure to commmunicate
@@ -91,7 +91,8 @@ void setup() {
   memset( (byte*)&results_data, 0, sizeof( results_data ));
   memset( (byte*)&upload, 0, sizeof( upload ));
   
-
+  randomSeed( analogRead(A0 ));
+  random_tone = random( 220, 880);
 
   // Make sure the IR Communication board
   // is reset and ready.
@@ -240,10 +241,7 @@ void loop() {
 
     // Beep if we got a message
     if ( got_message ) {
-      analogWrite( BUZZER_PIN, 120 );
-      delay(5);
-      analogWrite( BUZZER_PIN, 0);
-
+      tone( BUZZER_PIN, random_tone, 10 );
     }
 
   }

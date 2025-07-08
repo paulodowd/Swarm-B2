@@ -76,7 +76,7 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (140) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
