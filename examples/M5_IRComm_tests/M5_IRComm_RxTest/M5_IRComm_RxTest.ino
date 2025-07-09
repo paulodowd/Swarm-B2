@@ -49,8 +49,8 @@ void setup() {
 
 void loop() {
 
-  // Periodically check the tx settings
-  // to see if the board is resetting
+  // Periodically check if a message has
+  // been received.  
   if( millis() - check_message_ts > 250 ) {
     check_message_ts = millis();
     
