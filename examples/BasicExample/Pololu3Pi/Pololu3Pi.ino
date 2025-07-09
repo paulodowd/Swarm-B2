@@ -71,8 +71,8 @@ void setup() {
   // hear when a robot is receiving a
   // message
   pinMode(BUZZER_PIN, OUTPUT);
-
-  randomSeed( analogRead(A0) );
+  
+  initRandomSeed();
   random_pitch = random( 220, 880);
 
   // Make sure the IR Communication board
@@ -86,7 +86,20 @@ void setup() {
 
 
 }
+void initRandomSeed() {
+  pinMode(A1, INPUT);
+  byte r = 0x00;
+  for ( int i = 0; i < 8; i++ ) {
+    byte b = (byte)analogRead(A1);
+    b = b & 0x01;
+    //Serial.println(b, BIN);
 
+    r |= (b << i);
+    delayMicroseconds(10);
+  }
+  //Serial.println(r, BIN);
+  randomSeed( r );
+}
 
 void loop() {
 
@@ -168,7 +181,7 @@ void loop() {
 
     // Beep if we got a message
     if ( got_message ) {
-      tone(BUZZER_PIN, random_pitch, 10);
+      //tone(BUZZER_PIN, random_pitch, 10);
       //      analogWrite( BUZZER_PIN, 120 );
       //      delay(5);
       //      analogWrite( BUZZER_PIN, 0);
@@ -235,7 +248,7 @@ void loop() {
     // It will keep doing this until a new call to this
     // function is made.
 
-    setIRMessage(buf, strlen(buf));
+    //setIRMessage(buf, strlen(buf));
 
   }
 
@@ -249,10 +262,10 @@ void loop() {
     // To be safe, lets first get the current settings
     // from the board.  These update the structs declared
     // in the global scope.
-    getRxSettings();
-    delay(10);
-    getTxSettings();
-    delay(10);
+    //getRxSettings();
+    //delay(10);
+    //getTxSettings();
+    //delay(10);
 
     // Let's now modify the structs and send it back.
     // We should see the change on the next iteration
@@ -263,7 +276,7 @@ void loop() {
     //    rx_settings.rx_timeout_max = 2000;  // use 2000ms
 
     //    tx_settings.tx_desync = 0;         // don't randomise
-    //    tx_settings.tx_period_max = 2000; // transmit every 2 seconds
+    //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
 
     //    setRxSettings();
     //    delay(5);
@@ -273,7 +286,7 @@ void loop() {
   }
 
 
-  reportStatusCSV();
+  //reportStatusCSV();
   //  getRxDirection();
   //  getRxActivity();
 
@@ -723,8 +736,11 @@ void getIRMessage(int which_rx, int n_bytes ) {
   // Need to decide what to do with the char array
   // once a message has been sent across.
   if ( count > 0 ) {
-    Serial.print("Received on Rx" );
+    Serial.print("Received on Rx " );
+    
     Serial.print( which_rx );
+    Serial.print(" at ");
+    Serial.print( millis() );
     Serial.print(":\t");
     for ( int i = 0; i < count; i++ ) {
       Serial.print( buf[i]  );
@@ -736,7 +752,7 @@ void getIRMessage(int which_rx, int n_bytes ) {
       Serial.print(",");
     }
     Serial.println();
-    Serial.println( buf );
+//    Serial.println( buf );
   }
 
 }
