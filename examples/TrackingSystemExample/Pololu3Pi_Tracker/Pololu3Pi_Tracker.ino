@@ -25,24 +25,25 @@ int robot_id = 0;
 //  - if you set this to 0, the tracking system will just log the data as a result.
 
 
+// We're currenting using the same 32byte struct
+// to send information over IR messaging and with
+// the tracking system.  So we have this one struct
+// typedef, we create two versions of it.
+#define N_FLOATS 6
 typedef struct tracker_upload {
-int16_t robotID;
-  int16_t Gen;
-  float Fitness;
-  float Vector[ 6 ];
-} tracker_upload_t;
-tracker_upload_t upload;
-
-#define N_BYTES 6
-typedef struct i2c_results {
   int16_t robotID;
   int16_t Gen;
   float Fitness;
-  float Vector[ N_BYTES ];
-} ir_results_t;
+  float Vector[ N_FLOATS ];
+} tracker_upload_t;
 
-volatile ir_results_t results_data;
-volatile ir_results_t robot_data;
+// We use this struct to send data up to
+// the tracking system.
+tracker_upload_t upload;
+
+// We use this struct to send data to the
+// IR communication board
+volatile tracker_upload_t robot_data;
 
 
 #define BUZZER_PIN 6
@@ -88,9 +89,8 @@ void setup() {
 
   // Initialise our results data to known
   // values.
-  memset( (byte*)&results_data, 0, sizeof( results_data ));
   memset( (byte*)&upload, 0, sizeof( upload ));
-  
+
   initRandomSeed();
   random_tone = random( 220, 880);
 
@@ -125,7 +125,7 @@ void setup() {
   robot_data.robotID = tracking_data.marker_id;
   robot_data.Gen = 0;
   robot_data.Fitness = random(0, 100);
-  for ( int i = 0; i < N_BYTES; i++ ) robot_data.Vector[i] = random(0, 100);
+  for ( int i = 0; i < N_FLOATS; i++ ) robot_data.Vector[i] = random(0, 100);
   setIRMessage( (byte*)&robot_data, sizeof( robot_data ) );
 
 
@@ -192,14 +192,13 @@ void loop() {
 
     //    Serial.println("Loop");
     getTrackingDataFromM5();
-    
     if ( tracking_data.valid ) {
       if ( tracking_data.marker_id > 0 && tracking_data.marker_id < 200 ) {
         robot_id = tracking_data.marker_id;
         robot_data.robotID = robot_id;
         robot_data.Gen = 0;
         robot_data.Fitness = random(0, 100);
-        for ( int i = 0; i < N_BYTES; i++ ) robot_data.Vector[i] = random(0, 100);
+        for ( int i = 0; i < N_FLOATS; i++ ) robot_data.Vector[i] = random(0, 100);
         setIRMessage( (byte*)&robot_data, sizeof( robot_data ) );
 
       }
@@ -235,7 +234,7 @@ void loop() {
         getIRMessage( i, n );
 
         // Tell the M5 to upload our new results
-        
+
         sendResultsToM5();
 
 
@@ -366,7 +365,7 @@ void getIRMessage(int which_rx, int n_bytes ) {
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  ir_results_t rx_msg;
+  tracker_upload_t rx_msg;
   memset( &rx_msg, 0, sizeof( rx_msg ) );
 
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_msg ));
