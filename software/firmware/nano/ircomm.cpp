@@ -39,6 +39,7 @@ void IRComm_c::init() {
   ir_config.rx_timeout_multi    = RX_PREDICT_MULTIPLIER;
   ir_config.rx_pwr_index        = 0;
   ir_config.rx_byte_timeout     = MS_BYTE_TIMEOUT;
+  ir_config.rx_desync            = RX_DESYNC;
 
 
   setRxTimeout();

@@ -91,7 +91,7 @@ void setup() {
   memset( (byte*)&results_data, 0, sizeof( results_data ));
   memset( (byte*)&upload, 0, sizeof( upload ));
   
-  randomSeed( analogRead(A0 ));
+  initRandomSeed();
   random_tone = random( 220, 880);
 
   // Make sure the IR Communication board
@@ -133,6 +133,21 @@ void setup() {
   check_message_ts = millis();
 
 
+}
+
+void initRandomSeed() {
+  pinMode(A1, INPUT);
+  byte r = 0x00;
+  for ( int i = 0; i < 8; i++ ) {
+    byte b = (byte)analogRead(A1);
+    b = b & 0x01;
+    //Serial.println(b, BIN);
+
+    r |= (b << i);
+    delayMicroseconds(10);
+  }
+  //Serial.println(r, BIN);
+  randomSeed( r );
 }
 
 
@@ -177,6 +192,7 @@ void loop() {
 
     //    Serial.println("Loop");
     getTrackingDataFromM5();
+    
     if ( tracking_data.valid ) {
       if ( tracking_data.marker_id > 0 && tracking_data.marker_id < 200 ) {
         robot_id = tracking_data.marker_id;

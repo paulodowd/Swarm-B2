@@ -33,6 +33,7 @@
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
 #define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
+#define RX_DESYNC             true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
@@ -76,7 +77,7 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (140) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (160) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
@@ -85,7 +86,7 @@
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_desync  0 
+#define TX_desync  1 
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
@@ -115,8 +116,8 @@
 // use one of these.  
 // We can't use 0x00 because that is a string null
 // character, which we're using with strlen()
-#define START_TOKEN '*'     //  0x2A  0b00101010
-#define CRC_TOKEN   '@'     // '@'  0b01000000
+#define START_TOKEN '~'     //  
+#define CRC_TOKEN   '`'     // 
 
 
 
