@@ -117,7 +117,7 @@
 // We can't use 0x00 because that is a string null
 // character, which we're using with strlen()
 #define START_TOKEN '~'     //  
-#define CRC_TOKEN   '`'     // 
+#define CRC_TOKEN   '}'     // 
 
 
 
