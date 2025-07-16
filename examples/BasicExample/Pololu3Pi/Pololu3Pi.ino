@@ -137,12 +137,12 @@ void loop() {
       // to get from the IR Communication board
       int n = checkRxMsgReady( i );
 
-      // Old debugging
-      //          Serial.print("Rx " );
-      //          Serial.print(i);
-      //          Serial.print(": ");
-      //          Serial.print( n );
-      //          Serial.println(" bytes ready");
+//       Old debugging
+//                Serial.print("Rx " );
+//                Serial.print(i);
+//                Serial.print(": ");
+//                Serial.print( n );
+//                Serial.println(" bytes ready");
 
 
       // If there is a message ready, we use 'n' as
@@ -181,7 +181,7 @@ void loop() {
 
     // Beep if we got a message
     if ( got_message ) {
-      //tone(BUZZER_PIN, random_pitch, 10);
+      tone(BUZZER_PIN, random_pitch, 10);
       //      analogWrite( BUZZER_PIN, 120 );
       //      delay(5);
       //      analogWrite( BUZZER_PIN, 0);
@@ -239,16 +239,16 @@ void loop() {
 
 
     // Let's print what we are going to send to make sure
-    // it is sensible.
-    //        Serial.print("Going to send: ");
-    //        Serial.println( buf );
+//    // it is sensible.
+//            Serial.print("Going to send: ");
+//            Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
 
-    //setIRMessage(buf, strlen(buf));
+    setIRMessage(buf, strlen(buf));
 
   }
 
@@ -286,7 +286,7 @@ void loop() {
   }
 
 
-  //reportStatusCSV();
+  reportStatusCSV();
   //  getRxDirection();
   //  getRxActivity();
 
