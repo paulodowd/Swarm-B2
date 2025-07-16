@@ -160,11 +160,11 @@ int getTrackingDataFromM5() {
   Serial.println("Got from tracker:");
   Serial.print( tracking_data.marker_id );
   Serial.print(",");
-  Serial.print( tracking_data.x );
+  Serial.print( tracking_data.x,4 );
   Serial.print(",");
-  Serial.print( tracking_data.y );
+  Serial.print( tracking_data.y,4 );
   Serial.print(",");
-  Serial.print( tracking_data.theta );
+  Serial.print( tracking_data.theta,4 );
   Serial.print(",");
   Serial.print( tracking_data.valid );
   Serial.println("");

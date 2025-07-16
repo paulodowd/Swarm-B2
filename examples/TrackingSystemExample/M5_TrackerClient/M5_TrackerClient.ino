@@ -115,20 +115,20 @@ void setup() {
   //Serial.print("Waiting for WiFi... ");
 
   while (WiFiMulti.run() != WL_CONNECTED) {
-//    Serial.print(".");
+    //    Serial.print(".");
     delay(500);
   }
 
-//https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/network/esp_wifi.html
-  Serial.println( esp_wifi_set_max_tx_power(8) );
+  //https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/network/esp_wifi.html
+  //  Serial.println( esp_wifi_set_max_tx_power(8) );
 
-//  Serial.println("");
-//  Serial.println("WiFi connected");
-//  Serial.println("IP address: ");
-//  Serial.println(WiFi.localIP());
+  //  Serial.println("");
+  //  Serial.println("WiFi connected");
+  //  Serial.println("IP address: ");
+  //  Serial.println(WiFi.localIP());
 
   local_ip = WiFi.localIP();
-//  Serial.println( local_ip[3] );
+  //  Serial.println( local_ip[3] );
 
   // If we are not using the screen for anything else,
   // we only need to call drawAruCo once.
@@ -154,21 +154,30 @@ void loop() {
     tracker_update_ts = millis();
 
     if ( client.connected() ) {
-      if ( client.available() >= sizeof( tracker_packet_t ) ) {
 
-        client.readBytes( (uint8_t*)&tracker_data, sizeof( tracker_packet_t) );
-//        Serial.print( tracker_data.marker_id ); Serial.print(",");
-//        Serial.print( tracker_data.x ); Serial.print(",");
-//        Serial.print( tracker_data.y ); Serial.print(",");
-//        Serial.print( tracker_data.theta ); Serial.print(",");
-//        Serial.print( tracker_data.valid ); Serial.print(",");
-//        Serial.println();
+      int n_packets = 0;
+      if ( client.available() ) {
 
+        // This while loop is attempting to clear out any old data
+        // in the buffer to only get the latest packet.
+        while ( client.available() >= sizeof( tracker_packet_t ) ) {
+
+
+          client.readBytes( (uint8_t*)&tracker_data, sizeof( tracker_packet_t) );
+          //        Serial.print( tracker_data.marker_id ); Serial.print(",");
+          //        Serial.print( tracker_data.x ); Serial.print(",");
+          //        Serial.print( tracker_data.y ); Serial.print(",");
+          //        Serial.print( tracker_data.theta ); Serial.print(",");
+          //        Serial.print( tracker_data.valid ); Serial.print(",");
+          //        Serial.println();
+          n_packets++;
+        }
+//        Serial.print("Read packets: "); Serial.println(n_packets);
       } else {
         // No data to receive
       }
     } else { // client not connected/disconnected
-      
+
       // indicate that we've lost connection to the 3pi
       tracker_data.valid = 0;
       client.stop();
@@ -178,27 +187,27 @@ void loop() {
 
 
   // This flag is toggled by the i2c receive interupt.
-  // This flag becomes true if the 3Pi+ has uploaded 
+  // This flag becomes true if the 3Pi+ has uploaded
   // a new i2c_results_t struct.  So we don't need to
-  // do much here, just communicate the struct over 
+  // do much here, just communicate the struct over
   // tcp/ip and toggle the flag back to false
   if ( upload_new_results ) {
     if ( client.connected() ) {
 
-//      Serial.print("Received from robot: ");
-//      Serial.println( results_data.robotID );
+      //      Serial.print("Received from robot: ");
+      //      Serial.println( results_data.robotID );
 
       int err = client.write( (uint8_t*)&results_data, sizeof( results_data ) );
 
       if ( err == sizeof( results_data ) ) {
         // Upload was successful, toggle flag.
         upload_new_results = false;
-//        Serial.println("Sent new results!");
+        //        Serial.println("Sent new results!");
 
       } else {
         // We will need to try this again on the
         // next iteration of loop().
-//        Serial.println("Error sending results");
+        //        Serial.println("Error sending results");
       }
 
 
@@ -212,7 +221,7 @@ void loop() {
 
   // Other code to run could go here
   // ...
-  
+
 }
 
 
@@ -324,7 +333,7 @@ bool connectClient() {
 
   unsigned long start_time = millis();
   // Connect to the tracking system.
-//  Serial.println("Connecting to tracking system");
+  //  Serial.println("Connecting to tracking system");
   int err;
 
   err = client.connect( server_ip, server_port );
@@ -334,8 +343,8 @@ bool connectClient() {
   return err;
 }
 /*
-// This is useful for debugging the wifi.
-void WiFiEvent(WiFiEvent_t event) {
+  // This is useful for debugging the wifi.
+  void WiFiEvent(WiFiEvent_t event) {
   Serial.printf("[WiFi-event] event: %d\n", event);
 
   switch (event) {
@@ -423,5 +432,5 @@ void WiFiEvent(WiFiEvent_t event) {
       break;
     default: break;
   }
-}
+  }
 */
