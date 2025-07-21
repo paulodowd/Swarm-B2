@@ -1,5 +1,5 @@
-#ifndef _IR_PARSER_H
-#define _IR_PARSER_H
+#ifndef IR_PARSER_H
+#define IR_PARSER_H
 
 #include <avr/io.h>
 #include "Arduino.h"
@@ -9,17 +9,19 @@ class IRParser_c {
 
   public:
 
-    byte rx_index;             // tracks the progress of receiving bytes
-    byte header_len;           // message length declared as 2nd byte
+    byte buf_index;           // tracks the progress of receiving bytes
+    byte header_len;          // message length declared as 2nd byte
     bool GOT_START_TOKEN;     // have we started to receive a message?
     byte buf[MAX_BUF];        // buffer to store the incoming message
     byte msg[MAX_MSG];
+    byte msg_len;
     unsigned long timeout_ts; // timestamp to watch for a lapse in receiving bytes
 
     IRParser_c();
 
     void reset();
     int getNextByte();
+    void copyMsg( byte * dest );
 
     char CRC8(byte * bytes, byte len);
     uint16_t CRC16(byte * bytes, byte len);
@@ -32,7 +34,7 @@ class IRParser_c {
     // and suffix it with the 16 bit CRC.
     // The start token and length are included in
     // the CRC processing.
-    int formatIRMessage( char * tx_buf, const char * msg, byte len  );
+    int formatIRMessage( byte * tx_buf, const byte * msg, byte len  );
 
     
 };

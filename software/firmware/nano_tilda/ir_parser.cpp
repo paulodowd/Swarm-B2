@@ -6,20 +6,33 @@ IRParser_c::IRParser_c() {
 }
 
 void IRParser_c::reset() {
-  rx_index = 0;
+  buf_index = 0;
   header_len = 0;
   GOT_START_TOKEN = false;
-  memset( buf, 0, sizeof( buf ));
+  //memset( buf, 0, sizeof( buf ));
+}
+
+void IRParser_c:: copyMsg( byte * dest ) {
+  memset( dest, 0, MAX_MSG );
+
+  if ( msg_len <= 0 || msg_len > MAX_MSG ) {
+    return;
+  } else {
+    memcpy( dest, msg, msg_len );
+  }
+
 }
 
 int IRParser_c::getNextByte( ) {
+
+  int status = 0;
 
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
   // function iteratively and fast.
   if ( Serial.available() ) {
 
-    buf[ rx_index ] = Serial.read();
+    byte b = Serial.read();
     timeout_ts = millis();
 
     // If we receive the start token, we will
@@ -28,39 +41,56 @@ int IRParser_c::getNextByte( ) {
     // any message that was in progress will
     // be terminated and the receipt is started
     // again
-    if ( buf[rx_index] == START_TOKEN ) {
-      rx_index = 0;
+    if ( b == START_TOKEN ) {
 
       // If we already had the start token...
       if ( GOT_START_TOKEN ) {
         // ERROR: message too short
-        //reset();
-        return -1;
-      }
+        reset();
+        buf[ buf_index ] = b;
+        GOT_START_TOKEN = true;
 
-      // Register that we've got the start
-      // token.
-      GOT_START_TOKEN = true;
+        // Not a critical error, we can continue
+        // and so increase the buf_index
+        status = -1;
+      } else {
+
+        // Register that we've got the start
+        // token.
+        buf[ buf_index ] = b;
+        GOT_START_TOKEN = true;
+        status = 1;
+      }
+    } else {
+      buf[buf_index] = b;
     }
 
     // The byte immediately after the start
     // token should be the length of the
     // incoming message
-    if ( rx_index == 1 ) {
+    if ( buf_index == 1 ) {
 
       // buf is byte, therefore unsigned 0:255
-      if ( buf[ rx_index ] > MAX_MSG || buf[rx_index] < 5) {
+      // We check that the value of the length of
+      // the message set in the header is within
+      // the expected range.
+      if ( buf[ buf_index ] > MAX_BUF || buf[buf_index] < 5) {
         // ERROR: bad incoming message format
         reset();
-        return -2;
+        status = -2;
+
+        // For a critical error, we don't
+        // allow buf_index to increment and
+        // return here.
+        return status;
       } else {
-        header_len = buf[ rx_index ];
+        header_len = buf[ buf_index ];
       }
     }
 
 
     // Prepare for the next byte
-    rx_index++;
+    if ( GOT_START_TOKEN ) buf_index++;
 
 
 
@@ -70,10 +100,10 @@ int IRParser_c::getNextByte( ) {
     // Note, it has to be more than 4, because
     // 4 is the start token, length, CRCx2
     // header_len will equal 0 whenever reset()
-    // has been called, prior to rx_index == 1
+    // has been called, prior to buf_index == 1
     if ( header_len > 0 ) {
 
-      if ( rx_index >= header_len ) {
+      if ( buf_index >= header_len ) {
 
         // Finished receiving, check the CRC
 
@@ -89,49 +119,68 @@ int IRParser_c::getNextByte( ) {
           // Got message :)
           memset( msg, 0, sizeof(msg) );
           memcpy( msg, buf + 2, header_len - 4);
-          return 2;
+          msg_len = header_len - 4;
+          reset();
+          status = header_len;
+          return status;
 
         } else {
 
           // ERROR, CRC mismatch
           reset();
-          return -3;
+
+
+          // For a critical error, we don't
+          // allow buf_index to increment and
+          // return here.
+          status = -3;
+          return status;
         }
 
       }
     }
 
-    if ( rx_index >= MAX_BUF ) {
+    if ( buf_index >= MAX_BUF ) {
       // ERROR: We've exceeded the buffer
       reset();
-      return -4;
+
+      // For a critical error, we don't
+      // allow buf_index to increment and
+      // return here.
+      status = -4;
+      return status;
+
     }
 
     // We simply received a new byte, but not
     // a new message.
-    return 1;
-    
+    status = 1;
+    return status;
+
   } else {
 
-    // No byte activity
-    return 0;
+    // No byte activity, return 0
+    status = 0;
+    return status;
   }
+
+  return status;
 
 }
 
 
 
-int IRParser_c::formatIRMessage( char * tx_buf, const char * msg, byte len  ) {
+int IRParser_c::formatIRMessage( byte * tx_buf, const byte * msg, byte len  ) {
   if ( len + 4 > MAX_BUF ) {
 
     // ERROR, formatted messsage would be too long
-    return 0;
+    return -1;
   }
 
   if ( tx_buf == NULL || msg == NULL || len == 0 ) {
 
     // ERROR, improper arguments
-    return 0;
+    return -1;
   }
 
   // Clear out tx_buf
@@ -169,7 +218,6 @@ int IRParser_c::formatIRMessage( char * tx_buf, const char * msg, byte len  ) {
 
   // Final length
   return (len + 4);
-
 }
 
 

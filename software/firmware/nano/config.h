@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-#define IR_FREQ_38  // For chip TSDP34138
-//#define IR_FREQ_58    // For chip TSDP34156
+//#define IR_FREQ_38  // For chip TSDP34138
+#define IR_FREQ_58    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -66,8 +66,8 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // tx periodically, timing set below
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
-#define TX_MODE (TX_MODE_PERIODIC)
-//#define TX_MODE (TX_MODE_INTERLEAVED)
+//#define TX_MODE (TX_MODE_PERIODIC)
+#define TX_MODE (TX_MODE_INTERLEAVED)
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -77,7 +77,7 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (160) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58

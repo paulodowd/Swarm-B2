@@ -9,7 +9,6 @@
 #include <Wire.h>
 #include "ircomm.h"
 #include "ircomm_i2c.h"
-#include "ir_parser.h"
 
 
 // Test/Debug modes
@@ -38,7 +37,6 @@ unsigned long test_ts;
 
 // Used to control the IR communication.
 IRComm_c ircomm;
-IRParser_c parser;
 
 // Used to track requests made to
 // the board over i2c
@@ -102,29 +100,17 @@ void i2c_receive( int len ) {
 
 
     } else if ( new_mode.mode == MODE_CLEAR_HIST ) {
-      ircomm.hist[0] = 0;
-      ircomm.hist[1] = 0;
-      ircomm.hist[2] = 0;
-      ircomm.hist[3] = 0;
+//      ircomm.hist[0] = 0;
+//      ircomm.hist[1] = 0;
+//      ircomm.hist[2] = 0;
+//      ircomm.hist[3] = 0;
     }
 
   } else if ( last_mode.mode == MODE_SET_RX ) {
 
     if ( len == sizeof( ir_rx_params_t ) ) {
-      ir_rx_params_t rx_settings;
-      Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
-
-      // Transfer settings
-      ircomm.ir_config.rx_cycle           = rx_settings.rx_cycle;
-      ircomm.ir_config.rx_cycle_on_rx     = rx_settings.rx_cycle_on_rx;
-      ircomm.ir_config.rx_predict_timeout = rx_settings.rx_predict_timeout;
-      ircomm.ir_config.rx_overrun         = rx_settings.rx_overrun;
-      ircomm.ir_config.rx_timeout         = rx_settings.rx_timeout;
-      ircomm.ir_config.rx_timeout_max     = rx_settings.rx_timeout_max;
-      ircomm.ir_config.rx_timeout_multi   = rx_settings.rx_timeout_multi;
-      ircomm.ir_config.rx_desync           = rx_settings.rx_desync;
-      ircomm.ir_config.rx_pwr_index       = rx_settings.rx_pwr_index;
-      ircomm.ir_config.rx_byte_timeout    = rx_settings.rx_byte_timeout;
+      
+      Wire.readBytes( (uint8_t*)&ircomm.config.rx, sizeof( ircomm.config.rx ));
 
     } else {
 
@@ -137,15 +123,7 @@ void i2c_receive( int len ) {
 
   } else if ( last_mode.mode == MODE_SET_TX ) {
     if ( len == sizeof( ir_tx_params_t ) ) {
-      ir_tx_params_t tx_settings;
-      Wire.readBytes( (uint8_t*)&tx_settings, sizeof( tx_settings ));
-
-      // Transfer settings here
-      ircomm.ir_config.tx_mode = tx_settings.tx_mode;
-      ircomm.ir_config.tx_repeat = tx_settings.tx_repeat;
-      ircomm.ir_config.tx_period = tx_settings.tx_period;
-      ircomm.ir_config.tx_period_max = tx_settings.tx_period_max;
-      ircomm.ir_config.tx_desync = tx_settings.tx_desync;
+      Wire.readBytes( (uint8_t*)&ircomm.config.tx, sizeof( ircomm.config.tx ));
     } else {
 
       // Something has gone wrong. Just
@@ -180,7 +158,7 @@ void i2c_receive( int len ) {
 
       //Serial.print("I2C Received:" );
       //Serial.println(buf);
-      ircomm.formatString( buf, count );
+      ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, count );
     }
   }
 
@@ -192,26 +170,11 @@ void i2c_request() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
-
-    for ( int i = 0; i < 4; i++ ) {
-      status.pass_count[ i ] = (uint16_t)ircomm.pass_count[i];
-      status.fail_count[ i ] = (uint16_t)ircomm.fail_count[i];
-      status.activity[i] = (uint16_t)ircomm.activity[i];
-    }
-
-    Wire.write( (byte*)&status, sizeof( status ) );
-
+    Wire.write( (byte*)&ircomm.metrics.status, sizeof(ircomm.metrics.status) ); 
 
   } else if ( last_mode.mode == MODE_REPORT_TIMINGS ) {
 
-    ir_msg_timings_t msg_timings;
-    for ( int i = 0; i < 4; i++ ) {
-      msg_timings.msg_dt[i] = (uint16_t)ircomm.msg_dt[i];
-      msg_timings.msg_t[i] = (uint16_t)ircomm.msg_t[i];
-    }
-    msg_timings.rx_timeout = (uint16_t)ircomm.ir_config.rx_timeout;
-    msg_timings.tx_period = (uint16_t)ircomm.ir_config.tx_period;
-    Wire.write( (byte*)&msg_timings, sizeof( msg_timings ) );
+    Wire.write( (byte*)&ircomm.metrics.timings, sizeof( ircomm.metrics.timings ) );
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
 
@@ -277,103 +240,54 @@ void i2c_request() {
     }
 
   } else if ( last_mode.mode == MODE_REPORT_CYCLES ) {
-    ir_cycles_t cycles;
-    cycles.tx_count = ircomm.tx_count;
-    cycles.rx_cycles = ircomm.rx_cycles;
 
     // Transmit
-    Wire.write( (byte*)&cycles, sizeof( cycles ) );
+    Wire.write( (byte*)&ircomm.metrics.cycles, sizeof( ircomm.metrics.cycles ) );
 
   } else if ( last_mode.mode == MODE_REPORT_ERRORS ) {
-    ir_errors_t errors;
-
-    for ( int i = 0; i < 4; i++ ) {
-      for ( int j = 0; j < 4; j++ ) {
-        errors.error_type[i][j] = ircomm.error_type[i][j];
-      }
-    }
 
     // Transmit
-    Wire.write( (byte*)&errors, sizeof( errors ) );
+    Wire.write( (byte*)&ircomm.metrics.errors, sizeof( ircomm.metrics.errors ) );
 
-  } else if ( last_mode.mode == MODE_REPORT_RX_ACTIVITY ) {
-    ir_activity_t activity;
-    for ( int i = 0; i < 4; i++ ) {
-      activity.rx[i] = ircomm.rx_vectors[i];
-    }
+  } else if ( last_mode.mode == MODE_REPORT_RX_VECTORS ) {
+    
     // Transmit
-    Wire.write( (byte*)&activity, sizeof( activity ) );
+    Wire.write( (byte*)&ircomm.metrics.vectors, sizeof( ircomm.metrics.vectors) );
 
-  } else if (  last_mode.mode == MODE_REPORT_RX_DIRECTION ) {
-
-    ir_bearing_t bearing;
-
-    // Here, we treat each receiver as contributing to
-    // either x or y, because they are aligned to the x
-    // and y axis in their placement on the circuit board.
-    // Therefore, rx0 is +y, rx1 is +x,
-    // rx2 is -y, and rx3 is -x. We then treat them as
-    // vectors, using atan2 to find the resultant
-    // direction.  This is relative (local) to the robot.
-    bearing.mag = ircomm.rx_vectors[0];
-    bearing.mag += ircomm.rx_vectors[1];
-    bearing.mag += ircomm.rx_vectors[2];
-    bearing.mag += ircomm.rx_vectors[3];
-    float x = (ircomm.rx_vectors[0] - ircomm.rx_vectors[2]);
-    float y = (ircomm.rx_vectors[1] - ircomm.rx_vectors[3]);
-    bearing.theta = atan2( y, x );
-
+  } else if (  last_mode.mode == MODE_REPORT_RX_BEARING ) {
+    
     // Transmit
-    Wire.write( (byte*)&bearing, sizeof( bearing ) );
+    Wire.write( (byte*)&ircomm.metrics.bearing, sizeof( ircomm.metrics.bearing ) );
 
   } else if ( last_mode.mode == MODE_REPORT_SENSORS ) {
 
-    // Data struct
-    ir_sensors_t sensors;
-
     // Collect sensor readings - should be very quick
-    sensors.ldr[0] = (int16_t)analogRead( LDR0_PIN );
-    sensors.ldr[1] = (int16_t)analogRead( LDR1_PIN );
-    sensors.ldr[2] = (int16_t)analogRead( LDR2_PIN );
-    sensors.prox[0] = (int16_t)analogRead( PROX0_PIN );
-    sensors.prox[1] = (int16_t)analogRead( PROX1_PIN );
+    ircomm.metrics.sensors.ldr[0] = (int16_t)analogRead( LDR0_PIN );
+    ircomm.metrics.sensors.ldr[1] = (int16_t)analogRead( LDR1_PIN );
+    ircomm.metrics.sensors.ldr[2] = (int16_t)analogRead( LDR2_PIN );
+    ircomm.metrics.sensors.prox[0] = (int16_t)analogRead( PROX0_PIN );
+    ircomm.metrics.sensors.prox[1] = (int16_t)analogRead( PROX1_PIN );
 
     // Transmit
-    Wire.write( (byte*)&sensors, sizeof( sensors ) );
+    Wire.write( (byte*)&ircomm.metrics.sensors, sizeof( ircomm.metrics.sensors ) );
 
   } else if ( last_mode.mode == MODE_REPORT_HIST ) {
-
-    ir_id_hist_t hist;
-    hist.id[0] = ircomm.hist[0];
-    hist.id[1] = ircomm.hist[1];
-    hist.id[2] = ircomm.hist[2];
-    hist.id[3] = ircomm.hist[3];
-    Wire.write( (byte*)&hist, sizeof( hist ) );
+//
+//    ir_id_hist_t hist;
+//    hist.id[0] = ircomm.hist[0];
+//    hist.id[1] = ircomm.hist[1];
+//    hist.id[2] = ircomm.hist[2];
+//    hist.id[3] = ircomm.hist[3];
+//    Wire.write( (byte*)&hist, sizeof( hist ) );
 
   } else if ( last_mode.mode == MODE_GET_TX ) {
 
-    ir_tx_params_t tx_settings;
-    tx_settings.tx_mode       = ircomm.ir_config.tx_mode;
-    tx_settings.tx_repeat     = ircomm.ir_config.tx_repeat;
-    tx_settings.tx_period     = ircomm.ir_config.tx_period;
-    tx_settings.tx_period_max = ircomm.ir_config.tx_period_max;
-    tx_settings.tx_desync      = ircomm.ir_config.tx_desync;
-    Wire.write( (byte*)&tx_settings, sizeof( tx_settings ) );
+    Wire.write( (byte*)&ircomm.config.tx, sizeof( ircomm.config.tx ) );
 
 
   } else if ( last_mode.mode == MODE_GET_RX ) {
-    ir_rx_params_t rx_settings;
-    rx_settings.rx_cycle            = ircomm.ir_config.rx_cycle;
-    rx_settings.rx_cycle_on_rx      = ircomm.ir_config.rx_cycle_on_rx;
-    rx_settings.rx_predict_timeout  = ircomm.ir_config.rx_predict_timeout;
-    rx_settings.rx_overrun          = ircomm.ir_config.rx_overrun ;
-    rx_settings.rx_timeout          = ircomm.ir_config.rx_timeout;
-    rx_settings.rx_timeout_max      = ircomm.ir_config.rx_timeout_max;
-    rx_settings.rx_timeout_multi    = ircomm.ir_config.rx_timeout_multi;
-    rx_settings.rx_desync            = ircomm.ir_config.rx_desync;
-    rx_settings.rx_pwr_index        = ircomm.ir_config.rx_pwr_index;
-    rx_settings.rx_byte_timeout     = ircomm.ir_config.rx_byte_timeout;
-    Wire.write( (byte*)&rx_settings, sizeof( rx_settings ) );
+    
+    Wire.write( (byte*)&ircomm.config.rx, sizeof( ircomm.config.rx ) );
 
   }
 
@@ -407,12 +321,6 @@ void setup() {
 
   last_mode.mode = MODE_REPORT_STATUS;
 
-  for ( int i = 0; i < 4; i++ ) {
-    status.pass_count[i] = 0;
-    status.fail_count[i] = 0;
-  }
-
-  test_ts = millis();
   full_reset = false;
   // Paul: I was using this to test
   setRandomMsg(8);
@@ -441,7 +349,7 @@ void setRandomMsg(int len) {
   //  }
   //parser.formatString(buf, strlen(buf) );
 
-  //ircomm.tx_len = parser.formatIRMessage( ircomm.tx_buf, buf, strlen(buf) );
+  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, strlen(buf) );
 
 }
 
@@ -452,25 +360,25 @@ void loop() {
     full_reset = false;
   }
 
-  int err = parser.getNextByte();
-
-  if ( err < 0 ) {
-    ircomm.disableRx();
-    Serial.println(err);
-    ircomm.enableRx();
-
-  } else if ( err == 2 ) {
-    ircomm.disableRx();
-    Serial.print("got message: ");
-    Serial.println( (char*)parser.msg );
-    ircomm.enableRx();
-
-
-  }
+//  int err = parser.getNextByte();
+//
+//  if ( err < 0 ) {
+//    ircomm.disableRx();
+//    Serial.println(err);
+//    ircomm.enableRx();
+//
+//  } else if ( err == 2 ) {
+//    ircomm.disableRx();
+//    Serial.print("got message: ");
+//    Serial.println( (char*)parser.msg );
+//    ircomm.enableRx();
+//
+//
+//  }
 
   // This line must be called to process new
   // received messages and transmit new messages
-  //ircomm.update();
+  ircomm.update();
   //  delay(1000);
 }
 

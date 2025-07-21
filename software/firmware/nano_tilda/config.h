@@ -29,8 +29,8 @@
 // which ever of the two is longest.
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
-#define RX_CYCLE              false  // should the board poll receivers?
-#define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
+#define RX_CYCLE              true  // should the board poll receivers?
+#define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
 #define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
@@ -86,7 +86,7 @@
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_desync  1 
+#define TX_DESYNC  1 
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
@@ -103,7 +103,7 @@
 #define IR_DEBUG_OUTPUT false
 
 // How often should the bearing estimate be updated?
-#define UPDATE_ACTIVITY_MS  250
+#define UPDATE_BEARING_MS  250
 
 
 // I think that having the least number of logic 
@@ -136,7 +136,7 @@
 #define RX_PWR_1  2 // LEFT
 #define RX_PWR_2  5 // BACK
 #define RX_PWR_3  7 // RIGHT
-#define RX_PWR_MAX  4 // How many?
+#define MAX_RX  4 // How many?
 
 
 // 38Khz signal generated on
