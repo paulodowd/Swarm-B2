@@ -73,8 +73,6 @@ void IRComm_c::init() {
 
 
   resetBearingActivity();
-
-
   resetMetrics();
 
   tx_len = 0;             // start with no message to send.
@@ -84,12 +82,15 @@ void IRComm_c::init() {
   tx_ts = millis();       // tx period
   bearing_ts = millis(); // bearing update
 
+
+  //enableTx();
   resetUART();
 
   parser.reset();
 
   setRxTimeout();
   setTxPeriod();
+
 }
 
 void IRComm_c::resetMetrics() {
@@ -99,7 +100,7 @@ void IRComm_c::resetMetrics() {
 }
 
 
-void IRComm_c::cyclePowerRx() {
+bool IRComm_c::cyclePowerRx() {
 
   // If the board is configured not to cycle
   // the receiver, we simply update the
@@ -123,7 +124,7 @@ void IRComm_c::cyclePowerRx() {
     // than receiving no bytes at all.
     //toggleRxPower(); // Paul 5/7/25 this is causing trouble
     setRxTimeout();
-    return;
+    return false;
   }
 
 
@@ -142,6 +143,8 @@ void IRComm_c::cyclePowerRx() {
   // Since we've cycled receiver,
   // set the new timeout period
   setRxTimeout();
+
+  return true;
 }
 
 
@@ -170,10 +173,7 @@ void IRComm_c::updateBearingActivity() {
   }
 
   // Update bearing estimate.
-  metrics.bearing.sum  = metrics.vectors.rx[0];
-  metrics.bearing.sum += metrics.vectors.rx[1];
-  metrics.bearing.sum += metrics.vectors.rx[2];
-  metrics.bearing.sum += metrics.vectors.rx[3];
+  metrics.bearing.sum  = sum;
   float x = (metrics.vectors.rx[0] - metrics.vectors.rx[2]);
   float y = (metrics.vectors.rx[1] - metrics.vectors.rx[3]);
   metrics.bearing.theta = atan2( y, x );
@@ -183,7 +183,7 @@ void IRComm_c::updateBearingActivity() {
 }
 void IRComm_c::resetBearingActivity() {
   // Reset to allow to accumulate over next ACTIVITY_MS period
-  for ( int i = 0; i < MAX_RX; i++ ) bearing_activity[i];
+  for ( int i = 0; i < MAX_RX; i++ ) bearing_activity[i] = 0;
 }
 
 void IRComm_c::powerOnRx( byte index ) {
@@ -221,7 +221,6 @@ void IRComm_c::powerOnRx( byte index ) {
   // the serial buffer is full of old data.
   // We clear it now.
   resetUART();
-  parser.reset();
 }
 
 // The arduino nano has a parallel serial
@@ -304,12 +303,16 @@ void IRComm_c::powerOffAllRx() {
   digitalWrite( RX_PWR_3, LOW );
 }
 
-void IRComm_c::powerOnAllRx() {
-  digitalWrite( RX_PWR_0, HIGH );
-  digitalWrite( RX_PWR_1, HIGH );
-  digitalWrite( RX_PWR_2, HIGH);
-  digitalWrite( RX_PWR_3, HIGH);
-}
+
+// I think it is very unadvised to do
+// this because of the power draw from
+// the arduino nano.
+//void IRComm_c::powerOnAllRx() {
+//  digitalWrite( RX_PWR_0, HIGH );
+//  digitalWrite( RX_PWR_1, HIGH );
+//  digitalWrite( RX_PWR_2, HIGH);
+//  digitalWrite( RX_PWR_3, HIGH);
+//}
 
 // Attempting an desynchronous send
 // and listen procedure because we
@@ -490,6 +493,9 @@ void IRComm_c::clearTxBuf() {
 
 int IRComm_c::update() {
 
+
+  int error;
+
   // We periodically track update the activity
   // of each receiver to help estimate a bearing
   // of neighbouring boards.
@@ -513,11 +519,14 @@ int IRComm_c::update() {
   // We assume we always want to get the latest
   // byte from the UART buffer
 
-  int status = parser.getNextByte();
+  int status = parser.getNextByte( config.rx.byte_timeout );
+
+
 
 
   if ( status == 0 ) {
     // nothing happened
+    error = 0;
 
   } else if ( status < 0 ) { // something went wrong.
 
@@ -530,11 +539,16 @@ int IRComm_c::update() {
 
     metrics.errors.type[ config.rx.index] [ status ]++;
 
+    error = -1;
+
   } else if ( status == 1 ) { // just got a byte
     // counts are incremented outside this if
     // statement
+    error = 1;
 
   } else if ( status > 1 ) { // got a message
+
+    error = status;
 
     // Increase count of success for this rx
     metrics.status.pass_count[ config.rx.index ]++;
@@ -578,7 +592,7 @@ int IRComm_c::update() {
 
 
   if ( disabled == true ) {
-    return;
+    return error;
   }
 
 
@@ -595,74 +609,50 @@ int IRComm_c::update() {
     // end of this condition, allowing other operations
 
     // to resume.
-    return;
+    error = -3;
+    return error;
 
     // If in TX_MODE_PERIODIC, TX takes priority
   } else if ( config.tx.mode == TX_MODE_PERIODIC ) {
-//    disableRx();
-//    Serial.println(" periodic ");
-//    enableRx();
 
     if ( config.tx.period == 0 || config.tx.period_max == 0) {
       // No transmission.
-//      disableRx();
-//      Serial.print( config.tx.period );
-//      Serial.print(",");
-//      Serial.print( config.tx.period_max );
-//      Serial.println();
-//      enableRx();
     } else if ( millis() - tx_ts > config.tx.period ) {
-//      disableRx();
-//      Serial.println(" tx ");
-//      enableRx();
       transmit = true;
-    } else {
-//      disableRx();
-//      Serial.print( tx_ts );
-//      Serial.print( ",");
-//      Serial.print( millis() );
-//      Serial.print( ",");
-//      Serial.println( config.tx.period );
-//      enableRx();
-
-
     }
-
-
-    // Else, we are in either TX_MODE_INTERLEAVED or
-    // PERIODIC, and we need to check if it is time
-    // to rotate the RX receiver.
-  } else if ( millis() - rx_ts > config.rx.timeout) {
-
-    if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
-      transmit = true;
-
-    }
-
-    if ( config.rx.cycle == true && config.rx.timeout_max > 0) {
-      cycle = true;
-    }
-
   }
 
-//  disableRx();
-//  Serial.println( transmit );
-//  enableRx();
+  // We are in either TX_MODE_INTERLEAVED or
+  // PERIODIC, and we need to check if it is time
+  // to rotate the RX receiver.
+  if ( config.rx.cycle == true ) {
+    if ( millis() - rx_ts > config.rx.timeout) {
+
+      if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
+        transmit = true;
+      }
+
+      if ( config.rx.timeout_max > 0) {
+        cycle = true;
+      }
+
+    }
+  }
 
   if ( transmit ) {
 
     // Interupts any rx in process
-    doTransmit();
+    if ( doTransmit() ) {
+      // It takes times to transmit and
+      // the UART rx buffer is reset.
+      // So we should also reset the
+      // parser.
+      parser.reset();
 
-    // It takes times to transmit and
-    // the UART rx buffer is reset.
-    // So we should also reset the
-    // parser.
-    parser.reset();
-
-    // Update timestamp for the next
-    // transmission occurence
-    setTxPeriod();
+      // Update timestamp for the next
+      // transmission occurence
+      setTxPeriod();
+    }
 
   }
 
@@ -672,7 +662,9 @@ int IRComm_c::update() {
     // receiver with respect to the
     // config settings.
     // This sets the new rx timestamp
-    cyclePowerRx();
+    if ( cyclePowerRx() ) {
+      parser.reset();
+    }
 
   }
 
@@ -710,7 +702,9 @@ boolean IRComm_c::doTransmit() {
       // Checking HardwareSerial.cpp, .write() is a blocking
       // function.  Therefore we don't need .flush()
       //Serial.availableForWrite();
-      for ( int j = 0; j < tx_len; j++ ) Serial.write( tx_buf[j] );
+      for ( int j = 0; j < tx_len; j++ ) {
+        Serial.write( tx_buf[j] );
+      }
 
       //Serial.print(tx_buf);
       Serial.flush();  // wait for send to complete
@@ -725,7 +719,6 @@ boolean IRComm_c::doTransmit() {
     // the rx flags and rx_buf
     disableTx();
     resetUART();
-    enableRx();
 
     // Schedule next transmission
     // Redundant if tx_mode INTERLEAVED
@@ -734,6 +727,7 @@ boolean IRComm_c::doTransmit() {
 
   }
 
+  return false;
 
 }
 

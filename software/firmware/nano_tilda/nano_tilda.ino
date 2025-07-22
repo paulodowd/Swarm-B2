@@ -55,7 +55,7 @@ void i2c_receive( int len ) {
   // ready the board to send back information or to ask the
   // board to complete specific actions (e.g, delete a
   // message).
-  if ( len == 1 ) { // receiving a mode change.
+  if ( len == 1 && last_mode.mode != MODE_SET_MSG ) { // receiving a mode change.
     ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
 
@@ -100,16 +100,36 @@ void i2c_receive( int len ) {
 
 
     } else if ( new_mode.mode == MODE_CLEAR_HIST ) {
-//      ircomm.hist[0] = 0;
-//      ircomm.hist[1] = 0;
-//      ircomm.hist[2] = 0;
-//      ircomm.hist[3] = 0;
+      //      ircomm.hist[0] = 0;
+      //      ircomm.hist[1] = 0;
+      //      ircomm.hist[2] = 0;
+      //      ircomm.hist[3] = 0;
+    } else if ( new_mode.mode == MODE_SET_MSG ) {
+      last_mode.mode = MODE_SET_MSG;
     }
+
+  } else if ( last_mode.mode == MODE_SET_MSG ) {
+
+    // This should be impossible...
+    if ( len > MAX_MSG || len < 1 ) {
+      //ircomm.clearTxBuf();
+      // clear i2c buffer
+      while ( Wire.available() ) Wire.read();
+    } else {
+
+      // Transfer bytes, encode with parser
+      byte buf[MAX_MSG];
+      memset( buf, 0, sizeof( buf ));
+      Wire.readBytes( buf, len );
+      ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+    }
+
+    last_mode.mode = MODE_REPORT_STATUS;
 
   } else if ( last_mode.mode == MODE_SET_RX ) {
 
     if ( len == sizeof( ir_rx_params_t ) ) {
-      
+
       Wire.readBytes( (uint8_t*)&ircomm.config.rx, sizeof( ircomm.config.rx ));
 
     } else {
@@ -134,32 +154,9 @@ void i2c_receive( int len ) {
 
     last_mode.mode = MODE_REPORT_STATUS;
 
-  } else { // Receiving a new message to transmit.
+  } else {
 
-    char buf[MAX_MSG]; // temp buffer
-    memset(buf, 0, sizeof(buf));
-    int count = 0;
-    while ( Wire.available() && count < MAX_MSG ) {
-      char c = Wire.read();
-      buf[count] = c;
-      count++;
-    }
-
-    // If it is a malformed message from the robot,
-    // or the ! symbol
-    // we clear the tx_buf and so stop sending messages
-    if ( count < 1 ) {
-      //Serial.println(" Cleared");
-
-      // CLEAR TX BUF, DISABLE TX
-      //memset( tx_buf, 0, sizeof( tx_buf ) );
-      ircomm.clearTxBuf();
-    } else {
-
-      //Serial.print("I2C Received:" );
-      //Serial.println(buf);
-      ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, count );
-    }
+    // Unhandled
   }
 
 }
@@ -170,7 +167,7 @@ void i2c_request() {
 
   if ( last_mode.mode == MODE_REPORT_STATUS ) {
 
-    Wire.write( (byte*)&ircomm.metrics.status, sizeof(ircomm.metrics.status) ); 
+    Wire.write( (byte*)&ircomm.metrics.status, sizeof(ircomm.metrics.status) );
 
   } else if ( last_mode.mode == MODE_REPORT_TIMINGS ) {
 
@@ -250,12 +247,12 @@ void i2c_request() {
     Wire.write( (byte*)&ircomm.metrics.errors, sizeof( ircomm.metrics.errors ) );
 
   } else if ( last_mode.mode == MODE_REPORT_RX_VECTORS ) {
-    
+
     // Transmit
     Wire.write( (byte*)&ircomm.metrics.vectors, sizeof( ircomm.metrics.vectors) );
 
   } else if (  last_mode.mode == MODE_REPORT_RX_BEARING ) {
-    
+
     // Transmit
     Wire.write( (byte*)&ircomm.metrics.bearing, sizeof( ircomm.metrics.bearing ) );
 
@@ -272,13 +269,13 @@ void i2c_request() {
     Wire.write( (byte*)&ircomm.metrics.sensors, sizeof( ircomm.metrics.sensors ) );
 
   } else if ( last_mode.mode == MODE_REPORT_HIST ) {
-//
-//    ir_id_hist_t hist;
-//    hist.id[0] = ircomm.hist[0];
-//    hist.id[1] = ircomm.hist[1];
-//    hist.id[2] = ircomm.hist[2];
-//    hist.id[3] = ircomm.hist[3];
-//    Wire.write( (byte*)&hist, sizeof( hist ) );
+    //
+    //    ir_id_hist_t hist;
+    //    hist.id[0] = ircomm.hist[0];
+    //    hist.id[1] = ircomm.hist[1];
+    //    hist.id[2] = ircomm.hist[2];
+    //    hist.id[3] = ircomm.hist[3];
+    //    Wire.write( (byte*)&hist, sizeof( hist ) );
 
   } else if ( last_mode.mode == MODE_GET_TX ) {
 
@@ -286,7 +283,7 @@ void i2c_request() {
 
 
   } else if ( last_mode.mode == MODE_GET_RX ) {
-    
+
     Wire.write( (byte*)&ircomm.config.rx, sizeof( ircomm.config.rx ) );
 
   }
@@ -333,7 +330,7 @@ void setup() {
 void setRandomMsg(int len) {
   // Let's test variable message lengths
   int max_chars = len;
-  char buf[ MAX_MSG ];
+  byte buf[ MAX_MSG ];
 
   memset( buf, 0, sizeof( buf ) );
 
@@ -342,16 +339,37 @@ void setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-  sprintf(buf, "Test");
+  sprintf(buf, "12345678");
   //  for ( int i = 0; i < max_chars; i++ ) {
-  //    int r = random( 0, 62 );
-  //    buf[i] = (byte)(65 + r); // 65+ avoids * and @
+  //    buf[i] = (byte)random( 0, 255 );
   //  }
-  //parser.formatString(buf, strlen(buf) );
+//
+//  typedef struct msg {
+//    float v[2];
+//  } msg_t;
+//  msg_t msg;
+//  for ( int i = 0; i < 2; i++ ) msg.v[i] = random(0, 1000) - 500;
+//  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, (byte*)&msg, sizeof( msg ) );
 
+
+  //  Checking the format of what is being sent.
   ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, strlen(buf) );
+  //  while(1) {
+  //    Serial.print("tx buf: ");
+  //    Serial.println( (char*)ircomm.tx_buf );
+  //    for( int i = 0; i < ircomm.tx_len; i++ ) {
+  //      Serial.print( (char)ircomm.tx_buf[i] );
+  //      Serial.print( " = " );
+  //      Serial.print( ircomm.tx_buf[i], DEC);
+  //      Serial.print(",");
+  //    }
+  //    Serial.println();
+  //    delay(1000);
+  //
+  //  }
 
 }
+
 
 void loop() {
 
@@ -360,26 +378,11 @@ void loop() {
     full_reset = false;
   }
 
-//  int err = parser.getNextByte();
-//
-//  if ( err < 0 ) {
-//    ircomm.disableRx();
-//    Serial.println(err);
-//    ircomm.enableRx();
-//
-//  } else if ( err == 2 ) {
-//    ircomm.disableRx();
-//    Serial.print("got message: ");
-//    Serial.println( (char*)parser.msg );
-//    ircomm.enableRx();
-//
-//
-//  }
 
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
-  //  delay(1000);
+
 }
 
 

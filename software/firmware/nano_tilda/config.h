@@ -31,7 +31,7 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              true  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
+#define RX_PREDICT_TIMEOUT    false  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
@@ -42,7 +42,7 @@
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
 #ifdef IR_FREQ_58
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4.0)     
+#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4.0)
 #endif
 #ifdef IR_FREQ_38
 #define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4.0)     
@@ -66,8 +66,8 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // tx periodically, timing set below
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
-#define TX_MODE (TX_MODE_PERIODIC)
-//#define TX_MODE (TX_MODE_INTERLEAVED)
+//#define TX_MODE (TX_MODE_PERIODIC)
+#define TX_MODE (TX_MODE_INTERLEAVED)
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -81,17 +81,17 @@
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (60) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (300) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_DESYNC  1 
+#define TX_DESYNC  0 
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define DEFAULT_TX_REPEAT 3
+#define DEFAULT_TX_REPEAT 1
 
 // Uncomment to see debug output.  Note that, we
 // are going to use the serial port for debugging,
@@ -106,18 +106,8 @@
 #define UPDATE_BEARING_MS  250
 
 
-// I think that having the least number of logic 
-// transitions in the byte will create the most 
-// reliable transmission/reception.  
-// Noise or interference can distort the 
-// transitions. 
-// Since we are looking out for the start token
-// to begin receiving a message it makes sense to
-// use one of these.  
-// We can't use 0x00 because that is a string null
-// character, which we're using with strlen()
-#define START_TOKEN '~'     //  
-#define CRC_TOKEN   '}'     // 
+
+#define START_TOKEN '~'     // 
 
 
 // I2C constrains the message payload to 32

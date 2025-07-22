@@ -1,6 +1,7 @@
 #include "ir_parser.h"
 
 
+
 IRParser_c::IRParser_c() {
   reset();
 }
@@ -9,6 +10,7 @@ void IRParser_c::reset() {
   buf_index = 0;
   header_len = 0;
   GOT_START_TOKEN = false;
+  timeout_ts = millis();
   //memset( buf, 0, sizeof( buf ));
 }
 
@@ -23,7 +25,7 @@ void IRParser_c:: copyMsg( byte * dest ) {
 
 }
 
-int IRParser_c::getNextByte( ) {
+int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
   int status = 0;
 
@@ -32,7 +34,19 @@ int IRParser_c::getNextByte( ) {
   // function iteratively and fast.
   if ( Serial.available() ) {
 
+    digitalWrite( 13, HIGH );
+
     byte b = Serial.read();
+
+    if ( GOT_START_TOKEN ) {
+      if ( millis() - timeout_ts > byte_timeout ) {
+        status = ERR_BYTE_TIMEOUT;
+        reset();
+        return status;
+      }
+    }
+
+    // Prevent timeout by moving timestamp forwards
     timeout_ts = millis();
 
     // If we receive the start token, we will
@@ -46,24 +60,17 @@ int IRParser_c::getNextByte( ) {
       // If we already had the start token...
       if ( GOT_START_TOKEN ) {
         // ERROR: message too short
-        reset();
-        buf[ buf_index ] = b;
-        GOT_START_TOKEN = true;
-
         // Not a critical error, we can continue
         // and so increase the buf_index
-        status = -1;
+        status = ERR_TOO_SHORT;
       } else {
-
-        // Register that we've got the start
-        // token.
-        buf[ buf_index ] = b;
-        GOT_START_TOKEN = true;
+        // report that we got a byte
         status = 1;
       }
-    } else {
-      buf[buf_index] = b;
+      reset();
+      GOT_START_TOKEN = true;
     }
+    buf[buf_index] = b;
 
     // The byte immediately after the start
     // token should be the length of the
@@ -75,15 +82,19 @@ int IRParser_c::getNextByte( ) {
       // the message set in the header is within
       // the expected range.
       if ( buf[ buf_index ] > MAX_BUF || buf[buf_index] < 5) {
+
         // ERROR: bad incoming message format
         reset();
-        status = -2;
+        status = ERR_BAD_LENGTH;
 
         // For a critical error, we don't
         // allow buf_index to increment and
         // return here.
         return status;
       } else {
+
+        // If this byte has a valid value, save
+        // it as the expected message length
         header_len = buf[ buf_index ];
       }
     }
@@ -103,6 +114,14 @@ int IRParser_c::getNextByte( ) {
     // has been called, prior to buf_index == 1
     if ( header_len > 0 ) {
 
+      // If we've stored as many bytes as the
+      // expected message length
+      // Note: we checked that header_len was
+      // <= MAX_BUF, so this also serves to
+      // limit buf_index.  Once buf_index
+      // reaches the header_len, the CRC will
+      // either be good or bad, and either case
+      // will reset the parser.
       if ( buf_index >= header_len ) {
 
         // Finished receiving, check the CRC
@@ -120,8 +139,9 @@ int IRParser_c::getNextByte( ) {
           memset( msg, 0, sizeof(msg) );
           memcpy( msg, buf + 2, header_len - 4);
           msg_len = header_len - 4;
-          reset();
           status = header_len;
+
+          reset();
           return status;
 
         } else {
@@ -133,31 +153,19 @@ int IRParser_c::getNextByte( ) {
           // For a critical error, we don't
           // allow buf_index to increment and
           // return here.
-          status = -3;
+          status = ERR_BAD_CRC;
           return status;
         }
-
-      }
+      } // buf_index >= header_len
     }
 
-    if ( buf_index >= MAX_BUF ) {
-      // ERROR: We've exceeded the buffer
-      reset();
-
-      // For a critical error, we don't
-      // allow buf_index to increment and
-      // return here.
-      status = -4;
-      return status;
-
-    }
 
     // We simply received a new byte, but not
     // a new message.
     status = 1;
     return status;
 
-  } else {
+  } else { // if Serial.available()
 
     // No byte activity, return 0
     status = 0;

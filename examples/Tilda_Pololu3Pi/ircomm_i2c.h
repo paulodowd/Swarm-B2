@@ -66,8 +66,7 @@ typedef struct ir_mode {
 #define MODE_SET_TX         30
 #define MODE_GET_RX         31
 #define MODE_GET_TX         32
-#define MODE_SET_MSG        33
-#define MAX_MODE            34
+#define MAX_MODE            33
 
 
 // A general status structure to discover

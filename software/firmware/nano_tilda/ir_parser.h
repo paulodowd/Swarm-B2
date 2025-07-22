@@ -5,6 +5,11 @@
 #include "Arduino.h"
 #include "config.h"
 
+#define ERR_TOO_SHORT     -1
+#define ERR_BAD_LENGTH    -2
+#define ERR_BAD_CRC       -3
+#define ERR_BYTE_TIMEOUT  -4
+
 class IRParser_c {
 
   public:
@@ -20,7 +25,7 @@ class IRParser_c {
     IRParser_c();
 
     void reset();
-    int getNextByte();
+    int getNextByte( unsigned long byte_timout );
     void copyMsg( byte * dest );
 
     char CRC8(byte * bytes, byte len);
@@ -28,8 +33,7 @@ class IRParser_c {
     void splitCRC16( byte * u_byte, byte * l_byte, uint16_t crc );
     uint16_t mergeCRC16( byte u_byte, byte l_byte );
 
-
-    // This function will take an input string
+    // This function will take an input string/bytes
     // and prefix it with the start token, length
     // and suffix it with the 16 bit CRC.
     // The start token and length are included in
