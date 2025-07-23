@@ -33,40 +33,42 @@ typedef struct ir_mode {
 // from this board, or cause specific functions.
 // ir_mode.mode should be set with one of these
 // flags.
-#define MODE_REPORT_STATUS  0
-#define MODE_STOP_TX        1
-#define MODE_REPORT_LDR0    2
-#define MODE_REPORT_LDR1    3
-#define MODE_REPORT_LDR2    4
-#define MODE_SIZE_MSG0      5
-#define MODE_SIZE_MSG1      6
-#define MODE_SIZE_MSG2      7
-#define MODE_SIZE_MSG3      8
-#define MODE_REPORT_MSG0    9
-#define MODE_REPORT_MSG1    10
-#define MODE_REPORT_MSG2    11
-#define MODE_REPORT_MSG3    12
-#define MODE_CLEAR_MSG0     13
-#define MODE_CLEAR_MSG1     14
-#define MODE_CLEAR_MSG2     15
-#define MODE_CLEAR_MSG3     16
-#define MODE_REPORT_SENSORS 17
-#define MODE_RESET_STATUS   18
-#define MODE_REPORT_RX_VECTORS 19
-#define MODE_REPORT_RX_BEARING 20
-#define MODE_REPORT_TIMINGS 21
-#define MODE_REPORT_HIST    22
-#define MODE_CLEAR_HIST     23
-#define MODE_FULL_RESET     24
-#define MODE_REPORT_CYCLES  25
-#define MODE_REPORT_ERRORS  26
-#define MODE_STOP_RX        27
-#define MODE_START_RX       28
-#define MODE_SET_RX         29
-#define MODE_SET_TX         30
-#define MODE_GET_RX         31
-#define MODE_GET_TX         32
-#define MAX_MODE            33
+#define MODE_NOT_SET        0
+#define MODE_REPORT_STATUS  1
+#define MODE_STOP_TX        2
+#define MODE_REPORT_LDR0    3
+#define MODE_REPORT_LDR1    4
+#define MODE_REPORT_LDR2    5
+#define MODE_SIZE_MSG0      6
+#define MODE_SIZE_MSG1      7
+#define MODE_SIZE_MSG2      8
+#define MODE_SIZE_MSG3      9
+#define MODE_REPORT_MSG0    10
+#define MODE_REPORT_MSG1    11
+#define MODE_REPORT_MSG2    12
+#define MODE_REPORT_MSG3    13
+#define MODE_CLEAR_MSG0     14
+#define MODE_CLEAR_MSG1     15
+#define MODE_CLEAR_MSG2     16
+#define MODE_CLEAR_MSG3     17
+#define MODE_REPORT_SENSORS 18
+#define MODE_RESET_STATUS   19
+#define MODE_REPORT_RX_VECTORS 20
+#define MODE_REPORT_RX_BEARING 21
+#define MODE_REPORT_TIMINGS 22
+#define MODE_REPORT_HIST    23
+#define MODE_CLEAR_HIST     24
+#define MODE_FULL_RESET     25
+#define MODE_REPORT_CYCLES  26
+#define MODE_REPORT_ERRORS  27
+#define MODE_STOP_RX        28
+#define MODE_START_RX       29
+#define MODE_SET_RX         30
+#define MODE_SET_TX         31
+#define MODE_GET_RX         32
+#define MODE_GET_TX         33
+#define MODE_SET_MSG        34
+#define MAX_MODE            35
 
 
 // A general status structure to discover

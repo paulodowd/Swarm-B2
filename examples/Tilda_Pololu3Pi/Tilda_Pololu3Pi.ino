@@ -162,7 +162,7 @@ void loop() {
         // delete the message.  You don't have to
         // do this.  If you use getIRMessage()
         // it will be deleted automatically.
-        deleteMessage(i);
+        //deleteMessage(i);
 
         // This function gets the message on receiver
         // 'i', and currently prints the message over
@@ -171,7 +171,7 @@ void loop() {
         // Note, calling this function gets the message
         // from the IR communication board and deletes
         // it from the communication board.
-        //getIRMessage( i, n );
+        getIRMessage( i, n );
 
 
       } else {
@@ -242,15 +242,15 @@ void loop() {
 
     // Let's print what we are going to send to make sure
     //    // it is sensible.
-    //            Serial.print("Going to send: ");
-    //            Serial.println( buf );
+                Serial.print("Going to send: ");
+                Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
 
-    //setIRMessage(buf, strlen(buf));
+    setIRMessage(buf, strlen(buf));
 
   }
 
@@ -288,8 +288,8 @@ void loop() {
   }
 
   getMsgTimings();
-//  reportStatusErrorsCSV();
-//  doResetStatus();
+  //  reportStatusErrorsCSV();
+  //  doResetStatus();
 
   //  reportErrorsCSV();
   //getRxDirection();
@@ -730,6 +730,14 @@ void setIRMessage(char* str_to_send, int len) {
 
   // Message must be maximum 32 bytes
   if ( len <= 32 ) {
+
+
+    // Set mode to set a new IR Message
+    ircomm_mode.mode = MODE_SET_MSG;
+    Wire.beginTransmission( IRCOMM_I2C_ADDR );
+    Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+    Wire.endTransmission();
+    delayMicroseconds(250);
 
 
     // The communication board will always default

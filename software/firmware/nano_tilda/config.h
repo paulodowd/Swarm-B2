@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-//#define IR_FREQ_38  // For chip TSDP34138
-#define IR_FREQ_58    // For chip TSDP34156
+#define IR_FREQ_38  // For chip TSDP34138
+//#define IR_FREQ_58    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -31,7 +31,7 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              true  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    false  // try to optimse polling performance?
+#define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
@@ -66,8 +66,8 @@
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // tx periodically, timing set below
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
-//#define TX_MODE (TX_MODE_PERIODIC)
-#define TX_MODE (TX_MODE_INTERLEAVED)
+#define TX_MODE (TX_MODE_PERIODIC)
+//#define TX_MODE (TX_MODE_INTERLEAVED)
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -77,30 +77,23 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (160) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (300) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (160) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_DESYNC  0 
+#define TX_DESYNC  1 
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define DEFAULT_TX_REPEAT 1
+#define DEFAULT_TX_REPEAT 3
 
-// Uncomment to see debug output.  Note that, we
-// are going to use the serial port for debugging,
-// which means we will effectively be transmitting
-// debug output to other boards, and without disabling
-// the rx component we'll also receive our own
-// transmission.  Complicated!
-//#define IR_DEBUG_OUTPUT true
-#define IR_DEBUG_OUTPUT false
+
 
 // How often should the bearing estimate be updated?
 #define UPDATE_BEARING_MS  250
