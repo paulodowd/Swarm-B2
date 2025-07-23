@@ -537,7 +537,7 @@ int IRComm_c::update() {
     // Use status to index the log of errors
     status *= -1;
 
-    metrics.errors.type[ config.rx.index] [ status ]++;
+    metrics.errors.type[ config.rx.index][ status ]++;
 
     error = -1;
 
@@ -577,7 +577,7 @@ int IRComm_c::update() {
       }
     }
 
-    if ( config.rx.cycle_on_rx == true ) {
+    if ( config.rx.cycle_on_rx && config.rx.cycle) {
       cycle = true;
     }
 
@@ -671,7 +671,7 @@ int IRComm_c::update() {
 }
 
 void IRComm_c::updateMsgTimings() {
-  unsigned long dt = millis() - metrics.timings.msg_t[config.rx.index ];
+  unsigned long dt = millis() - metrics.timings.msg_t[ config.rx.index ];
   metrics.timings.msg_dt[ config.rx.index ] = dt;
   metrics.timings.msg_t[ config.rx.index ] = millis();
 }

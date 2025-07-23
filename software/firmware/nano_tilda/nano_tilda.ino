@@ -124,7 +124,7 @@ void i2c_receive( int len ) {
       ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
     }
 
-    last_mode.mode = MODE_REPORT_STATUS;
+    last_mode.mode = MODE_NOT_SET;
 
   } else if ( last_mode.mode == MODE_SET_RX ) {
 
@@ -139,7 +139,7 @@ void i2c_receive( int len ) {
       // data
       while ( Wire.available() ) Wire.read();
     }
-    last_mode.mode = MODE_REPORT_STATUS;
+    last_mode.mode = MODE_NOT_SET;
 
   } else if ( last_mode.mode == MODE_SET_TX ) {
     if ( len == sizeof( ir_tx_params_t ) ) {
@@ -152,7 +152,7 @@ void i2c_receive( int len ) {
       while ( Wire.available() ) Wire.read();
     }
 
-    last_mode.mode = MODE_REPORT_STATUS;
+    last_mode.mode = MODE_NOT_SET;
 
   } else {
 
@@ -316,11 +316,11 @@ void setup() {
   // Start the IR communication board.
   ircomm.init();
 
-  last_mode.mode = MODE_REPORT_STATUS;
+  last_mode.mode = MODE_NOT_SET;
 
   full_reset = false;
   // Paul: I was using this to test
-  setRandomMsg(8);
+  //setRandomMsg(8);
 }
 
 
