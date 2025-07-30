@@ -124,6 +124,9 @@ void i2c_receive( int len ) {
       ircomm.ir_config.rx_pwr_index       = rx_settings.rx_pwr_index;
       ircomm.ir_config.rx_byte_timeout    = rx_settings.rx_byte_timeout;
 
+      ircomm.powerOnRx( ircomm.ir_config.rx_pwr_index );
+      
+
     } else {
 
       // Something has gone wrong. Just
@@ -413,7 +416,7 @@ void setup() {
   test_ts = millis();
   full_reset = false;
   // Paul: I was using this to test
-  //  setRandomMsg(8);
+//    setRandomMsg(8);
 }
 
 

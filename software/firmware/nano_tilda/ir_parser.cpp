@@ -70,6 +70,8 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
       reset();
       GOT_START_TOKEN = true;
     }
+
+    
     buf[buf_index] = b;
 
     // The byte immediately after the start

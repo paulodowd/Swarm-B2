@@ -288,7 +288,7 @@ void IRComm_c::resetRxProcess() {
   rx_index        = 0;
   GOT_START_TOKEN = false;
   crc_index       = 0;
-
+  rx_ts = millis();
   disableRx();
 
   //  // Flush?
@@ -311,6 +311,7 @@ void IRComm_c::resetRxFlags() {
   rx_index        = 0;
   GOT_START_TOKEN = false;
   crc_index       = 0;
+  rx_ts = millis();
   memset(rx_buf, 0, sizeof(rx_buf));
 }
 

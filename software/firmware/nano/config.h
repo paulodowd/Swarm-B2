@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-#define IR_FREQ_38  // For chip TSDP34138
-//#define IR_FREQ_58    // For chip TSDP34156
+//#define IR_FREQ_38  // For chip TSDP34138
+#define IR_FREQ_58    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -77,11 +77,11 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (240) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (156) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (120) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots
