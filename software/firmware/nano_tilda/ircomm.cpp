@@ -221,6 +221,7 @@ void IRComm_c::powerOnRx( byte index ) {
   // the serial buffer is full of old data.
   // We clear it now.
   resetUART();
+  parser.reset();
 }
 
 // The arduino nano has a parallel serial

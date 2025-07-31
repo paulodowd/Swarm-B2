@@ -131,6 +131,8 @@ void i2c_receive( int len ) {
     if ( len == sizeof( ir_rx_params_t ) ) {
 
       Wire.readBytes( (uint8_t*)&ircomm.config.rx, sizeof( ircomm.config.rx ));
+      // User may have switched Rx index!
+      ircomm.powerOnRx( ircomm.config.rx.index );
 
     } else {
 
@@ -320,14 +322,14 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  //setRandomMsg(8);
+  setRandomMsg(32);
 }
 
 
 // Construct a message of length len out
 // of random ascii characters, avoiding
 // * and @
-void setRandomMsg(int len) {
+int setRandomMsg(int len) {
   // Let's test variable message lengths
   int max_chars = len;
   byte buf[ MAX_MSG ];
@@ -339,11 +341,11 @@ void setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-  sprintf(buf, "12345678");
-  //  for ( int i = 0; i < max_chars; i++ ) {
-  //    buf[i] = (byte)random( 0, 255 );
-  //  }
-//
+//  sprintf(buf, "123456789");
+    for ( int i = 0; i < max_chars; i++ ) {
+      buf[i] = (byte)random( 65, 90 );
+    }
+
 //  typedef struct msg {
 //    float v[2];
 //  } msg_t;
@@ -353,7 +355,7 @@ void setRandomMsg(int len) {
 
 
   //  Checking the format of what is being sent.
-  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, strlen(buf) );
+  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
   //  while(1) {
   //    Serial.print("tx buf: ");
   //    Serial.println( (char*)ircomm.tx_buf );
@@ -367,9 +369,8 @@ void setRandomMsg(int len) {
   //    delay(1000);
   //
   //  }
-
+  return ircomm.tx_len;
 }
-
 
 void loop() {
 
@@ -382,6 +383,11 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
+
+  if( millis() - test_ts > 250 ) {
+    test_ts = millis();
+    int e = setRandomMsg(32);
+  }
 
 }
 
