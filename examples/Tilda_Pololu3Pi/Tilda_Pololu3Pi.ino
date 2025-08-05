@@ -4,7 +4,7 @@
 // definition of data structs to operate IR
 // communication board
 #include "ircomm_i2c.h"
-
+#include "motors.h"
 
 #define BUZZER_PIN 6
 /*
@@ -58,10 +58,16 @@ bool rx[4];
 
 int random_pitch;
 
+unsigned long start_ts;
+int pos;
+int trial;
+
+Motors_c motors;
+
 void setup() {
   Serial.begin(115200);
 
-  delay(1000);
+  delay(2000);
 
   // Enable i2c on the 3Pi
   Wire.begin();
@@ -75,16 +81,23 @@ void setup() {
   initRandomSeed();
   random_pitch = random( 220, 880);
 
-  // Make sure the IR Communication board
-  // is reset and ready.
-  doResetStatus();
 
   // Initialise timestamps
   status_ts = millis();
   check_message_ts = millis();
   update_message_ts = millis();
 
+  motors.initialise();
 
+  updateSettings();
+
+  // Make sure the IR Communication board
+  // is reset and ready.
+  pos = 0;
+  trial = 0;
+  start_ts = micros();
+  doResetStatus();
+  //  motors.setMotorsPWM( 20, 20 );
 }
 void initRandomSeed() {
   pinMode(A1, INPUT);
@@ -104,95 +117,44 @@ void initRandomSeed() {
 void loop() {
 
 
+  //getMsgTimings();
 
-  // Get general board status / demo other
-  // function calls.
-  //  if( millis() - status_ts > status_update_ms ) {
-  //    status_ts = millis();
-  //
-  //    // Ask the board which direction messages
-  //    // seem to be coming from.
-  //    getRxDirection();
-  //
+
+  //  reportErrorsCSV();
+  //getRxDirection();
+  //  getRxActivity();
+
+  //  for( int i = 0; i < 4; i++ ) {
+  //    Serial.print( rx[i] == true ? "1," : "0,");
   //  }
+  //  Serial.println();
+  //getSensors();
+  unsigned long dt = micros() - start_ts;
+  if ( dt >= 250000 ) {
+    Serial.print( pos );
+    Serial.print(",");
+    Serial.print( trial );
+    Serial.print(",");
+    reportStatusErrorsCSV();
+    trial++;
+    if ( trial >= 10 ) {
+      pos++;
+      trial = 0;
 
-
-  // Periodically check to see if there are new messages
-  // waiting to be read from the communication board.
-  if ( millis() - check_message_ts > check_message_ms ) {
-    check_message_ts = millis();
-
-
-    // Let's use a bool to understand if we got a message
-    // on any receiver. We'll make a beep if any receiver
-    // got an IR message.
-    bool got_message = false;
-
-    // Check all 4 receivers
-    for ( int i = 0; i < 4; i++ ) {
-
-      rx[i] = false;
-
-      // If this returns more than 0, it means there
-      // is a message waiting to be read.
-      // The value of n is the number of bytes we need
-      // to get from the IR Communication board
-      int n = checkRxMsgReady( i );
-
-      //       Old debugging
-      //                Serial.print("Rx " );
-      //                Serial.print(i);
-      //                Serial.print(": ");
-      //                Serial.print( n );
-      //                Serial.println(" bytes ready");
-
-
-      // If there is a message ready, we use 'n' as
-      // the number of bytes to read down from the
-      // communication board through receiver 'i'
-      // (0,1,2 or 3).
-      if ( n > 0 ) {
-        rx[i] = true;
-        got_message = true;
-
-        // If we don't care what the message says
-        // because we just want the statistics
-        // (e.g., the count of messages or the
-        // timing), we can just tell the board to
-        // delete the message.  You don't have to
-        // do this.  If you use getIRMessage()
-        // it will be deleted automatically.
-        //deleteMessage(i);
-
-        // This function gets the message on receiver
-        // 'i', and currently prints the message over
-        // Serial.print().  You can decide what new
-        // thing to do with this message.
-        // Note, calling this function gets the message
-        // from the IR communication board and deletes
-        // it from the communication board.
-        getIRMessage( i, n );
-
-
-      } else {
-
-        // n = 0, which means there were no bytes
-        // available, no message.
+      for ( int i = 0; i < 5; i++ ) {
+        tone(BUZZER_PIN, random_pitch + 100, 10);
+        delay(500);
       }
     }
-
-    // Beep if we got a message
-    if ( got_message ) {
-      tone(BUZZER_PIN, random_pitch, 10);
-      //      analogWrite( BUZZER_PIN, 120 );
-      //      delay(5);
-      //      analogWrite( BUZZER_PIN, 0);
-
-    }
+    start_ts = micros();
+    doResetStatus();
+    tone(BUZZER_PIN, random_pitch, 10);
 
   }
 
+}
 
+void updateMessageToSend() {
   // Note that, the communication board will automatically
   // keep sending the same message. Once you have set a
   // message to send, you don't need to do it again.
@@ -242,18 +204,45 @@ void loop() {
 
     // Let's print what we are going to send to make sure
     //    // it is sensible.
-                Serial.print("Going to send: ");
-                Serial.println( buf );
+    //                Serial.print("Going to send: ");
+    //                Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
 
-    setIRMessage(buf, strlen(buf));
+    //setIRMessage(buf, strlen(buf));
 
   }
+}
 
+
+/*
+
+  typedef struct ir_tx_params {   // 11 bytes
+  byte          mode;           // 1: 0 = periodic, 1 = interleaved
+  byte          repeat;         // 1: how many repeated IR transmissions?
+  unsigned long period;         // 4: periodic:  current ms period to send messages
+  unsigned long period_max;     // 4: maximum tx period allowable
+  bool          desync;         // 1: should tx_period receive small randomisation?
+  } ir_tx_params_t;
+
+  typedef struct ir_rx_params {   // 20 bytes.
+  bool          cycle;          //  1: total count of rx polling rotations
+  bool          cycle_on_rx;    //  1: if message received ok, immediately cycle rx?
+  bool          predict_timeout;//  1: set rx_timeout based on last message length?
+  bool          overrun;        //  1: if a start token received, wait to finish receiving?
+  unsigned long timeout;        //  4: current ms used to wait before switching receiver
+  unsigned long timeout_max;    //  4: maximum rx_timeout allowable
+  byte          timeout_multi;  //  1: with prediction, how many message-lengths to wait?
+  bool          desync;         //  1: should rx_timeout receive small randomisation?
+  byte          index;          //  1: Which receiver is active? if cycle is false, sets Rx
+  unsigned long byte_timeout;   //  4: If we haven't received a consecutive byte, timeout
+  byte          len;            //  1: how long was the last received message?
+  } ir_rx_params_t;
+*/
+void updateSettings() {
 
   // Uncomment below for the example
   // that changes the board configuration
@@ -264,8 +253,8 @@ void loop() {
     // To be safe, lets first get the current settings
     // from the board.  These update the structs declared
     // in the global scope.
-    //getRxSettings();
-    //delay(10);
+    getRxSettings();
+    delay(10);
     //getTxSettings();
     //delay(10);
 
@@ -273,36 +262,102 @@ void loop() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    //    rx_settings.rx_desync = 0;          // don't randomise
-    //    rx_settings.rx_predict_timeout = 0; // don't optimise
-    //    rx_settings.rx_timeout_max = 2000;  // use 2000ms
+    rx_settings.cycle = true;
+    rx_settings.desync = true;          // don't randomise
+    rx_settings.overrun = true;
+    rx_settings.index = 0;
+    rx_settings.predict_period = true; // don't optimise
+    rx_settings.period_max = 2000;  // use 2000ms
 
     //    tx_settings.tx_desync = 0;         // don't randomise
     //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
-
-    //    setRxSettings();
+    //
+    setRxSettings();
     //    delay(5);
     //    setTxSettings();
 
-
+    getRxSettings();
   }
 
-  getMsgTimings();
-  //  reportStatusErrorsCSV();
-  //  doResetStatus();
-
-  //  reportErrorsCSV();
-  //getRxDirection();
-  //  getRxActivity();
-
-  //  for( int i = 0; i < 4; i++ ) {
-  //    Serial.print( rx[i] == true ? "1," : "0,");
-  //  }
-  //  Serial.println();
-  //getSensors();
-  delay(300);
-
 }
+
+void checkForMessages() {
+  // Periodically check to see if there are new messages
+  // waiting to be read from the communication board.
+  if ( millis() - check_message_ts > check_message_ms ) {
+    check_message_ts = millis();
+
+
+    // Let's use a bool to understand if we got a message
+    // on any receiver. We'll make a beep if any receiver
+    // got an IR message.
+    bool got_message = false;
+
+    // Check all 4 receivers
+    for ( int i = 0; i < 4; i++ ) {
+
+      rx[i] = false;
+
+      // If this returns more than 0, it means there
+      // is a message waiting to be read.
+      // The value of n is the number of bytes we need
+      // to get from the IR Communication board
+      int n = checkRxMsgReady( i );
+
+      //       Old debugging
+      //                Serial.print("Rx " );
+      //                Serial.print(i);
+      //                Serial.print(": ");
+      //                Serial.print( n );
+      //                Serial.println(" bytes ready");
+
+
+      // If there is a message ready, we use 'n' as
+      // the number of bytes to read down from the
+      // communication board through receiver 'i'
+      // (0,1,2 or 3).
+      if ( n > 0 ) {
+        rx[i] = true;
+        got_message = true;
+
+        // If we don't care what the message says
+        // because we just want the statistics
+        // (e.g., the count of messages or the
+        // timing), we can just tell the board to
+        // delete the message.  You don't have to
+        // do this.  If you use getIRMessage()
+        // it will be deleted automatically.
+        deleteMessage(i);
+
+        // This function gets the message on receiver
+        // 'i', and currently prints the message over
+        // Serial.print().  You can decide what new
+        // thing to do with this message.
+        // Note, calling this function gets the message
+        // from the IR communication board and deletes
+        // it from the communication board.
+        //getIRMessage( i, n );
+
+
+      } else {
+
+        // n = 0, which means there were no bytes
+        // available, no message.
+      }
+    }
+
+    // Beep if we got a message
+    if ( got_message ) {
+      tone(BUZZER_PIN, random_pitch, 10);
+      //      analogWrite( BUZZER_PIN, 120 );
+      //      delay(5);
+      //      analogWrite( BUZZER_PIN, 0);
+
+    }
+
+  }
+}
+
 
 /*
 
@@ -361,11 +416,11 @@ void getRxSettings() {
   Serial.print(" - cycle: ");       Serial.println(rx_settings.cycle > 0 ? "true" : "false");
   Serial.print(" - cycle on rx: ");  Serial.println(rx_settings.cycle_on_rx > 0 ? "true" : "false");
   Serial.print(" - desync rx: ");  Serial.println(rx_settings.desync > 0 ? "true" : "false");
-  Serial.print(" - predict timeout: "); Serial.println(rx_settings.predict_timeout > 0 ? "true" : "false");
+  Serial.print(" - predict timeout: "); Serial.println(rx_settings.predict_period > 0 ? "true" : "false");
   Serial.print(" - overrun: ");    Serial.println(rx_settings.overrun > 0 ? "true" : "false");
-  Serial.print(" - current timeout: ");    Serial.println(rx_settings.timeout);
-  Serial.print(" - timeout max: ");    Serial.println(rx_settings.timeout_max);
-  Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.timeout_multi);
+  Serial.print(" - current timeout: ");    Serial.println(rx_settings.period);
+  Serial.print(" - timeout max: ");    Serial.println(rx_settings.period_max);
+  Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.predict_multi);
   Serial.print(" - power index: ");    Serial.println(rx_settings.index);
   Serial.print(" - byte timeout: ");    Serial.println(rx_settings.byte_timeout);
   Serial.println();
@@ -432,8 +487,6 @@ void getMsgTimings() {
     Serial.println();
   }
 
-  Serial.print("Tx Delay: "); Serial.println( msg_timings.tx_period );
-  Serial.print("Rx Delay: "); Serial.println( msg_timings.rx_timeout );
 
 }
 
@@ -564,7 +617,8 @@ int checkRxMsgReady(int which_rx) {
 }
 
 void reportStatusErrorsCSV() {
-  //         Set mode to status request
+
+  
   ircomm_mode.mode = MODE_REPORT_STATUS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
@@ -576,6 +630,7 @@ void reportStatusErrorsCSV() {
 
   // Report how many messages have been received on each
   // receiver
+  //  Serial.print("P,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.pass_count[i] );
     Serial.print(",");
@@ -584,22 +639,24 @@ void reportStatusErrorsCSV() {
   // Let's show the message failures as negative numbers
   // so that we can view both at the same time on the plotter
   // to compare pass versus fail.
+
+  //  Serial.print("F,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.fail_count[i] );
     Serial.print(",");
   }
 
-  //  // The type of failures
-  //  for ( int i = 0; i < 4; i++ ) {
-  //    Serial.print( ircomm_status.error_type[i] );
-  //    Serial.print(",");
-  //  }
-
-  // Quantity of bytes received
+  //  Serial.print("A,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.activity[i] );
     Serial.print(",");
   }
+  
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( ircomm_status.saturation[i] );
+    Serial.print(",");
+  }
+  
 
   ir_errors_t errors;
   ircomm_mode.mode = MODE_REPORT_ERRORS;
@@ -612,11 +669,17 @@ void reportStatusErrorsCSV() {
 
   // for each recevier
   for ( int i = 0; i < 4; i++ ) {
+
+    // error type
+
+    //  Serial.print("E");Serial.print(i);Serial.print(",");
     for ( int j = 0; j < 4; j++ ) {
       Serial.print( errors.type[i][j] );
       Serial.print(",");
     }
   }
+
+  
   Serial.print("\n");
 
 }
@@ -632,10 +695,10 @@ void reportErrorsCSV() {
   Wire.readBytes( (uint8_t*)&errors, sizeof( errors ));
 
   // for each recevier
-  for ( int i = 0; i < 4; i++ ) {
+  for ( int i = 0; i < 4; i++ ) { //
     Serial.print("Rx "); Serial.print( i ); Serial.print(": ");
     // for each error type
-    for ( int j = 0; j < 4; j++ ) {
+    for ( int j = 0; j < 4; j++ ) {  //
       Serial.print( errors.type[i][j] );
       Serial.print(",");
     }

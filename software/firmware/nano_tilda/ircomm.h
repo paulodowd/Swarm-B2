@@ -50,11 +50,6 @@ class IRComm_c {
     // to transmit.
     volatile byte tx_buf[MAX_BUF];
 
-    // tx_buf length indicator. If 0,
-    // no transmission occurs.
-    volatile uint8_t tx_len;
-
-
     // Allows the IR board to be
     // entirely disabled/enabled
     // via i2c.
@@ -88,13 +83,14 @@ class IRComm_c {
     unsigned long tx_ts;     // periodic transmit
     unsigned long led_ts;    // LED time stamp
     unsigned long bearing_ts;// bearing estimation
+    unsigned long saturation_ts;  // 
 
 
     IRComm_c();           // blank.
     void init();          // configures UART etc.
     int update();         // main function.
     void setupTimer2();   // 38khz or 58khz
-    void setRxTimeout();  // set how long to listen for.
+    void setRxPeriod();  // set how long to listen for.
     void setTxPeriod();   // set how often to transmit.
 
     void powerOffAllRx(); // disables all receivers.

@@ -27,6 +27,9 @@ void IRParser_c:: copyMsg( byte * dest ) {
 
 int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
+
+  // Set status to 0 initially, which is to
+  // assume we haven't received a byte
   int status = 0;
 
   // Note: not using while.  We don't want to
@@ -36,11 +39,19 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
     digitalWrite( 13, HIGH );
 
+    // Get next byte
     byte b = Serial.read();
 
+    // Check how long since we got the
+    // last byte for our timeout error.
+    // If we are calling this function quickly,
+    // we should keep the UART buffer "empty" (low).
+    // If not, then this timeout won't function as 
+    // intended because we'll just be reading out
+    // quickly from the UART buffer.
     if ( GOT_START_TOKEN ) {
       if ( millis() - timeout_ts > byte_timeout ) {
-        status = ERR_BYTE_TIMEOUT;
+        status = -ERR_BYTE_TIMEOUT;
         reset();
         return status;
       }
@@ -62,20 +73,24 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
         // ERROR: message too short
         // Not a critical error, we can continue
         // and so increase the buf_index
-        status = ERR_TOO_SHORT;
+        status = -ERR_TOO_SHORT;
       } else {
         // report that we got a byte
         status = 1;
       }
+
+      // Starting again, so reset parser.
       reset();
+
+      // ...but keep the start token flag true.
       GOT_START_TOKEN = true;
     }
 
-    
+    // add byte to our parser buffer
     buf[buf_index] = b;
 
     // The byte immediately after the start
-    // token should be the length of the
+    // token (index 1) should be the length of the
     // incoming message
     if ( buf_index == 1 ) {
 
@@ -87,7 +102,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
         // ERROR: bad incoming message format
         reset();
-        status = ERR_BAD_LENGTH;
+        status = -ERR_BAD_LENGTH;
 
         // For a critical error, we don't
         // allow buf_index to increment and
@@ -102,7 +117,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
     }
 
 
-    // Prepare for the next byte
+    // Prepare for the next byte.
     if ( GOT_START_TOKEN ) buf_index++;
 
 
@@ -144,6 +159,11 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           status = header_len;
 
           reset();
+
+          // Here we return the header_len.
+          // If we received a 1 byte message,
+          // header_len would be 5. So we avoid
+          // confusion with status=1.
           return status;
 
         } else {
@@ -155,11 +175,11 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           // For a critical error, we don't
           // allow buf_index to increment and
           // return here.
-          status = ERR_BAD_CRC;
+          status = -ERR_BAD_CRC;
           return status;
         }
-      } // buf_index >= header_len
-    }
+      } // if buf_index >= header_len
+    } // if header_len > 0
 
 
     // We simply received a new byte, but not

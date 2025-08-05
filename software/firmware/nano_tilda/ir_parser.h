@@ -5,10 +5,10 @@
 #include "Arduino.h"
 #include "config.h"
 
-#define ERR_TOO_SHORT     -1
-#define ERR_BAD_LENGTH    -2
-#define ERR_BAD_CRC       -3
-#define ERR_BYTE_TIMEOUT  -4
+#define ERR_TOO_SHORT     1
+#define ERR_BAD_LENGTH    2
+#define ERR_BAD_CRC       3
+#define ERR_BYTE_TIMEOUT  4
 
 class IRParser_c {
 

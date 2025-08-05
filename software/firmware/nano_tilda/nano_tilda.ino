@@ -10,17 +10,6 @@
 #include "ircomm.h"
 #include "ircomm_i2c.h"
 
-
-// Test/Debug modes
-#define TEST_DISABLED 0
-#define TEST_TX 1
-#define TEST_RX 2
-
-
-#define SELF_TEST_MODE TEST_DISABLED
-//#define SELF_TEST_MODE TEST_TX
-//#define SELF_TEST_MODE TEST_RX
-
 // A timestamp used only to configure various
 // testing/debugging activities.
 unsigned long test_ts;
@@ -121,7 +110,7 @@ void i2c_receive( int len ) {
       byte buf[MAX_MSG];
       memset( buf, 0, sizeof( buf ));
       Wire.readBytes( buf, len );
-      ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+      ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
     }
 
     last_mode.mode = MODE_NOT_SET;
@@ -131,7 +120,9 @@ void i2c_receive( int len ) {
     if ( len == sizeof( ir_rx_params_t ) ) {
 
       Wire.readBytes( (uint8_t*)&ircomm.config.rx, sizeof( ircomm.config.rx ));
+
       // User may have switched Rx index!
+      // This also resets the parser & UART
       ircomm.powerOnRx( ircomm.config.rx.index );
 
     } else {
@@ -322,7 +313,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  setRandomMsg(32);
+  //setRandomMsg(8);
 }
 
 
@@ -341,21 +332,21 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-//  sprintf(buf, "123456789");
-    for ( int i = 0; i < max_chars; i++ ) {
-      buf[i] = (byte)random( 65, 90 );
-    }
+  //  sprintf(buf, "123456789");
+  for ( int i = 0; i < max_chars; i++ ) {
+    buf[i] = (byte)random( 65, 90 );
+  }
 
-//  typedef struct msg {
-//    float v[2];
-//  } msg_t;
-//  msg_t msg;
-//  for ( int i = 0; i < 2; i++ ) msg.v[i] = random(0, 1000) - 500;
-//  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, (byte*)&msg, sizeof( msg ) );
+  //  typedef struct msg {
+  //    float v[2];
+  //  } msg_t;
+  //  msg_t msg;
+  //  for ( int i = 0; i < 2; i++ ) msg.v[i] = random(0, 1000) - 500;
+  //  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, (byte*)&msg, sizeof( msg ) );
 
 
   //  Checking the format of what is being sent.
-  ircomm.tx_len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+  ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
   //  while(1) {
   //    Serial.print("tx buf: ");
   //    Serial.println( (char*)ircomm.tx_buf );
@@ -369,10 +360,19 @@ int setRandomMsg(int len) {
   //    delay(1000);
   //
   //  }
-  return ircomm.tx_len;
+  return ircomm.config.tx.len;
 }
 
 void loop() {
+////
+//  if( millis() - test_ts > 250 ) {
+//      test_ts = millis();
+//      int e = setRandomMsg(8);
+//    }
+//
+//
+//  sendTest();
+//  return;
 
   if ( full_reset ) {
     ircomm.fullReset();
@@ -383,12 +383,26 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
+  //
+  //  if( millis() - test_ts > 250 ) {
+  //    test_ts = millis();
+  //    int e = setRandomMsg(32);
+  //  }
 
-  if( millis() - test_ts > 250 ) {
-    test_ts = millis();
-    int e = setRandomMsg(32);
+}
+
+void sendTest() {
+  // Checking HardwareSerial.cpp, .write() is a blocking
+  // function.  Therefore we don't need .flush()
+  //Serial.availableForWrite();
+  ircomm.enableTx();
+  for ( int j = 0; j < ircomm.config.tx.len; j++ ) {
+    Serial.write( ircomm.tx_buf[j] );
   }
 
+  //Serial.print(tx_buf);
+  Serial.flush();
+  ircomm.disableTx();
 }
 
 

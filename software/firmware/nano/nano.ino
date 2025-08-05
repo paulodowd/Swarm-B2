@@ -416,7 +416,7 @@ void setup() {
   test_ts = millis();
   full_reset = false;
   // Paul: I was using this to test
-//    setRandomMsg(8);
+    setRandomMsg(8);
 }
 
 

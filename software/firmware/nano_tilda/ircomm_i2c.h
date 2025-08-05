@@ -76,14 +76,15 @@ typedef struct ir_mode {
 // of messages received correctly or with error
 // The max possible size of an i2c struct is
 // 32 bytes.
-typedef struct ir_status {  // 24 bytes
+typedef struct ir_status {  // 32 bytes
   uint16_t fail_count[4];   // 2*4 = 8
   uint16_t pass_count[4];   // 2*4 = 8
   uint16_t activity[4];     // 2*4 = 8
+  uint16_t saturation[4];   // 2*4 = 8
 } ir_status_t;
 
-typedef struct ir_errors {  // 16 bytes
-  uint16_t type[4][4];// 4*4 = 16 (*2bytes)
+typedef struct ir_errors {  // 32 bytes
+  uint16_t type[4][4];// 4*4 = 16*2bytes
 } ir_errors_t;
 
 typedef struct ir_cycles {  // 4 bytes
@@ -99,11 +100,9 @@ typedef struct ir_msg_status {  // 1 byte
 
 // To find out the relative timing of
 // message activity
-typedef struct ir_msg_timings { // 20 bytes
+typedef struct ir_msg_timings { // 16 bytes
   uint16_t msg_dt[4];           // 8 bytes
   uint16_t msg_t[4];            // 8 bytes
-  uint16_t rx_timeout;          // 2 bytes
-  uint16_t tx_period;           // 2 bytes
 } ir_msg_timings_t;
 
 // Struct to track the activity levels
@@ -127,25 +126,29 @@ typedef struct ir_sensors {
 
 
 
-typedef struct ir_tx_params {   // 11 bytes
+typedef struct ir_tx_params {   // 18 bytes
   byte          mode;           // 1: 0 = periodic, 1 = interleaved
   byte          repeat;         // 1: how many repeated IR transmissions?
+  bool          predict_period; // 1: show we try to predict a good tx period?
+  float          predict_multi;   // 4: how many multiples of tx_len to use with predict?
   unsigned long period;         // 4: periodic:  current ms period to send messages
   unsigned long period_max;     // 4: maximum tx period allowable
   bool          desync;         // 1: should tx_period receive small randomisation?
+  byte          len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
-typedef struct ir_rx_params {   // 20 bytes.
+typedef struct ir_rx_params {   // 28 bytes.
   bool          cycle;          //  1: total count of rx polling rotations
   bool          cycle_on_rx;    //  1: if message received ok, immediately cycle rx?
-  bool          predict_timeout;//  1: set rx_timeout based on last message length?
+  bool          predict_period;//  1: set rx_period based on last message length?
   bool          overrun;        //  1: if a start token received, wait to finish receiving?
-  unsigned long timeout;        //  4: current ms used to wait before switching receiver
-  unsigned long timeout_max;    //  4: maximum rx_timeout allowable
-  byte          timeout_multi;  //  1: with prediction, how many message-lengths to wait?
-  bool          desync;         //  1: should rx_timeout receive small randomisation?
+  unsigned long period;        //  4: current ms used to wait before switching receiver
+  unsigned long period_max;    //  4: maximum rx_period allowable
+  float         predict_multi;  //  4: with prediction, how many message-lengths to wait?
+  bool          desync;         //  1: should rx_period receive small randomisation?
   byte          index;          //  1: Which receiver is active? if cycle is false, sets Rx
   unsigned long byte_timeout;   //  4: If we haven't received a consecutive byte, timeout
+  unsigned long sat_timeout;    //  4: Rx seems to saturate, watch for 0 byte activity.
   byte          len;            //  1: how long was the last received message?
 } ir_rx_params_t;
 

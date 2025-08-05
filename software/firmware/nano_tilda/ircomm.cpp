@@ -10,6 +10,9 @@ void IRComm_c::init() {
 
   disabled = false;
 
+  // Let's set everything to 0 to start with
+  memset( &config, 0, sizeof( config ));
+
   // Start by setting up the default config
   // set by the #define in ircomm.h, which
   // can then be over-rided by i2c.
@@ -18,23 +21,26 @@ void IRComm_c::init() {
   } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
     config.tx.mode       = TX_MODE_INTERLEAVED;
   }
+  config.tx.predict_period = TX_PREDICT_PERIOD;
+  config.tx.predict_multi  = TX_PREDICT_MULTI;
 
   config.tx.repeat     = DEFAULT_TX_REPEAT;
   config.tx.desync     = TX_DESYNC;
   config.tx.period_max = DEFAULT_TX_PERIOD;
+  config.tx.len = 0;
 
   config.rx.cycle           = RX_CYCLE;
   config.rx.cycle_on_rx     = RX_CYCLE_ON_RX;
-  config.rx.predict_timeout = RX_PREDICT_TIMEOUT;
+  config.rx.predict_period = RX_PREDICT_PERIOD;
   config.rx.overrun         = RX_OVERRUN;
   config.rx.len          = RX_DEFAULT_MSG_LEN;
-  config.rx.timeout         = 0; // updated below
-  config.rx.timeout_max     = RX_TIMEOUT_MAX;
-  config.rx.timeout_multi   = RX_PREDICT_MULTIPLIER;
+  config.rx.period         = 0; // updated below
+  config.rx.period_max     = RX_PERIOD_MAX;
+  config.rx.predict_multi   = RX_PREDICT_MULTIPLIER;
   config.rx.index           = 0;
   config.rx.byte_timeout    = MS_BYTE_TIMEOUT;
+  config.rx.sat_timeout     = RX_SAT_TIMEOUT;
   config.rx.desync          = RX_DESYNC;
-
 
 
 
@@ -75,7 +81,7 @@ void IRComm_c::init() {
   resetBearingActivity();
   resetMetrics();
 
-  tx_len = 0;             // start with no message to send.
+  config.tx.len = 0;             // start with no message to send.
 
   led_ts = millis();      // debug led
   rx_ts = millis();       // rx timeout
@@ -88,13 +94,16 @@ void IRComm_c::init() {
 
   parser.reset();
 
-  setRxTimeout();
+  setRxPeriod();
   setTxPeriod();
+
+  saturation_ts = millis();
 
 }
 
 void IRComm_c::resetMetrics() {
   memset( &metrics, 0, sizeof( metrics ));
+  memset( &metrics.status, 0, sizeof( metrics.status ));
 
   for ( int i = 0; i < MAX_RX; i++ ) metrics.timings.msg_t[i] = millis();
 }
@@ -106,7 +115,7 @@ bool IRComm_c::cyclePowerRx() {
   // the receiver, we simply update the
   // continue functioning, without changing
   // to a new receiver.
-  if ( config.rx.cycle == false || config.rx.timeout_max == 0 ) {
+  if ( config.rx.cycle == false || config.rx.period_max == 0 ) {
 
     // If we are not cycling the RX receiver
     // there seems to be an issue where the demod
@@ -123,7 +132,7 @@ bool IRComm_c::cyclePowerRx() {
     // Although this isn't ideal, it is better
     // than receiving no bytes at all.
     //toggleRxPower(); // Paul 5/7/25 this is causing trouble
-    setRxTimeout();
+    setRxPeriod();
     return false;
   }
 
@@ -142,7 +151,7 @@ bool IRComm_c::cyclePowerRx() {
 
   // Since we've cycled receiver,
   // set the new timeout period
-  setRxTimeout();
+  setRxPeriod();
 
   return true;
 }
@@ -274,27 +283,29 @@ void IRComm_c::toggleRxPower() {
 
   if ( config.rx.index == 0 ) {
     digitalWrite( RX_PWR_0, LOW );
-    delayMicroseconds(250); // 0.25ms
+    delayMicroseconds(1200); // 1.2ms
     digitalWrite( RX_PWR_0, HIGH );
 
   } else if ( config.rx.index == 1 ) {
     digitalWrite( RX_PWR_1, LOW );
-    delayMicroseconds(250); // 0.25ms
+    delayMicroseconds(1200); // 1.2ms
     digitalWrite( RX_PWR_1, HIGH );
+
   } else if ( config.rx.index == 2 ) {
     digitalWrite( RX_PWR_2, LOW );
-    delayMicroseconds(250); // 0.25ms
+    delayMicroseconds(1200); // 1.2ms
     digitalWrite( RX_PWR_2, HIGH );
+
   } else if ( config.rx.index == 3 ) {
     digitalWrite( RX_PWR_3, LOW );
-    delayMicroseconds(250); // 0.25ms
+    delayMicroseconds(1200); // 1.2ms
     digitalWrite( RX_PWR_3, HIGH );
+
   }
   // Wait to stabilise when on again
-  delayMicroseconds(250);
+  //delayMicroseconds(50);
 
-  // Potentially here, we need to reset
-  // the UART
+
 }
 
 void IRComm_c::powerOffAllRx() {
@@ -322,21 +333,22 @@ void IRComm_c::powerOffAllRx() {
 // We are using 4800 baud, which is
 // 4800 bits per second.
 // 1.042ms per byte.
-void IRComm_c::setRxTimeout() {
+void IRComm_c::setRxPeriod() {
 
-  float t;
+  // Assume max message len to start
+  float t = (float)(config.rx.period_max);
 
   // Is the board configured to dynamically adjust the
-  // rx_timeout value depending on the length of the
+  // period value depending on the length of the
   // messages it is receiving?
-  if ( config.rx.predict_timeout && config.rx.len > 0 ) {
+  if ( config.rx.predict_period && config.rx.len > 0 && config.rx.predict_multi > 0 ) {
 
     // What is the length of the messages we are
     // receiving?
     t = (float)config.rx.len;
 
     // How many full message-lengths to listen for?
-    t *= (float)config.rx.timeout_multi;
+    t *= config.rx.predict_multi;
 
     // Scale for milliseconds
 #ifdef IR_FREQ_58
@@ -348,12 +360,6 @@ void IRComm_c::setRxTimeout() {
 #endif
 
 
-
-  } else { // Not using predict timeout
-
-    // Use global and fiRxed parameters
-    // to calculate a value
-    t = (float)(config.rx.timeout_max);
 
   }
 
@@ -367,7 +373,7 @@ void IRComm_c::setRxTimeout() {
   }
 
 
-  config.rx.timeout = (unsigned long)t;
+  config.rx.period = (unsigned long)t;
 
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
@@ -382,9 +388,21 @@ void IRComm_c::setTxPeriod() {
   // Set tx period as default
   float t = config.tx.period_max;
 
+  if ( config.tx.predict_period == true && config.tx.len > 0 && config.tx.predict_multi > 0 ) {
+    t = (float)config.tx.len;
+    t *= config.tx.predict_multi;
+
+    // Scale for milliseconds per byte
+#ifdef IR_FREQ_58
+    t *= MS_PER_BYTE_58KHZ; // How many ms per byte to transmit?
+#endif
+
+#ifdef IR_FREQ_38
+    t *= MS_PER_BYTE_38KHZ; // How many ms per byte to transmit?
+#endif
+  }
+
   if ( config.tx.desync == true ) {
-
-
     float mod = t;
     mod *= 0.25; // take 25% of the total time
     // add modifier between 0: mod
@@ -397,12 +415,9 @@ void IRComm_c::setTxPeriod() {
 
   config.tx.period = (unsigned long)t;
 
-
   // If we've adjsuted the delay period,
   // we move the timestamp forwards.
   tx_ts = millis();
-
-
 }
 
 
@@ -488,7 +503,7 @@ void IRComm_c::clearRxMsg(int which) {
 // and adds a ! to the 0th character
 void IRComm_c::clearTxBuf() {
   memset(tx_buf, 0, sizeof(tx_buf));
-  tx_len = 0;
+  config.tx.len = 0;
 }
 
 
@@ -529,16 +544,26 @@ int IRComm_c::update() {
     // nothing happened
     error = 0;
 
+
+
   } else if ( status < 0 ) { // something went wrong.
 
     // Increase count of success for this rx
     metrics.status.fail_count[ config.rx.index ]++;
 
 
-    // Use status to index the log of errors
+    // Use status to index the log of errors. This
+    // is also used to register a byte received
+    // after this if statement.
     status *= -1;
 
-    metrics.errors.type[ config.rx.index][ status ]++;
+    // Our status is -1:-4, but the
+    // index is 0:3
+    status -= 1;
+
+    metrics.errors.type[ config.rx.index ][ status ]++;
+
+
 
     error = -1;
 
@@ -627,13 +652,13 @@ int IRComm_c::update() {
   // PERIODIC, and we need to check if it is time
   // to rotate the RX receiver.
   if ( config.rx.cycle == true ) {
-    if ( millis() - rx_ts > config.rx.timeout) {
+    if ( millis() - rx_ts > config.rx.period) {
 
       if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
         transmit = true;
       }
 
-      if ( config.rx.timeout_max > 0) {
+      if ( config.rx.period_max > 0) {
         cycle = true;
       }
 
@@ -653,6 +678,14 @@ int IRComm_c::update() {
       // Update timestamp for the next
       // transmission occurence
       setTxPeriod();
+
+      // If we did a transmission, our
+      // saturation timeout will likely
+      // trigger because of the time
+      // spent transmitting. So we
+      // update the saturation timestamp
+      // here.
+      saturation_ts = millis();
     }
 
   }
@@ -669,6 +702,24 @@ int IRComm_c::update() {
 
   }
 
+  // This means there was 0 byte activity.
+  // If this happens for a "long" time, we
+  // probably have an issue with the
+  // receiver module.  Normally the board
+  // will pick up a few bytes from ambient
+  // noise.  The IR demodulator seems to
+  // lock up sometimes, not sure why.
+  // TODO: scale for carrier frequency
+  if ( error == 0 ) {
+    if ( millis() - saturation_ts > config.rx.sat_timeout ) {
+      saturation_ts = millis();
+      toggleRxPower();
+      metrics.status.saturation[config.rx.index]++;
+    }
+  } else {
+    saturation_ts = millis();
+  }
+
 }
 
 void IRComm_c::updateMsgTimings() {
@@ -681,7 +732,7 @@ boolean IRComm_c::doTransmit() {
 
   // Don't do anything if there is no message
   // to transmit.
-  if ( tx_len == 0 ) {
+  if ( config.tx.len == 0 ) {
 
     // Schedule next transmission
     // Redundant if set to INTERLEAVED
@@ -703,7 +754,7 @@ boolean IRComm_c::doTransmit() {
       // Checking HardwareSerial.cpp, .write() is a blocking
       // function.  Therefore we don't need .flush()
       //Serial.availableForWrite();
-      for ( int j = 0; j < tx_len; j++ ) {
+      for ( int j = 0; j < config.tx.len; j++ ) {
         Serial.write( tx_buf[j] );
       }
 
@@ -735,13 +786,14 @@ boolean IRComm_c::doTransmit() {
 
 void IRComm_c::fullReset() {
 
+
   for ( int i = 0; i < 4; i++ ) {
     bearing_activity[i] = 0;
     clearRxMsg(i);
   }
   resetMetrics();
   clearTxBuf();
-
+  resetUART();
   parser.reset();
 }
 

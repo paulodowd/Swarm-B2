@@ -31,7 +31,7 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              true  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
+#define RX_PREDICT_PERIOD    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
@@ -39,21 +39,30 @@
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
 
+
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
 #ifdef IR_FREQ_58
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4.0)
+#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4)
 #endif
 #ifdef IR_FREQ_38
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4.0)     
+#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4)     
 #endif
 
 #ifdef IR_FREQ_58
-#define RX_TIMEOUT_MAX       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_PERIOD_MAX       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 #ifdef IR_FREQ_38
-#define RX_TIMEOUT_MAX       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_PERIOD_MAX       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
+
+#ifdef IR_FREQ_58
+#define RX_SAT_TIMEOUT       (MS_PER_BYTE_58KHZ*5)
+#endif
+#ifdef IR_FREQ_38
+#define RX_SAT_TIMEOUT       (MS_PER_BYTE_38KHZ*5)     
+#endif
+
 
 
 
@@ -68,6 +77,8 @@
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
 #define TX_MODE (TX_MODE_PERIODIC)
 //#define TX_MODE (TX_MODE_INTERLEAVED)
+#define TX_PREDICT_PERIOD     false
+#define TX_PREDICT_MULTI      3.0
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
