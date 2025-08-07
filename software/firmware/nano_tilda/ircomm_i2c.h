@@ -138,6 +138,7 @@ typedef struct ir_tx_params {   // 18 bytes
 } ir_tx_params_t;
 
 typedef struct ir_rx_params {   // 28 bytes.
+  //byte          rx_enable;     // Use a value 1:15 to encode which rx can be used.
   bool          cycle;          //  1: total count of rx polling rotations
   bool          cycle_on_rx;    //  1: if message received ok, immediately cycle rx?
   bool          predict_period;//  1: set rx_period based on last message length?

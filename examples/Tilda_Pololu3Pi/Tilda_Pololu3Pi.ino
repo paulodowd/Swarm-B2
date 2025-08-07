@@ -262,8 +262,9 @@ void updateSettings() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    rx_settings.cycle = true;
-    rx_settings.desync = true;          // don't randomise
+    rx_settings.cycle = false;
+    rx_settings.cycle_on_rx = false;
+    rx_settings.desync = false;          // don't randomise
     rx_settings.overrun = true;
     rx_settings.index = 0;
     rx_settings.predict_period = true; // don't optimise
