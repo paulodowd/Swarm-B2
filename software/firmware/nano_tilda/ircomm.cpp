@@ -29,18 +29,22 @@ void IRComm_c::init() {
   config.tx.period_max = DEFAULT_TX_PERIOD;
   config.tx.len = 0;
 
-  config.rx.cycle           = RX_CYCLE;
-  config.rx.cycle_on_rx     = RX_CYCLE_ON_RX;
-  config.rx.predict_period = RX_PREDICT_PERIOD;
-  config.rx.overrun         = RX_OVERRUN;
-  config.rx.len          = RX_DEFAULT_MSG_LEN;
-  config.rx.period         = 0; // updated below
-  config.rx.period_max     = RX_PERIOD_MAX;
-  config.rx.predict_multi   = RX_PREDICT_MULTIPLIER;
-  config.rx.index           = 0;
-  config.rx.byte_timeout    = MS_BYTE_TIMEOUT;
-  config.rx.sat_timeout     = RX_SAT_TIMEOUT;
-  config.rx.desync          = RX_DESYNC;
+  config.rx.flags.bits.cycle            = RX_CYCLE;
+  config.rx.flags.bits.cycle_on_rx      = RX_CYCLE_ON_RX;
+  config.rx.flags.bits.predict_period   = RX_PREDICT_PERIOD;
+  config.rx.flags.bits.overrun          = RX_OVERRUN;
+  config.rx.flags.bits.desync           = RX_DESYNC;
+  config.rx.flags.bits.rx0              = 1;
+  config.rx.flags.bits.rx1              = 1;
+  config.rx.flags.bits.rx2              = 1;
+  config.rx.flags.bits.rx3              = 1;
+  config.rx.len                         = RX_DEFAULT_MSG_LEN;
+  config.rx.period                      = 0; // updated below
+  config.rx.period_max                  = RX_PERIOD_MAX;
+  config.rx.predict_multi               = RX_PREDICT_MULTIPLIER;
+  config.rx.index                       = 0;
+  config.rx.byte_timeout                = MS_BYTE_TIMEOUT;
+  config.rx.sat_timeout                 = RX_SAT_TIMEOUT;
 
 
 
@@ -115,7 +119,7 @@ bool IRComm_c::cyclePowerRx() {
   // the receiver, we simply update the
   // continue functioning, without changing
   // to a new receiver.
-  if ( config.rx.cycle == false || config.rx.period_max == 0 ) {
+  if ( config.rx.flags.bits.cycle == false || config.rx.period_max == 0 ) {
 
     // If we are not cycling the RX receiver
     // there seems to be an issue where the demod
@@ -136,24 +140,42 @@ bool IRComm_c::cyclePowerRx() {
     return false;
   }
 
+  // Try to do a rotation, checking if the rx
+  // receiver is available/enabled
+  int count = 0;
+  do {
+    config.rx.index++;
+    if ( config.rx.index >= MAX_RX ) {
+      config.rx.index = 0;
+    }
+    if ( isRxAvailable( config.rx.index ) ) break;
+    count++;
+  } while ( count < 4 );
 
-  config.rx.index++;
-  metrics.cycles.rx++;
-
-  // A full rotation has occured, process the
-  // activity level, update the lpf
-  if ( config.rx.index >= MAX_RX ) {
-    config.rx.index = 0;
+  // If count is 4, we returned to the same receiver
+  // and so, didn't really cycle
+  if ( count < 4 ) {
+    metrics.cycles.rx++;
+    powerOnRx( config.rx.index );
   }
-
-
-  powerOnRx( config.rx.index );
-
   // Since we've cycled receiver,
   // set the new timeout period
   setRxPeriod();
 
   return true;
+}
+
+// I was tempted to do some bitwise things here,
+// but if the union definition changes it would
+// screw up this routine.
+bool IRComm_c::isRxAvailable( int which ) {
+  switch ( which ) {
+    case 0: return config.rx.flags.bits.rx0;
+    case 1: return config.rx.flags.bits.rx1;
+    case 2: return config.rx.flags.bits.rx2;
+    case 3: return config.rx.flags.bits.rx3;
+    default: return false;
+  }
 }
 
 
@@ -198,26 +220,26 @@ void IRComm_c::resetBearingActivity() {
 void IRComm_c::powerOnRx( byte index ) {
 
 
-  if ( index == 0 ) {
+  if ( index == 0 && isRxAvailable(index) ) {
     digitalWrite( RX_PWR_0, HIGH ); // fwd
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
 
-  } else if ( index == 1 ) {        // left
+  } else if ( index == 1 && isRxAvailable(index) ) {        // left
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, HIGH );
     digitalWrite( RX_PWR_2, LOW );
     digitalWrite( RX_PWR_3, LOW );
 
 
-  } else if ( index == 2 ) {        // back
+  } else if ( index == 2 && isRxAvailable(index) ) {        // back
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, HIGH );
     digitalWrite( RX_PWR_3, LOW );
 
-  } else if ( index == 3 ) {        // right
+  } else if ( index == 3 && isRxAvailable(index) ) {        // right
     digitalWrite( RX_PWR_0, LOW );
     digitalWrite( RX_PWR_1, LOW );
     digitalWrite( RX_PWR_2, LOW );
@@ -341,7 +363,7 @@ void IRComm_c::setRxPeriod() {
   // Is the board configured to dynamically adjust the
   // period value depending on the length of the
   // messages it is receiving?
-  if ( config.rx.predict_period && config.rx.len > 0 && config.rx.predict_multi > 0 ) {
+  if ( config.rx.flags.bits.predict_period && config.rx.len > 0 && config.rx.predict_multi > 0 ) {
 
     // What is the length of the messages we are
     // receiving?
@@ -363,7 +385,7 @@ void IRComm_c::setRxPeriod() {
 
   }
 
-  if ( config.rx.desync == true ) {
+  if ( config.rx.flags.bits.desync == true ) {
     float mod = t;
     mod *= 0.25; // take 25% of the total time
     // add modifier between 0: mod
@@ -598,12 +620,12 @@ int IRComm_c::update() {
 
     if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
       transmit = true;
-      if ( config.rx.cycle == true ) {
+      if ( config.rx.flags.bits.cycle == true ) {
         cycle = true;
       }
     }
 
-    if ( config.rx.cycle_on_rx && config.rx.cycle) {
+    if ( config.rx.flags.bits.cycle_on_rx && config.rx.flags.bits.cycle) {
       cycle = true;
     }
 
@@ -623,7 +645,7 @@ int IRComm_c::update() {
 
 
 
-  if ( config.rx.overrun && parser.GOT_START_TOKEN ) {
+  if ( config.rx.flags.bits.overrun && parser.GOT_START_TOKEN ) {
 
     // If we're configured to allow RX to overrun and
     // we're in the process of receiving a message, we
@@ -651,7 +673,7 @@ int IRComm_c::update() {
   // We are in either TX_MODE_INTERLEAVED or
   // PERIODIC, and we need to check if it is time
   // to rotate the RX receiver.
-  if ( config.rx.cycle == true ) {
+  if ( config.rx.flags.bits.cycle == true ) {
     if ( millis() - rx_ts > config.rx.period) {
 
       if ( config.tx.mode == TX_MODE_INTERLEAVED ) {

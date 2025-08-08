@@ -126,7 +126,7 @@ typedef struct ir_sensors {
 
 
 
-typedef struct ir_tx_params {   // 18 bytes
+typedef struct ir_tx_params {   // total = 18 bytes
   byte          mode;           // 1: 0 = periodic, 1 = interleaved
   byte          repeat;         // 1: how many repeated IR transmissions?
   bool          predict_period; // 1: show we try to predict a good tx period?
@@ -137,20 +137,31 @@ typedef struct ir_tx_params {   // 18 bytes
   byte          len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
-typedef struct ir_rx_params {   // 28 bytes.
-  //byte          rx_enable;     // Use a value 1:15 to encode which rx can be used.
-  bool          cycle;          //  1: total count of rx polling rotations
-  bool          cycle_on_rx;    //  1: if message received ok, immediately cycle rx?
-  bool          predict_period;//  1: set rx_period based on last message length?
-  bool          overrun;        //  1: if a start token received, wait to finish receiving?
+
+
+typedef struct ir_rx_params {   // total = 19 bytes.
+  union {                       // 2 bytes
+    uint16_t all_flags;  // access all flags at once
+    struct {
+      uint16_t cycle           : 1; // should the board cycle receivers?
+      uint16_t cycle_on_rx     : 1; // cycle when message received?
+      uint16_t predict_period  : 1; // predict period on msg len?
+      uint16_t overrun         : 1; // complete recieve outside period?
+      uint16_t desync          : 1; // randomise period?
+      uint16_t rx0             : 1; // receiver available to use?
+      uint16_t rx1             : 1; // receiver available to use?
+      uint16_t rx2             : 1; // receiver available to use?
+      uint16_t rx3             : 1; // recevier available to use?
+      uint16_t reserved;       : 7; // 7 more bools available
+    } bits;
+  } flags;
+  float predict_multi;
   unsigned long period;        //  4: current ms used to wait before switching receiver
   unsigned long period_max;    //  4: maximum rx_period allowable
-  float         predict_multi;  //  4: with prediction, how many message-lengths to wait?
-  bool          desync;         //  1: should rx_period receive small randomisation?
-  byte          index;          //  1: Which receiver is active? if cycle is false, sets Rx
-  unsigned long byte_timeout;   //  4: If we haven't received a consecutive byte, timeout
-  unsigned long sat_timeout;    //  4: Rx seems to saturate, watch for 0 byte activity.
-  byte          len;            //  1: how long was the last received message?
+  byte          index;         //  1: Which receiver is active? if cycle is false, sets Rx
+  unsigned long byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
+  unsigned long sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
+  byte          len;           //  1: how long was the last received message?
 } ir_rx_params_t;
 
 

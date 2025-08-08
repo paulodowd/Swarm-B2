@@ -18,6 +18,8 @@
    test.
 */
 
+#define TRIAL_MS  250000
+
 float bearing_lpf = 0.0;
 
 // A data structure to commmunicate
@@ -130,7 +132,7 @@ void loop() {
   //  Serial.println();
   //getSensors();
   unsigned long dt = micros() - start_ts;
-  if ( dt >= 250000 ) {
+  if ( dt >= TRIAL_MS ) {
     Serial.print( pos );
     Serial.print(",");
     Serial.print( trial );
@@ -145,6 +147,7 @@ void loop() {
         tone(BUZZER_PIN, random_pitch + 100, 10);
         delay(500);
       }
+      getRxSettings();
     }
     start_ts = micros();
     doResetStatus();
@@ -218,30 +221,7 @@ void updateMessageToSend() {
 }
 
 
-/*
 
-  typedef struct ir_tx_params {   // 11 bytes
-  byte          mode;           // 1: 0 = periodic, 1 = interleaved
-  byte          repeat;         // 1: how many repeated IR transmissions?
-  unsigned long period;         // 4: periodic:  current ms period to send messages
-  unsigned long period_max;     // 4: maximum tx period allowable
-  bool          desync;         // 1: should tx_period receive small randomisation?
-  } ir_tx_params_t;
-
-  typedef struct ir_rx_params {   // 20 bytes.
-  bool          cycle;          //  1: total count of rx polling rotations
-  bool          cycle_on_rx;    //  1: if message received ok, immediately cycle rx?
-  bool          predict_timeout;//  1: set rx_timeout based on last message length?
-  bool          overrun;        //  1: if a start token received, wait to finish receiving?
-  unsigned long timeout;        //  4: current ms used to wait before switching receiver
-  unsigned long timeout_max;    //  4: maximum rx_timeout allowable
-  byte          timeout_multi;  //  1: with prediction, how many message-lengths to wait?
-  bool          desync;         //  1: should rx_timeout receive small randomisation?
-  byte          index;          //  1: Which receiver is active? if cycle is false, sets Rx
-  unsigned long byte_timeout;   //  4: If we haven't received a consecutive byte, timeout
-  byte          len;            //  1: how long was the last received message?
-  } ir_rx_params_t;
-*/
 void updateSettings() {
 
   // Uncomment below for the example
@@ -262,14 +242,17 @@ void updateSettings() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    rx_settings.cycle = false;
-    rx_settings.cycle_on_rx = false;
-    rx_settings.desync = false;          // don't randomise
-    rx_settings.overrun = true;
+    rx_settings.flags.bits.cycle = true;
+    rx_settings.flags.bits.cycle_on_rx = true;
+    rx_settings.flags.bits.desync = false;          // don't randomise
+    rx_settings.flags.bits.overrun = true;
     rx_settings.index = 0;
-    rx_settings.predict_period = true; // don't optimise
+    rx_settings.flags.bits.predict_period = true; // don't optimise
     rx_settings.period_max = 2000;  // use 2000ms
-
+    rx_settings.flags.bits.rx0 = 1;
+    rx_settings.flags.bits.rx1 = 1;
+    rx_settings.flags.bits.rx2 = 1;
+    rx_settings.flags.bits.rx3 = 1;
     //    tx_settings.tx_desync = 0;         // don't randomise
     //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
     //
@@ -414,16 +397,20 @@ void getRxSettings() {
 
   // Show data for debugging
   Serial.println("Rx settings:");
-  Serial.print(" - cycle: ");       Serial.println(rx_settings.cycle > 0 ? "true" : "false");
-  Serial.print(" - cycle on rx: ");  Serial.println(rx_settings.cycle_on_rx > 0 ? "true" : "false");
-  Serial.print(" - desync rx: ");  Serial.println(rx_settings.desync > 0 ? "true" : "false");
-  Serial.print(" - predict timeout: "); Serial.println(rx_settings.predict_period > 0 ? "true" : "false");
-  Serial.print(" - overrun: ");    Serial.println(rx_settings.overrun > 0 ? "true" : "false");
+  Serial.print(" - cycle: ");       Serial.println(rx_settings.flags.bits.cycle > 0 ? "true" : "false");
+  Serial.print(" - cycle on rx: ");  Serial.println(rx_settings.flags.bits.cycle_on_rx > 0 ? "true" : "false");
+  Serial.print(" - desync rx: ");  Serial.println(rx_settings.flags.bits.desync > 0 ? "true" : "false");
+  Serial.print(" - predict timeout: "); Serial.println(rx_settings.flags.bits.predict_period > 0 ? "true" : "false");
+  Serial.print(" - overrun: ");    Serial.println(rx_settings.flags.bits.overrun > 0 ? "true" : "false");
   Serial.print(" - current timeout: ");    Serial.println(rx_settings.period);
   Serial.print(" - timeout max: ");    Serial.println(rx_settings.period_max);
   Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.predict_multi);
   Serial.print(" - power index: ");    Serial.println(rx_settings.index);
   Serial.print(" - byte timeout: ");    Serial.println(rx_settings.byte_timeout);
+  Serial.print(" - Rx0 available: ");    Serial.println(rx_settings.flags.bits.rx0 > 0 ? "true" : "false");
+  Serial.print(" - Rx1 available: ");    Serial.println(rx_settings.flags.bits.rx1 > 0 ? "true" : "false");
+  Serial.print(" - Rx2 available: ");    Serial.println(rx_settings.flags.bits.rx2 > 0 ? "true" : "false");
+  Serial.print(" - Rx3 available: ");    Serial.println(rx_settings.flags.bits.rx3 > 0 ? "true" : "false");
   Serial.println();
 }
 
@@ -619,7 +606,7 @@ int checkRxMsgReady(int which_rx) {
 
 void reportStatusErrorsCSV() {
 
-  
+
   ircomm_mode.mode = MODE_REPORT_STATUS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
@@ -652,12 +639,12 @@ void reportStatusErrorsCSV() {
     Serial.print( ircomm_status.activity[i] );
     Serial.print(",");
   }
-  
+
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.saturation[i] );
     Serial.print(",");
   }
-  
+
 
   ir_errors_t errors;
   ircomm_mode.mode = MODE_REPORT_ERRORS;
@@ -680,7 +667,7 @@ void reportStatusErrorsCSV() {
     }
   }
 
-  
+
   Serial.print("\n");
 
 }

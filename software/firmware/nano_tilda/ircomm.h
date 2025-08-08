@@ -96,7 +96,7 @@ class IRComm_c {
     void powerOffAllRx(); // disables all receivers.
     void powerOnRx( byte index ); // power up 1 receiver
     void toggleRxPower(); // experimental, not used.
-
+    bool isRxAvailable(int which);
     bool cyclePowerRx();  // rotates which receiver is on.
     
     void enableRx();      // enables UART RX function
