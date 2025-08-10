@@ -17,15 +17,16 @@ void IRComm_c::init() {
   // set by the #define in ircomm.h, which
   // can then be over-rided by i2c.
   if ( TX_MODE == TX_MODE_PERIODIC ) {
-    config.tx.mode       = TX_MODE_PERIODIC;
+    config.tx.flags.bits.mode       = TX_MODE_PERIODIC;
   } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
-    config.tx.mode       = TX_MODE_INTERLEAVED;
+    config.tx.flags.bits.mode       = TX_MODE_INTERLEAVED;
   }
-  config.tx.predict_period = TX_PREDICT_PERIOD;
+  config.tx.flags.bits.predict_period = TX_PREDICT_PERIOD;
   config.tx.predict_multi  = TX_PREDICT_MULTI;
 
   config.tx.repeat     = DEFAULT_TX_REPEAT;
-  config.tx.desync     = TX_DESYNC;
+  config.tx.flags.bits.desync     = TX_DESYNC;
+  config.tx.flags.bits.defer      = TX_DEFER;
   config.tx.period_max = DEFAULT_TX_PERIOD;
   config.tx.len = 0;
 
@@ -42,7 +43,7 @@ void IRComm_c::init() {
   config.rx.period                      = 0; // updated below
   config.rx.period_max                  = RX_PERIOD_MAX;
   config.rx.predict_multi               = RX_PREDICT_MULTIPLIER;
-  config.rx.index                       = 0;
+  config.rx.index                       = 3;
   config.rx.byte_timeout                = MS_BYTE_TIMEOUT;
   config.rx.sat_timeout                 = RX_SAT_TIMEOUT;
 
@@ -410,7 +411,7 @@ void IRComm_c::setTxPeriod() {
   // Set tx period as default
   float t = config.tx.period_max;
 
-  if ( config.tx.predict_period == true && config.tx.len > 0 && config.tx.predict_multi > 0 ) {
+  if ( config.tx.flags.bits.predict_period == true && config.tx.len > 0 && config.tx.predict_multi > 0 ) {
     t = (float)config.tx.len;
     t *= config.tx.predict_multi;
 
@@ -424,7 +425,7 @@ void IRComm_c::setTxPeriod() {
 #endif
   }
 
-  if ( config.tx.desync == true ) {
+  if ( config.tx.flags.bits.desync == true ) {
     float mod = t;
     mod *= 0.25; // take 25% of the total time
     // add modifier between 0: mod
@@ -612,13 +613,20 @@ int IRComm_c::update() {
     // Copy message into i2c buffer
     parser.copyMsg( ir_msg[ config.rx.index ] );
 
+    // Paul: REMOVE LATER
+    // Try to read out an ID
+    int id = atoi( ir_msg[ config.rx.index ] );
+    if( id > 0 && id < 4 ) {
+      metrics.hist.id[id]++; 
+    }
+
     // Record timing statistics for messaging
     updateMsgTimings();
 
     // Reset the parser ready for the next message
     parser.reset();
 
-    if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
+    if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
       transmit = true;
       if ( config.rx.flags.bits.cycle == true ) {
         cycle = true;
@@ -661,7 +669,7 @@ int IRComm_c::update() {
     return error;
 
     // If in TX_MODE_PERIODIC, TX takes priority
-  } else if ( config.tx.mode == TX_MODE_PERIODIC ) {
+  } else if ( config.tx.flags.bits.mode == TX_MODE_PERIODIC ) {
 
     if ( config.tx.period == 0 || config.tx.period_max == 0) {
       // No transmission.
@@ -676,7 +684,7 @@ int IRComm_c::update() {
   if ( config.rx.flags.bits.cycle == true ) {
     if ( millis() - rx_ts > config.rx.period) {
 
-      if ( config.tx.mode == TX_MODE_INTERLEAVED ) {
+      if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
         transmit = true;
       }
 
@@ -685,6 +693,18 @@ int IRComm_c::update() {
       }
 
     }
+  }
+
+
+  // Before we attempt a transmit, check 
+  // if tx defer is set. If so, we will
+  // disable transmission if a byte was
+  // received.
+  // Because setTxPeriod() is not called,
+  // it means it will try again next
+  // iteration.
+  if( config.tx.flags.bits.defer ) {
+    if( status != 0 ) transmit = false;
   }
 
   if ( transmit ) {

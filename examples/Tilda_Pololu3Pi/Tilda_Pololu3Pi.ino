@@ -18,7 +18,8 @@
    test.
 */
 
-#define TRIAL_MS  250000
+//#define TRIAL_MS  250000 // 250ms
+#define TRIAL_MS  2000000 // 2s
 
 float bearing_lpf = 0.0;
 
@@ -143,11 +144,11 @@ void loop() {
       pos++;
       trial = 0;
 
-      for ( int i = 0; i < 5; i++ ) {
+      for ( int i = 0; i < 8; i++ ) {
         tone(BUZZER_PIN, random_pitch + 100, 10);
         delay(500);
       }
-      getRxSettings();
+      //getRxSettings();
     }
     start_ts = micros();
     doResetStatus();
@@ -242,7 +243,7 @@ void updateSettings() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    rx_settings.flags.bits.cycle = true;
+    rx_settings.flags.bits.cycle = false;
     rx_settings.flags.bits.cycle_on_rx = true;
     rx_settings.flags.bits.desync = false;          // don't randomise
     rx_settings.flags.bits.overrun = true;
@@ -427,8 +428,8 @@ void getTxSettings() {
 
   // Show data for debugging
   Serial.println("Tx settings:");
-  Serial.print(" - mode: ");       Serial.println(tx_settings.mode > 0 ? "interleaved" : "periodic");
-  Serial.print(" - desync: ");       Serial.println(tx_settings.desync > 0 ? "true" : "false");
+  Serial.print(" - mode: ");       Serial.println(tx_settings.flags.bits.mode > 0 ? "interleaved" : "periodic");
+  Serial.print(" - desync: ");       Serial.println(tx_settings.flags.bits.desync > 0 ? "true" : "false");
   Serial.print(" - repeat: ");  Serial.println(tx_settings.repeat );
   Serial.print(" - current period: "); Serial.println(tx_settings.period);
   Serial.print(" - max period: "); Serial.println(tx_settings.period_max);
@@ -665,6 +666,23 @@ void reportStatusErrorsCSV() {
       Serial.print( errors.type[i][j] );
       Serial.print(",");
     }
+  }
+
+
+  // Histogram
+  ir_hist_t hist;
+  ircomm_mode.mode = MODE_REPORT_HIST;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( hist ));
+  Wire.readBytes( (uint8_t*)&hist, sizeof( hist ));
+
+  // for each recevier
+  for ( int i = 0; i < 4; i++ ) {
+      Serial.print( hist.id[i] );
+      Serial.print(",");
   }
 
 

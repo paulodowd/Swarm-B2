@@ -29,7 +29,7 @@
 // which ever of the two is longest.
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
-#define RX_CYCLE              true  // should the board poll receivers?
+#define RX_CYCLE              false  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
 #define RX_PREDICT_PERIOD    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
@@ -77,8 +77,8 @@
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
 #define TX_MODE (TX_MODE_PERIODIC)
 //#define TX_MODE (TX_MODE_INTERLEAVED)
-#define TX_PREDICT_PERIOD     false
-#define TX_PREDICT_MULTI      3.0
+#define TX_PREDICT_PERIOD     true
+#define TX_PREDICT_MULTI      4.0
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -97,7 +97,12 @@
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_DESYNC  1 
+#define TX_DESYNC  1
+
+ // Try to minimise interference by only transmitting
+ // when no other IR transmission has been detected
+ // If IR detected, will try again on next iteration
+#define TX_DEFER   0
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive

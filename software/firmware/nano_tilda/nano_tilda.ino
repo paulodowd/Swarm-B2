@@ -262,13 +262,8 @@ void i2c_request() {
     Wire.write( (byte*)&ircomm.metrics.sensors, sizeof( ircomm.metrics.sensors ) );
 
   } else if ( last_mode.mode == MODE_REPORT_HIST ) {
-    //
-    //    ir_id_hist_t hist;
-    //    hist.id[0] = ircomm.hist[0];
-    //    hist.id[1] = ircomm.hist[1];
-    //    hist.id[2] = ircomm.hist[2];
-    //    hist.id[3] = ircomm.hist[3];
-    //    Wire.write( (byte*)&hist, sizeof( hist ) );
+
+        Wire.write( (byte*)&ircomm.metrics.hist, sizeof( ircomm.metrics.hist ) );
 
   } else if ( last_mode.mode == MODE_GET_TX ) {
 
@@ -313,7 +308,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  //setRandomMsg(8);
+  setRandomMsg(8);
 }
 
 
@@ -332,8 +327,9 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
+  sprintf(buf, "3.0");
   //  sprintf(buf, "123456789");
-  for ( int i = 0; i < max_chars; i++ ) {
+  for ( int i = 3; i < max_chars; i++ ) {
     buf[i] = (byte)random( 65, 90 );
   }
 

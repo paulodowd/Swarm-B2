@@ -30,6 +30,7 @@ typedef struct ircomm_metrics {
   ir_vectors_t      vectors;
   ir_bearing_t      bearing;
   ir_sensors_t      sensors;
+  ir_hist_t         hist;
 } ircomm_metrics_t;
 
 class IRComm_c {

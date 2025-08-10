@@ -83,6 +83,10 @@ typedef struct ir_status {  // 32 bytes
   uint16_t saturation[4];   // 2*4 = 8
 } ir_status_t;
 
+typedef struct ir_hist {
+  uint16_t id[4];
+} ir_hist_t;
+
 typedef struct ir_errors {  // 32 bytes
   uint16_t type[4][4];// 4*4 = 16*2bytes
 } ir_errors_t;
@@ -127,13 +131,23 @@ typedef struct ir_sensors {
 
 
 typedef struct ir_tx_params {   // total = 18 bytes
-  byte          mode;           // 1: 0 = periodic, 1 = interleaved
+  union {                       // 2 bytes
+    uint8_t all_flags;  // access all flags at once
+    struct {
+      uint8_t mode           : 1; // 0=periodic, 1=interleaved
+      uint8_t predict_period     : 1; // predict repeat period on len?
+      uint8_t defer         : 1; // if received a byte, defer tx?
+      uint8_t desync          : 1; // randomise period?
+      uint8_t reserved             : 4; // 3 more bools available
+    } bits;
+  } flags;
+  //byte          mode;           // 1: 0 = periodic, 1 = interleaved
   byte          repeat;         // 1: how many repeated IR transmissions?
-  bool          predict_period; // 1: show we try to predict a good tx period?
+  //bool          predict_period; // 1: show we try to predict a good tx period?
   float          predict_multi;   // 4: how many multiples of tx_len to use with predict?
   unsigned long period;         // 4: periodic:  current ms period to send messages
   unsigned long period_max;     // 4: maximum tx period allowable
-  bool          desync;         // 1: should tx_period receive small randomisation?
+  //bool          desync;         // 1: should tx_period receive small randomisation?
   byte          len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
