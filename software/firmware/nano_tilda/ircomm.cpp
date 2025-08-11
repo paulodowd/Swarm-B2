@@ -35,6 +35,7 @@ void IRComm_c::init() {
   config.rx.flags.bits.predict_period   = RX_PREDICT_PERIOD;
   config.rx.flags.bits.overrun          = RX_OVERRUN;
   config.rx.flags.bits.desync           = RX_DESYNC;
+  config.rx.flags.bits.desaturate       = RX_DESATURATE;
   config.rx.flags.bits.rx0              = 1;
   config.rx.flags.bits.rx1              = 1;
   config.rx.flags.bits.rx2              = 1;
@@ -44,8 +45,8 @@ void IRComm_c::init() {
   config.rx.period_max                  = RX_PERIOD_MAX;
   config.rx.predict_multi               = RX_PREDICT_MULTIPLIER;
   config.rx.index                       = 3;
-  config.rx.byte_timeout                = MS_BYTE_TIMEOUT;
-  config.rx.sat_timeout                 = RX_SAT_TIMEOUT;
+  config.rx.byte_timeout                = RX_BYTE_TIMEOUT_MS;
+  config.rx.sat_timeout                 = RX_SAT_TIMEOUT_US;
 
 
 
@@ -83,8 +84,6 @@ void IRComm_c::init() {
   memset(ir_msg, 0, sizeof(ir_msg));
 
 
-  resetBearingActivity();
-  resetMetrics();
 
   config.tx.len = 0;             // start with no message to send.
 
@@ -102,7 +101,9 @@ void IRComm_c::init() {
   setRxPeriod();
   setTxPeriod();
 
-  saturation_ts = millis();
+  resetBearingActivity();
+  resetMetrics();
+
 
 }
 
@@ -110,7 +111,10 @@ void IRComm_c::resetMetrics() {
   memset( &metrics, 0, sizeof( metrics ));
   memset( &metrics.status, 0, sizeof( metrics.status ));
 
-  for ( int i = 0; i < MAX_RX; i++ ) metrics.timings.msg_t[i] = millis();
+  for ( int i = 0; i < MAX_RX; i++ ) {
+    metrics.msg_timings.ts_ms[i] = millis();
+    metrics.byte_timings.ts_us[i] = micros();
+  }
 }
 
 
@@ -327,7 +331,7 @@ void IRComm_c::toggleRxPower() {
   }
   // Wait to stabilise when on again
   //delayMicroseconds(50);
-
+  resetUART();
 
 }
 
@@ -561,8 +565,6 @@ int IRComm_c::update() {
   int status = parser.getNextByte( config.rx.byte_timeout );
 
 
-
-
   if ( status == 0 ) {
     // nothing happened
     error = 0;
@@ -585,8 +587,6 @@ int IRComm_c::update() {
     status -= 1;
 
     metrics.errors.type[ config.rx.index ][ status ]++;
-
-
 
     error = -1;
 
@@ -616,8 +616,8 @@ int IRComm_c::update() {
     // Paul: REMOVE LATER
     // Try to read out an ID
     int id = atoi( ir_msg[ config.rx.index ] );
-    if( id > 0 && id < 4 ) {
-      metrics.hist.id[id]++; 
+    if ( id > 0 && id < 4 ) {
+      metrics.hist.id[id]++;
     }
 
     // Record timing statistics for messaging
@@ -640,6 +640,11 @@ int IRComm_c::update() {
   }
 
   if ( status > 0 ) {
+
+    // Record timing statistics for byte activity
+    updateByteTimings();
+
+
     digitalWrite(13, HIGH);
     bearing_activity[ config.rx.index ] += 1;
     metrics.status.activity[ config.rx.index ]++;
@@ -657,8 +662,7 @@ int IRComm_c::update() {
 
     // If we're configured to allow RX to overrun and
     // we're in the process of receiving a message, we
-    // just return this function.  That means that no
-    // transmission or RX rotation will occur on this
+    // no transmission or RX rotation will occur on this
     // iteration.
     // If we are receiving in error, eventually the
     // parser will flag an error and that will be the
@@ -666,7 +670,8 @@ int IRComm_c::update() {
 
     // to resume.
     error = -3;
-    return error;
+    transmit = false;
+    cycle = false;
 
     // If in TX_MODE_PERIODIC, TX takes priority
   } else if ( config.tx.flags.bits.mode == TX_MODE_PERIODIC ) {
@@ -696,15 +701,15 @@ int IRComm_c::update() {
   }
 
 
-  // Before we attempt a transmit, check 
+  // Before we attempt a transmit, check
   // if tx defer is set. If so, we will
   // disable transmission if a byte was
   // received.
   // Because setTxPeriod() is not called,
   // it means it will try again next
   // iteration.
-  if( config.tx.flags.bits.defer ) {
-    if( status != 0 ) transmit = false;
+  if ( config.tx.flags.bits.defer ) {
+    if ( status != 0 ) transmit = false;
   }
 
   if ( transmit ) {
@@ -727,7 +732,7 @@ int IRComm_c::update() {
       // spent transmitting. So we
       // update the saturation timestamp
       // here.
-      saturation_ts = millis();
+      advanceTimings();
     }
 
   }
@@ -740,6 +745,7 @@ int IRComm_c::update() {
     // This sets the new rx timestamp
     if ( cyclePowerRx() ) {
       parser.reset();
+      advanceTimings();
     }
 
   }
@@ -753,22 +759,40 @@ int IRComm_c::update() {
   // lock up sometimes, not sure why.
   // TODO: scale for carrier frequency
   if ( error == 0 ) {
-    if ( millis() - saturation_ts > config.rx.sat_timeout ) {
-      saturation_ts = millis();
+    unsigned long dt = micros();
+    dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
+    if ( dt > (unsigned long)config.rx.sat_timeout ) {
       toggleRxPower();
+      metrics.byte_timings.ts_us[config.rx.index] = micros();
       metrics.status.saturation[config.rx.index]++;
     }
-  } else {
-    saturation_ts = millis();
   }
 
 }
 
-void IRComm_c::updateMsgTimings() {
-  unsigned long dt = millis() - metrics.timings.msg_t[ config.rx.index ];
-  metrics.timings.msg_dt[ config.rx.index ] = dt;
-  metrics.timings.msg_t[ config.rx.index ] = millis();
+// Sometimes a blocking process will have
+// prevented our timestamps to progressing.
+// For messages, we leave this alone as we
+// consider blocking processes to effect the
+// messaging performance.
+// But for byte activity, we are using this
+// to detect receiver saturation.
+void IRComm_c::advanceTimings() {
+  for ( int i = 0; i < 4; i++ ) metrics.byte_timings.ts_us[i] = micros();
 }
+
+void IRComm_c::updateMsgTimings() {
+  unsigned long dt = millis() - metrics.msg_timings.ts_ms[ config.rx.index ];
+  metrics.msg_timings.dt_ms[ config.rx.index ] = dt;
+  metrics.msg_timings.ts_ms[ config.rx.index ] = millis();
+}
+
+void IRComm_c::updateByteTimings() {
+  unsigned long dt = micros() - metrics.byte_timings.ts_us[ config.rx.index ];
+  metrics.byte_timings.dt_us[ config.rx.index ] = dt;
+  metrics.byte_timings.ts_us[ config.rx.index ] = micros();
+}
+
 
 boolean IRComm_c::doTransmit() {
 

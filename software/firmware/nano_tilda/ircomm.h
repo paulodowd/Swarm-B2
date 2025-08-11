@@ -26,7 +26,8 @@ typedef struct ircomm_metrics {
   ir_status_t       status;
   ir_errors_t       errors;
   ir_cycles_t       cycles;
-  ir_msg_timings_t  timings;
+  ir_msg_timings_t  msg_timings;
+  ir_byte_timings_t  byte_timings;
   ir_vectors_t      vectors;
   ir_bearing_t      bearing;
   ir_sensors_t      sensors;
@@ -84,7 +85,6 @@ class IRComm_c {
     unsigned long tx_ts;     // periodic transmit
     unsigned long led_ts;    // LED time stamp
     unsigned long bearing_ts;// bearing estimation
-    unsigned long saturation_ts;  // 
 
 
     IRComm_c();           // blank.
@@ -112,8 +112,9 @@ class IRComm_c {
     // disables Rx, does Tx, enables Rx again
     bool doTransmit();    
 
-    void updateMsgTimings();  // registers time of Tx
-
+    void updateMsgTimings();  // 
+    void updateByteTimings();
+    void advanceTimings();
 
     // Used to update the bearing estimates
     void resetBearingActivity();

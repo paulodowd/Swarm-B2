@@ -34,6 +34,7 @@
 #define RX_PREDICT_PERIOD    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
+#define RX_DESATURATE         true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
@@ -43,10 +44,10 @@
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
 #ifdef IR_FREQ_58
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4)
+#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_58KHZ*4)
 #endif
 #ifdef IR_FREQ_38
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4)     
+#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_38KHZ*4)     
 #endif
 
 #ifdef IR_FREQ_58
@@ -57,10 +58,10 @@
 #endif
 
 #ifdef IR_FREQ_58
-#define RX_SAT_TIMEOUT       (MS_PER_BYTE_58KHZ*5)
+#define RX_SAT_TIMEOUT_US       (20000) // I measured 8000us for ambient noise
 #endif
 #ifdef IR_FREQ_38
-#define RX_SAT_TIMEOUT       (MS_PER_BYTE_38KHZ*5)     
+#define RX_SAT_TIMEOUT_US       (20000)     
 #endif
 
 

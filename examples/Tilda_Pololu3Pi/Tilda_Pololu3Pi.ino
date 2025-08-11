@@ -101,6 +101,16 @@ void setup() {
   start_ts = micros();
   doResetStatus();
   //  motors.setMotorsPWM( 20, 20 );
+
+  delay(100);
+  while ( true ) {
+    reportStatusErrorsCSV();
+    delay(1);
+//    getByteTimings();
+    delay(100);
+  }
+
+
 }
 void initRandomSeed() {
   pinMode(A1, INPUT);
@@ -450,7 +460,7 @@ void doResetStatus() {
 // This will get the measurements of the timings
 // of receiving messages.  See msg_timings struct.
 void getMsgTimings() {
-  ircomm_mode.mode = MODE_REPORT_TIMINGS;
+  ircomm_mode.mode = MODE_REPORT_MSG_TIMINGS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
@@ -459,22 +469,47 @@ void getMsgTimings() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_timings ));
   Wire.readBytes( (uint8_t*)&msg_timings, sizeof( msg_timings ));
 
-  Serial.println("ms between messages:");
+  //  Serial.println("ms between messages:");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print("- Rx ");
-    Serial.print( i );
-    Serial.print(": ");
-    Serial.print( msg_timings.msg_dt[i] );
-    Serial.println();
+
+    Serial.print( msg_timings.dt_ms[i] );
+    Serial.print(",");
   }
-  Serial.println("Last rx time in ms:");
+  Serial.println();
+  //  //Serial.println("Last rx time in ms:");
+  //  for ( int i = 0; i < 4; i++ ) {
+  //    Serial.print("- Rx ");
+  //    Serial.print( i );
+  //    Serial.print(": ");
+  //    Serial.print( msg_timings.msg_t[i] );
+  //    Serial.println();
+  //  }
+
+
+}
+void getByteTimings() {
+  ircomm_mode.mode = MODE_REPORT_BYTE_TIMINGS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_byte_timings_t byte_timings;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( byte_timings ));
+  Wire.readBytes( (uint8_t*)&byte_timings, sizeof( byte_timings ));
+
+  //  Serial.println("ms between messages:");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print("- Rx ");
-    Serial.print( i );
-    Serial.print(": ");
-    Serial.print( msg_timings.msg_t[i] );
-    Serial.println();
+
+    Serial.print( byte_timings.dt_us[i] );
+    Serial.print(",");
   }
+  //Serial.println();
+  //  //Serial.println("Last rx time in ms:");
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( byte_timings.ts_us[i] );
+    Serial.print(",");
+  }
+  Serial.println();
 
 
 }
@@ -619,7 +654,7 @@ void reportStatusErrorsCSV() {
 
   // Report how many messages have been received on each
   // receiver
-  //  Serial.print("P,");
+    Serial.print("P,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.pass_count[i] );
     Serial.print(",");
@@ -629,18 +664,18 @@ void reportStatusErrorsCSV() {
   // so that we can view both at the same time on the plotter
   // to compare pass versus fail.
 
-  //  Serial.print("F,");
+    Serial.print("F,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.fail_count[i] );
     Serial.print(",");
   }
 
-  //  Serial.print("A,");
+    Serial.print("A,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.activity[i] );
     Serial.print(",");
   }
-
+  Serial.print("S,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( ircomm_status.saturation[i] );
     Serial.print(",");
@@ -681,8 +716,8 @@ void reportStatusErrorsCSV() {
 
   // for each recevier
   for ( int i = 0; i < 4; i++ ) {
-      Serial.print( hist.id[i] );
-      Serial.print(",");
+    Serial.print( hist.id[i] );
+    Serial.print(",");
   }
 
 

@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-#define IR_FREQ_38  // For chip TSDP34138
-//#define IR_FREQ_58    // For chip TSDP34156
+//#define IR_FREQ_38  // For chip TSDP34138
+#define IR_FREQ_58    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -81,7 +81,7 @@
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (120) // in ms, 0 disables tx
+#define DEFAULT_TX_PERIOD (60) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots

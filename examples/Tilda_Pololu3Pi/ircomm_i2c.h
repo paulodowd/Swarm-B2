@@ -55,20 +55,21 @@ typedef struct ir_mode {
 #define MODE_RESET_STATUS   19
 #define MODE_REPORT_RX_VECTORS 20
 #define MODE_REPORT_RX_BEARING 21
-#define MODE_REPORT_TIMINGS 22
-#define MODE_REPORT_HIST    23
-#define MODE_CLEAR_HIST     24
-#define MODE_FULL_RESET     25
-#define MODE_REPORT_CYCLES  26
-#define MODE_REPORT_ERRORS  27
-#define MODE_STOP_RX        28
-#define MODE_START_RX       29
-#define MODE_SET_RX         30
-#define MODE_SET_TX         31
-#define MODE_GET_RX         32
-#define MODE_GET_TX         33
-#define MODE_SET_MSG        34
-#define MAX_MODE            35
+#define MODE_REPORT_MSG_TIMINGS 22
+#define MODE_REPORT_BYTE_TIMINGS 23
+#define MODE_REPORT_HIST    24
+#define MODE_CLEAR_HIST     25
+#define MODE_FULL_RESET     26
+#define MODE_REPORT_CYCLES  27
+#define MODE_REPORT_ERRORS  28
+#define MODE_STOP_RX        29
+#define MODE_START_RX       30
+#define MODE_SET_RX         31
+#define MODE_SET_TX         32
+#define MODE_GET_RX         33
+#define MODE_GET_TX         34
+#define MODE_SET_MSG        35
+#define MAX_MODE            36
 
 
 // A general status structure to discover
@@ -104,10 +105,16 @@ typedef struct ir_msg_status {  // 1 byte
 
 // To find out the relative timing of
 // message activity
-typedef struct ir_msg_timings { // 16 bytes
-  uint16_t msg_dt[4];           // 8 bytes
-  uint16_t msg_t[4];            // 8 bytes
+typedef struct ir_msg_timings { // 32 bytes
+  uint32_t dt_ms[4];           // 16 bytes
+  uint32_t ts_ms[4];            // 16 bytes
 } ir_msg_timings_t;
+
+typedef struct ir_byte_timings { // 32 bytes
+  uint32_t dt_us[4];           // 16 bytes
+  uint32_t ts_us[4];            // 16 bytes
+} ir_byte_timings_t;
+
 
 // Struct to track the activity levels
 // of the receivers
@@ -166,7 +173,8 @@ typedef struct ir_rx_params {   // total = 19 bytes.
       uint16_t rx1             : 1; // receiver available to use?
       uint16_t rx2             : 1; // receiver available to use?
       uint16_t rx3             : 1; // recevier available to use?
-      uint16_t reserved;       : 7; // 7 more bools available
+      uint16_t desaturate      : 1;
+      uint16_t reserved;       : 6; // 7 more bools available
     } bits;
   } flags;
   float predict_multi;

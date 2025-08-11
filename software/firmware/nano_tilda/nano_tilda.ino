@@ -162,9 +162,13 @@ void i2c_request() {
 
     Wire.write( (byte*)&ircomm.metrics.status, sizeof(ircomm.metrics.status) );
 
-  } else if ( last_mode.mode == MODE_REPORT_TIMINGS ) {
+  } else if ( last_mode.mode == MODE_REPORT_MSG_TIMINGS ) {
 
-    Wire.write( (byte*)&ircomm.metrics.timings, sizeof( ircomm.metrics.timings ) );
+    Wire.write( (byte*)&ircomm.metrics.msg_timings, sizeof( ircomm.metrics.msg_timings ) );
+
+  }  else if ( last_mode.mode == MODE_REPORT_BYTE_TIMINGS ) {
+
+    Wire.write( (byte*)&ircomm.metrics.byte_timings, sizeof( ircomm.metrics.byte_timings ) );
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
 
@@ -308,7 +312,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
