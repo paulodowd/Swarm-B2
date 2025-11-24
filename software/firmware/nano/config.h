@@ -29,8 +29,8 @@
 // which ever of the two is longest.
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
-#define RX_CYCLE              true  // should the board poll receivers?
-#define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
+#define RX_CYCLE              false  // should the board poll receivers?
+#define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
 #define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true

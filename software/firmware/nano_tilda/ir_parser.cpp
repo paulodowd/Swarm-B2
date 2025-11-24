@@ -200,7 +200,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
 
 
-int IRParser_c::formatIRMessage( byte * tx_buf, const byte * msg, byte len  ) {
+int IRParser_c::formatIRMessage( byte * tx_buf, const byte * msg, byte len, byte sbyte ) {
   if ( len + 4 > MAX_BUF ) {
 
     // ERROR, formatted messsage would be too long
@@ -221,7 +221,7 @@ int IRParser_c::formatIRMessage( byte * tx_buf, const byte * msg, byte len  ) {
   // Set the first two bytes of tx_buf as the
   // start token and the length
   // We +4 for start, len, CRCx2
-  tx_buf[0] = START_TOKEN;
+  tx_buf[0] = sbyte;
   tx_buf[1] = len + 4;
 
 

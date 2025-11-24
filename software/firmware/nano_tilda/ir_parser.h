@@ -38,7 +38,7 @@ class IRParser_c {
     // and suffix it with the 16 bit CRC.
     // The start token and length are included in
     // the CRC processing.
-    int formatIRMessage( byte * tx_buf, const byte * msg, byte len  );
+    int formatIRMessage( byte * tx_buf, const byte * msg, byte len, byte sbyte );
 
     
 };

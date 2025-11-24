@@ -69,8 +69,7 @@ typedef struct ir_mode {
 #define MODE_GET_RX         33
 #define MODE_GET_TX         34
 #define MODE_SET_MSG        35
-#define MODE_SET_SBYTE      36
-#define MAX_MODE            37
+#define MAX_MODE            36
 
 
 // A general status structure to discover
@@ -155,7 +154,6 @@ typedef struct ir_tx_params {   // total = 18 bytes
   float          predict_multi;   // 4: how many multiples of tx_len to use with predict?
   unsigned long period;         // 4: periodic:  current ms period to send messages
   unsigned long period_max;     // 4: maximum tx period allowable
-  byte          start_byte;     // which character to use as the start byte?
   //bool          desync;         // 1: should tx_period receive small randomisation?
   byte          len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;

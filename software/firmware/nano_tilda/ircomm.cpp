@@ -29,6 +29,7 @@ void IRComm_c::init() {
   config.tx.flags.bits.defer      = TX_DEFER;
   config.tx.period_max = DEFAULT_TX_PERIOD;
   config.tx.len = 0;
+  config.tx.start_byte = START_TOKEN;
 
   config.rx.flags.bits.cycle            = RX_CYCLE;
   config.rx.flags.bits.cycle_on_rx      = RX_CYCLE_ON_RX;
@@ -509,8 +510,6 @@ void IRComm_c::setupTimer2() {
   OCR2A = 139;
 #endif
 
-
-
   // Set up which interupt flag is triggered
   TIMSK2 = 0;
   TIMSK2 |= (1 << OCIE2A);
@@ -527,13 +526,32 @@ void IRComm_c::clearRxMsg(int which) {
 }
 
 // This clears out the message we are broadcasting
-// and adds a ! to the 0th character
 void IRComm_c::clearTxBuf() {
   memset(tx_buf, 0, sizeof(tx_buf));
   config.tx.len = 0;
 }
 
 
+/* main update.
+ *
+ * This function is written mainly as a drop- 
+ * through if statement.  I thought about a 
+ * state machine, but this drop through seemed
+ * like the easiest to understand and to have
+ * the fewest repetitive function calls. 
+ * 
+ * The drop-through is ordered with the 
+ * precedence of the board configuration.
+ * By the end of the drop-through, the flags
+ * "cycle" and "transmit" will be appropriately
+ * set, and so cycleRxPower() and/or 
+ * doTransmit() are triggered.
+ *
+ * After asking the parser class to read in 
+ * the next byte, this update function will 
+ * log any error metrics and update timings.
+ *
+  */
 int IRComm_c::update() {
 
 
@@ -554,14 +572,11 @@ int IRComm_c::update() {
 
   }
 
-
-
   bool transmit = false;
   bool cycle = false;
 
   // We assume we always want to get the latest
   // byte from the UART buffer
-
   int status = parser.getNextByte( config.rx.byte_timeout );
 
 
@@ -706,8 +721,9 @@ int IRComm_c::update() {
   // disable transmission if a byte was
   // received.
   // Because setTxPeriod() is not called,
-  // it means it will try again next
-  // iteration.
+  // it means it will try again on the 
+  // very next iteration, and keep doing
+  // so until successful.
   if ( config.tx.flags.bits.defer ) {
     if ( status != 0 ) transmit = false;
   }
@@ -756,14 +772,29 @@ int IRComm_c::update() {
   // receiver module.  Normally the board
   // will pick up a few bytes from ambient
   // noise.  The IR demodulator seems to
-  // lock up sometimes, not sure why.
-  // TODO: scale for carrier frequency
+  // lock up sometimes, I think  it reaches
+  // the limit of it's continuous operation
+  // (see datasheet).
   if ( error == 0 ) {
+
+    // Although we track a dt for the bytes
+    // of each receiver, the dt is updated
+    // when a byte is received. Here we are
+    // checking specifically when a byte
+    // hasn't been received.
     unsigned long dt = micros();
     dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
     if ( dt > (unsigned long)config.rx.sat_timeout ) {
       toggleRxPower();
+
+      
+      // Advance this byte time stamp so 
+      // that we don't immediately trigger
+      // again.
       metrics.byte_timings.ts_us[config.rx.index] = micros();
+
+      // Add to our count of saturation
+      // occurences.
       metrics.status.saturation[config.rx.index]++;
     }
   }
@@ -771,22 +802,29 @@ int IRComm_c::update() {
 }
 
 // Sometimes a blocking process will have
-// prevented our timestamps to progressing.
+// prevented our timestamps progressing.
 // For messages, we leave this alone as we
-// consider blocking processes to effect the
-// messaging performance.
+// consider blocking processes and their 
+// effect on the messaging performance a
+// matter of interest.
 // But for byte activity, we are using this
 // to detect receiver saturation.
 void IRComm_c::advanceTimings() {
   for ( int i = 0; i < 4; i++ ) metrics.byte_timings.ts_us[i] = micros();
 }
 
+// Note: in milliseconds.  At 58khz, it 
+// takes about 1.2ms to receive 1 byte, 
+// and the minimum message is 5 bytes
 void IRComm_c::updateMsgTimings() {
   unsigned long dt = millis() - metrics.msg_timings.ts_ms[ config.rx.index ];
   metrics.msg_timings.dt_ms[ config.rx.index ] = dt;
   metrics.msg_timings.ts_ms[ config.rx.index ] = millis();
 }
 
+// Note: in microseconds. It is possible
+// to receive a byte in 1.2ms, so millis
+// isn't quite precise enough.
 void IRComm_c::updateByteTimings() {
   unsigned long dt = micros() - metrics.byte_timings.ts_us[ config.rx.index ];
   metrics.byte_timings.dt_us[ config.rx.index ] = dt;
@@ -813,7 +851,7 @@ boolean IRComm_c::doTransmit() {
     enableTx();
     // Using Serial.print transmits over
     // IR.  Serial TX is modulated with
-    // the 38Khz carrier in hardware.
+    // the 38Khz or 58khz carrier in hardware.
     //unsigned long start_t = micros();
     for ( int i = 0; i < config.tx.repeat; i++ ) {
 
@@ -828,9 +866,6 @@ boolean IRComm_c::doTransmit() {
       Serial.flush();  // wait for send to complete
       metrics.cycles.tx++;
     }
-    //Serial.println( (micros() - s ) );
-    //unsigned long end_t = micros();
-    //Serial.println( (end_t - start_t ) );
 
     // Since we used disableRx(), we need to
     // re-enable the UART and so clear
@@ -863,8 +898,10 @@ void IRComm_c::fullReset() {
   parser.reset();
 }
 
+// The smallest ISR I've written :)
 // This ISR simply toggles the state of
-// pin D4 to generate a 38khz clock signal.
+// pin D4 to generate a 38khz or 58khz
+// carrier signal.
 ISR(TIMER2_COMPA_vect) {
   PORTD ^= (1 << PD4);
 }

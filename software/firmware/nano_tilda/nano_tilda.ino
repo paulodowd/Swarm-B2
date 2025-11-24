@@ -44,7 +44,7 @@ void i2c_receive( int len ) {
   // ready the board to send back information or to ask the
   // board to complete specific actions (e.g, delete a
   // message).
-  if ( len == 1 && last_mode.mode != MODE_SET_MSG ) { // receiving a mode change.
+  if ( len == 1 && last_mode.mode != MODE_SET_MSG && last_mode.mode != MODE_SET_SBYTE ) { // receiving a mode change.
     ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
 
@@ -97,6 +97,17 @@ void i2c_receive( int len ) {
       last_mode.mode = MODE_SET_MSG;
     }
 
+  } else if ( last_mode.mode == MODE_SET_SBYTE ) {
+
+    // Should receive a single byte value here.
+    if( len == 1 ) {
+
+      ircomm.config.tx.start_byte = (byte)Wire.read();
+    } else {
+      // Error: just read out the bytes
+      while ( Wire.available() ) Wire.read();
+    }
+    
   } else if ( last_mode.mode == MODE_SET_MSG ) {
 
     // This should be impossible...
@@ -110,7 +121,7 @@ void i2c_receive( int len ) {
       byte buf[MAX_MSG];
       memset( buf, 0, sizeof( buf ));
       Wire.readBytes( buf, len );
-      ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+      ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len, ircomm.config.tx.start_byte );
     }
 
     last_mode.mode = MODE_NOT_SET;
@@ -267,7 +278,7 @@ void i2c_request() {
 
   } else if ( last_mode.mode == MODE_REPORT_HIST ) {
 
-        Wire.write( (byte*)&ircomm.metrics.hist, sizeof( ircomm.metrics.hist ) );
+    Wire.write( (byte*)&ircomm.metrics.hist, sizeof( ircomm.metrics.hist ) );
 
   } else if ( last_mode.mode == MODE_GET_TX ) {
 
@@ -312,7 +323,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-//  setRandomMsg(8);
+  //  setRandomMsg(8);
 }
 
 
@@ -346,7 +357,7 @@ int setRandomMsg(int len) {
 
 
   //  Checking the format of what is being sent.
-  ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+  ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len, ircomm.config.tx.start_byte );
   //  while(1) {
   //    Serial.print("tx buf: ");
   //    Serial.println( (char*)ircomm.tx_buf );
@@ -364,15 +375,15 @@ int setRandomMsg(int len) {
 }
 
 void loop() {
-////
-//  if( millis() - test_ts > 250 ) {
-//      test_ts = millis();
-//      int e = setRandomMsg(8);
-//    }
-//
-//
-//  sendTest();
-//  return;
+  ////
+  //  if( millis() - test_ts > 250 ) {
+  //      test_ts = millis();
+  //      int e = setRandomMsg(8);
+  //    }
+  //
+  //
+  //  sendTest();
+  //  return;
 
   if ( full_reset ) {
     ircomm.fullReset();
