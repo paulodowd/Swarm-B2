@@ -30,13 +30,13 @@
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              false  // should the board poll receivers?
-#define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
+#define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
 #define RX_PREDICT_PERIOD    true  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
 #define RX_DESYNC             true
 #define RX_DESATURATE         true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
-#define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
+#define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
 
@@ -124,11 +124,11 @@
 // bytes.  
 #define MAX_MSG 32
 
-// When we encode a message, the worst case
-// is 32 bytes of payload, and each byte is
-// escaped with a byte. We also need to add
-// the start, length and CRC bytes (+4).
-#define MAX_TX_BUF (MAX_MSG * 2) + 4
+// We then add a start token, 
+// CRC token, and 2 bytes for CRC16.
+// Therefore, we need to store at maximum
+// 32 + 4 = 36 bytes.
+#define MAX_BUF (MAX_MSG + 4)
 
 
 

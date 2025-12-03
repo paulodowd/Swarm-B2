@@ -50,7 +50,7 @@ class IRComm_c {
 
     // A buffer to store the message
     // to transmit.
-    volatile byte tx_buf[MAX_TX_BUF];
+    volatile byte tx_buf[MAX_BUF];
 
     // Allows the IR board to be
     // entirely disabled/enabled
@@ -132,10 +132,6 @@ class IRComm_c {
     // i2c.  Is called automatically when a 
     // message is downloaded via i2c.
     void clearRxMsg(int which);
-
-    void printTxMsgForDebugging();
-    void printRxMsgForDebugging();
-    void printMetricsForDebugging();
 
 };
 

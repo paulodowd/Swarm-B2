@@ -29,6 +29,7 @@ void IRComm_c::init() {
   config.tx.flags.bits.defer      = TX_DEFER;
   config.tx.period_max = DEFAULT_TX_PERIOD;
   config.tx.len = 0;
+  config.tx.start_byte = START_TOKEN;
 
   config.rx.flags.bits.cycle            = RX_CYCLE;
   config.rx.flags.bits.cycle_on_rx      = RX_CYCLE_ON_RX;
@@ -115,57 +116,6 @@ void IRComm_c::resetMetrics() {
     metrics.msg_timings.ts_ms[i] = millis();
     metrics.byte_timings.ts_us[i] = micros();
   }
-}
-
-void IRComm_c::printTxMsgForDebugging() {
-  for ( int i = 0; i < config.tx.len; i++ ) {
-    if ( i == 1 ) {
-
-      Serial.print( tx_buf[i], DEC);
-      Serial.print("(L) " );
-
-    } else {
-      Serial.print( tx_buf[i], HEX);
-      Serial.print("(");
-      Serial.print( (char)tx_buf[i] );
-      Serial.print( ") " );
-    }
-  }
-  Serial.println();
-
-}
-void IRComm_c::printMetricsForDebugging() {
-  disableRx();
-  for( int i = 0; i < 4; i++ ) { // rx
-    Serial.print("Rx " ); Serial.print( i ); Serial.println();
-    for( int j = 0; j < 4; j++ ) {
-      Serial.print("Type "); Serial.print(j);Serial.print(": ");
-      Serial.println( metrics.errors.type[i][j] );
-    }
-    
-  }
-  enableRx();
-}
-
-void IRComm_c::printRxMsgForDebugging() {
-  for ( int j = 0; j < 4; j++ ) {
-    if ( msg_len[j] > 0 ) {
-      disableRx();
-      Serial.print("Rx");
-      Serial.print( j );
-      Serial.print(": ");
-      for ( int i = 0; i < msg_len[j]; i++ ) {
-
-        Serial.print( (char)ir_msg[j][i]);
-
-      }
-      Serial.println();
-      Serial.flush();
-      clearRxMsg(j);
-      enableRx();
-    }
-  }
-
 }
 
 
@@ -583,25 +533,25 @@ void IRComm_c::clearTxBuf() {
 
 
 /* main update.
-
-   This function is written mainly as a drop-
-   through if statement.  I thought about a
-   state machine, but this drop through seemed
-   like the easiest to understand and to have
-   the fewest repetitive function calls.
-
-   The drop-through is ordered with the
-   precedence of the board configuration.
-   By the end of the drop-through, the flags
-   "cycle" and "transmit" will be appropriately
-   set, and so cycleRxPower() and/or
-   doTransmit() are triggered.
-
-   After asking the parser class to read in
-   the next byte, this update function will
-   log any error metrics and update timings.
-
-*/
+ *
+ * This function is written mainly as a drop- 
+ * through if statement.  I thought about a 
+ * state machine, but this drop through seemed
+ * like the easiest to understand and to have
+ * the fewest repetitive function calls. 
+ * 
+ * The drop-through is ordered with the 
+ * precedence of the board configuration.
+ * By the end of the drop-through, the flags
+ * "cycle" and "transmit" will be appropriately
+ * set, and so cycleRxPower() and/or 
+ * doTransmit() are triggered.
+ *
+ * After asking the parser class to read in 
+ * the next byte, this update function will 
+ * log any error metrics and update timings.
+ *
+  */
 int IRComm_c::update() {
 
 
@@ -680,10 +630,10 @@ int IRComm_c::update() {
 
     // Paul: REMOVE LATER
     // Try to read out an ID
-//    int id = atoi( ir_msg[ config.rx.index ] );
-//    if ( id > 0 && id < 4 ) {
-//      metrics.hist.id[id]++;
-//    }
+    int id = atoi( ir_msg[ config.rx.index ] );
+    if ( id > 0 && id < 4 ) {
+      metrics.hist.id[id]++;
+    }
 
     // Record timing statistics for messaging
     updateMsgTimings();
@@ -710,7 +660,7 @@ int IRComm_c::update() {
     updateByteTimings();
 
 
-//    digitalWrite(13, HIGH);
+    digitalWrite(13, HIGH);
     bearing_activity[ config.rx.index ] += 1;
     metrics.status.activity[ config.rx.index ]++;
   }
@@ -723,7 +673,7 @@ int IRComm_c::update() {
 
 
 
-  if ( config.rx.flags.bits.overrun && parser.rxState != RX_WAIT_START ) {
+  if ( config.rx.flags.bits.overrun && parser.GOT_START_TOKEN ) {
 
     // If we're configured to allow RX to overrun and
     // we're in the process of receiving a message, we
@@ -771,7 +721,7 @@ int IRComm_c::update() {
   // disable transmission if a byte was
   // received.
   // Because setTxPeriod() is not called,
-  // it means it will try again on the
+  // it means it will try again on the 
   // very next iteration, and keep doing
   // so until successful.
   if ( config.tx.flags.bits.defer ) {
@@ -837,8 +787,8 @@ int IRComm_c::update() {
     if ( dt > (unsigned long)config.rx.sat_timeout ) {
       toggleRxPower();
 
-
-      // Advance this byte time stamp so
+      
+      // Advance this byte time stamp so 
       // that we don't immediately trigger
       // again.
       metrics.byte_timings.ts_us[config.rx.index] = micros();
@@ -854,7 +804,7 @@ int IRComm_c::update() {
 // Sometimes a blocking process will have
 // prevented our timestamps progressing.
 // For messages, we leave this alone as we
-// consider blocking processes and their
+// consider blocking processes and their 
 // effect on the messaging performance a
 // matter of interest.
 // But for byte activity, we are using this
@@ -863,8 +813,8 @@ void IRComm_c::advanceTimings() {
   for ( int i = 0; i < 4; i++ ) metrics.byte_timings.ts_us[i] = micros();
 }
 
-// Note: in milliseconds.  At 58khz, it
-// takes about 1.2ms to receive 1 byte,
+// Note: in milliseconds.  At 58khz, it 
+// takes about 1.2ms to receive 1 byte, 
 // and the minimum message is 5 bytes
 void IRComm_c::updateMsgTimings() {
   unsigned long dt = millis() - metrics.msg_timings.ts_ms[ config.rx.index ];

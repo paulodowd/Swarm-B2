@@ -1,7 +1,5 @@
 /*
 
-
-
 */
 
 
@@ -44,7 +42,7 @@ void i2c_receive( int len ) {
   // ready the board to send back information or to ask the
   // board to complete specific actions (e.g, delete a
   // message).
-  if ( len == 1 && last_mode.mode != MODE_SET_MSG ) { // receiving a mode change.
+  if ( len == 1 && last_mode.mode != MODE_SET_MSG && last_mode.mode != MODE_SET_SBYTE ) { // receiving a mode change.
     ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
 
@@ -97,6 +95,17 @@ void i2c_receive( int len ) {
       last_mode.mode = MODE_SET_MSG;
     }
 
+  } else if ( last_mode.mode == MODE_SET_SBYTE ) {
+
+    // Should receive a single byte value here.
+    if( len == 1 ) {
+
+      ircomm.config.tx.start_byte = (byte)Wire.read();
+    } else {
+      // Error: just read out the bytes
+      while ( Wire.available() ) Wire.read();
+    }
+    
   } else if ( last_mode.mode == MODE_SET_MSG ) {
 
     // This should be impossible...
@@ -110,7 +119,7 @@ void i2c_receive( int len ) {
       byte buf[MAX_MSG];
       memset( buf, 0, sizeof( buf ));
       Wire.readBytes( buf, len );
-      ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+      //ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len, ircomm.config.tx.start_byte );
     }
 
     last_mode.mode = MODE_NOT_SET;
@@ -312,7 +321,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  setRandomMsg(32);
+  //  setRandomMsg(8);
 }
 
 
@@ -331,13 +340,11 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-  sprintf(buf, "123456789~123456789~123456789~^^");
+  sprintf(buf, "3.0");
   //  sprintf(buf, "123456789");
-//  for ( int i = 0; i < len; i++ ) {
-//    buf[i] = (byte)random( 0, 256 );
-//  }
-
-
+  for ( int i = 3; i < max_chars; i++ ) {
+    buf[i] = (byte)random( 65, 90 );
+  }
 
   //  typedef struct msg {
   //    float v[2];
@@ -348,7 +355,7 @@ int setRandomMsg(int len) {
 
 
   //  Checking the format of what is being sent.
-  ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+  //ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len, ircomm.config.tx.start_byte );
   //  while(1) {
   //    Serial.print("tx buf: ");
   //    Serial.println( (char*)ircomm.tx_buf );
@@ -362,13 +369,6 @@ int setRandomMsg(int len) {
   //    delay(1000);
   //
   //  }
-
-  //  while (true) {
-  //    ircomm.printMsgForDebugging();
-  //
-  //    delay(500);
-  //  }
-
   return ircomm.config.tx.len;
 }
 
@@ -393,13 +393,10 @@ void loop() {
   // received messages and transmit new messages
   ircomm.update();
   //
-  if ( millis() - test_ts > 1000 ) {
-    test_ts = millis();
-    ircomm.printRxMsgForDebugging();
-
-
-  }
-
+  //  if( millis() - test_ts > 250 ) {
+  //    test_ts = millis();
+  //    int e = setRandomMsg(32);
+  //  }
 
 }
 
