@@ -45,9 +45,15 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
     // Read length (RAW, never escaped)
     if (rxState == RX_WAIT_LEN) {
-      encRemain = b;
+
+      if( b == 0 || b > 32 ) {
+
+        // Error condition
+      }
+      
+      encRemain = b + 2;
       //Serial.print("set encRemain to "); Serial.println( encRemain );
-      encRemain -= 2; // subtract start and len bytes
+      //encRemain -= 2; // subtract start and len bytes
       rxState = RX_READ_ENC;
       return 0;
     }
@@ -57,7 +63,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
       if (b == ESC_BYTE && !escapeNext ) {
         escapeNext = true;
-        encRemain--;
+        //encRemain--;
         return 0;
       }
 
@@ -122,7 +128,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           digitalWrite( 13, HIGH );
           return msg_len;
         } else {
-          //          Serial.println("Bad CRC");
+                    Serial.println("Bad CRC");
         }
 
         return 0;
@@ -167,6 +173,9 @@ int IRParser_c::formatIRMessage( uint8_t * tx_buf, uint8_t * msg, byte len ) {
   // start token
   tx_buf[0] = START_BYTE;
 
+  // save the original size of the payload
+  tx_buf[1] = len;
+
   // copy the message into tx_buf
   // do this byte-by-byte to add in escape
   // characters where necessay
@@ -176,20 +185,13 @@ int IRParser_c::formatIRMessage( uint8_t * tx_buf, uint8_t * msg, byte len ) {
     encodeEscape( msg[i], tx_buf, encoded_len );
   }
 
-  // At this point, encoded_len is the next vacant
-  // element of tx_buf, or in other words the total
-  // number of bytes to transmit.  We will add 2
-  // more bytes for the 16 bit CRC. Therefore, we
-  // can now update tx_buf[1] with the total length
-  // of our transmission (encoded_len +2)
-  tx_buf[1] = encoded_len + 2;
-
+  
   // Now append the two CRC bytes
   tx_buf[ encoded_len ] = ub;
   tx_buf[ encoded_len + 1 ] = lb;
 
   // Report final length
-  return tx_buf[1];
+  return (encoded_len +2);
 }
 
 

@@ -312,7 +312,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  setRandomMsg(32);
+  //setRandomMsg(32);
 }
 
 
