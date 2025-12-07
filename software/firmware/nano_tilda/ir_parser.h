@@ -5,11 +5,16 @@
 #include "Arduino.h"
 #include "config.h"
 
-#define ERR_TOO_SHORT     1
+#define ERR_RESYNC        1
 #define ERR_BAD_LENGTH    2
 #define ERR_BAD_CRC       3
 #define ERR_BYTE_TIMEOUT  4
 
+#define NUM_CRC_BYTES       2 // using CRC16, so 2 bytes.
+#define NUM_HEADER_BYTES    2 // start byte and message length byte
+
+#define REPORT_ONE_BYTES    1
+#define REPORT_ZERO_BYTES   0
 
 #define START_BYTE  '~'
 #define ESC_BYTE    '^'
@@ -23,21 +28,15 @@ class IRParser_c {
 
   public:
     
-    uint8_t rxState;
-    bool escapeNext = false;
-    uint8_t encRemain = 0;
-    uint8_t decBuf[MAX_MSG+2];
-    uint8_t decPos = 0;
-    
-    //uint8_t buf_index;           // tracks the progress of receiving bytes
-    //uint8_t header_len;          // message length declared as 2nd byte
-    //uint8_t encoded_len;        // tracking total encoded bytes received
-    //bool GOT_START_TOKEN;     // have we started to receive a message?
-    bool ESCAPE_NEXT;
-    //uint8_t buf[MAX_BUF];        // buffer to store the incoming message
-    uint8_t msg[MAX_MSG];
-    uint8_t msg_len;
-    unsigned long timeout_ts; // timestamp to watch for a lapse in receiving bytes
+    uint8_t rx_state;                           // Tracks receiving state (RX_...).
+    bool    escape_next;                        // Flag to perform XOR to escape next byte
+    uint8_t enc_remain;                         // Counts down the number of encoded bytes to read in
+    uint8_t msg[MAX_MSG];                       // Persistent buffer of the last message received
+    uint8_t msg_len;                            // Persistent length status for msg_len buf
+    uint8_t dec_buf[MAX_MSG + NUM_CRC_BYTES ];  // Temporary buffer of incoming decoded bytes
+    uint8_t dec_pos;                            // Tracks decoded byte buffer position
+    uint8_t esc_count;                          // Counts up how many bytes that were escaped
+    unsigned long timeout_ts;                   // timestamp to watch for a lapse in receiving bytes
 
     IRParser_c();
 

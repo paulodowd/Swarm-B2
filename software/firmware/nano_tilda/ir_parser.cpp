@@ -7,15 +7,22 @@ IRParser_c::IRParser_c() {
 }
 
 void IRParser_c::reset() {
-  rxState = RX_WAIT_START;
-  ESCAPE_NEXT = false;
-  decPos = 0;
-  encRemain = 0;
-  timeout_ts = millis();
-  //memset( decBuf, 0, sizeof( decBuf ));
+  rx_state    = RX_WAIT_START;
+  
+  dec_pos     = 0;
+  enc_remain  = 0;
+  esc_count   = 0;
+  
+  timeout_ts  = millis();
+
 }
 
 void IRParser_c:: copyMsg( uint8_t * dest ) {
+
+  // Make sure the underlying memory is clear. I've 
+  // found that copying in a shorter amount of memory
+  // can leave some persistent garbage in the rest
+  // and cause trouble later.
   memset( dest, 0, MAX_MSG );
 
   if ( msg_len <= 0 || msg_len > MAX_MSG ) {
@@ -28,55 +35,90 @@ void IRParser_c:: copyMsg( uint8_t * dest ) {
 
 int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
+  // If we started to receive a message but we
+  // didn't get any more bytes, indicate the
+  // timeout error
+  if ( rx_state != RX_WAIT_START ) {
+    if ( millis() - timeout_ts > byte_timeout ) {
+      reset();
+      return -ERR_BYTE_TIMEOUT;
+    }
+  }
+
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
   // function iteratively and fast.
   if ( Serial.available() ) {
 
+    // move the timeout timestamp forwards
+    timeout_ts = millis();
 
     uint8_t b = (uint8_t)Serial.read();
 
-    // Raw '~' always means start of new frame
-    if (rxState != RX_READ_ENC && b == START_BYTE) {
+    // We're either in WAIT_START or WAIT LEN and
+    // get the start byte
+    if (rx_state != RX_READ_ENC && b == START_BYTE) {
       reset();
-      rxState = RX_WAIT_LEN;
-      return 0;
+
+      // If in WAIT_START, no error, indicate 1 byte
+      // received.
+      if ( rx_state == RX_WAIT_START ) {
+        rx_state = RX_WAIT_LEN;
+        return REPORT_ONE_BYTES;
+      }
+
+
+      rx_state = RX_WAIT_LEN;
+
+      // Must be in WAIT_LEN, shouldn't have got the
+      // start byte.
+      return -ERR_RESYNC;
     }
 
     // Read length (RAW, never escaped)
-    if (rxState == RX_WAIT_LEN) {
+    if (rx_state == RX_WAIT_LEN) {
 
-      if( b == 0 || b > 32 ) {
+      if ( b == 0 || b > MAX_MSG ) {
 
-        // Error condition
+        reset();
+        return -ERR_BAD_LENGTH;
       }
+
+      // Add 2 because we also need to read in
+      // the two CRC bytes after the message
+      // payload.
+      enc_remain = b + NUM_CRC_BYTES;
       
-      encRemain = b + 2;
       //Serial.print("set encRemain to "); Serial.println( encRemain );
-      //encRemain -= 2; // subtract start and len bytes
-      rxState = RX_READ_ENC;
-      return 0;
+      rx_state = RX_READ_ENC;
+
+      // No error, just indicate 1 byte received
+      return REPORT_ONE_BYTES;
     }
 
     // Only handle escaping INSIDE encoded region
-    if (rxState == RX_READ_ENC) {
+    if (rx_state == RX_READ_ENC) {
 
-      if (b == ESC_BYTE && !escapeNext ) {
-        escapeNext = true;
-        //encRemain--;
-        return 0;
+      // Flag to escape next byte on next iteration.
+      // Note, we don't increment our decoded byte
+      // count (decPos) because that will need to
+      // match the unencoded payload length
+      if (b == ESC_BYTE && !escape_next ) {
+        escape_next = true;
+        esc_count++;
+        // No error, just indicate 1 byte received
+        return REPORT_ONE_BYTES;
       }
 
-      if (escapeNext) {
-        escapeNext = false;
-        b ^= 0x20;
+
+      if (escape_next) {
+        escape_next = false;
+        b ^= XOR_MASK;
 
       } else {
 
-
-        // Pre escape:  test~me^~age
-        // Post escape: ~Xtest^^me^~^^age⸮⸮
-        //
+        // A non-escaped START_BYTE means that we've
+        // received the start byte again.
         if ( b == START_BYTE ) {
 
           //          Serial.println("Got ~ inside decoding");
@@ -85,58 +127,47 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           //          }
           //          Serial.println( encRemain );
           reset();
-          rxState = RX_WAIT_LEN;
-          return 0;
+          rx_state = RX_WAIT_LEN;
+          return -ERR_RESYNC;
         }
 
       }
 
-
-
-      // Now a decoded byte
-      //      if (encRemain == 0) {
-      //        // Shouldn't happen, but guard
-      //        reset();
-      //        return 0;
-      //      }
-
-      decBuf[decPos++] = b;
-      encRemain--;
+      dec_buf[dec_pos++] = b;
+      enc_remain--;
 
       // Frame complete?
-      if (encRemain == 0) {
+      if (enc_remain == 0) {
 
-        if (decPos < 3) {
-          // Must be payload >=1 + CRC2
-          rxState = RX_WAIT_START;
-          decPos = 0;
-          //          Serial.println("too small");
-          return 0;
-        }
 
-        uint8_t payloadLen = decPos - 2;
-        //        uint16_t rxCRC = ((uint16_t)decBuf[payloadLen] << 8) | decBuf[payloadLen + 1];
-        uint16_t rxCRC = mergeCRC16( decBuf[payloadLen], decBuf[payloadLen + 1] );
-        uint16_t calc = CRC16( decBuf, payloadLen);
+        uint8_t payload_len = dec_pos - NUM_CRC_BYTES;
 
-        if (rxCRC == calc) {
+        uint16_t recv_CRC = mergeCRC16( dec_buf[payload_len], dec_buf[payload_len + 1] );
+        uint16_t calc_CRC = CRC16( dec_buf, payload_len);
+
+        if (recv_CRC == calc_CRC) {
           memset( msg, 0, sizeof( msg ));
-          memcpy( msg, decBuf, payloadLen);
-          msg_len = payloadLen;
+          memcpy( msg, dec_buf, payload_len);
+          msg_len = payload_len;
           reset();
 
           digitalWrite( 13, HIGH );
-          return msg_len;
-        } else {
-                    Serial.println("Bad CRC");
-        }
 
-        return 0;
+          uint8_t total_decoded;
+          total_decoded = NUM_HEADER_BYTES + msg_len + NUM_CRC_BYTES + esc_count;
+          return total_decoded;
+
+        } else {
+          //Serial.println("Bad CRC");
+          reset();
+          return -ERR_BAD_CRC;
+        }
       }
     }
   }
 
-  return 0;
+  // Nothing happened
+  return REPORT_ZERO_BYTES;
 }
 
 
@@ -185,13 +216,13 @@ int IRParser_c::formatIRMessage( uint8_t * tx_buf, uint8_t * msg, byte len ) {
     encodeEscape( msg[i], tx_buf, encoded_len );
   }
 
-  
+
   // Now append the two CRC bytes
   tx_buf[ encoded_len ] = ub;
   tx_buf[ encoded_len + 1 ] = lb;
 
   // Report final length
-  return (encoded_len +2);
+  return (encoded_len + 2);
 }
 
 

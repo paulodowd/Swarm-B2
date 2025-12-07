@@ -74,7 +74,6 @@ void i2c_receive( int len ) {
       // Delete message
       ircomm.clearRxMsg( 0 );
 
-
     } else if ( new_mode.mode == MODE_CLEAR_MSG1 ) {
       // Delete message
       ircomm.clearRxMsg( 1 );
@@ -312,8 +311,10 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-  //setRandomMsg(32);
+  //setRandomMsg(8);
 }
+
+
 
 
 // Construct a message of length len out
@@ -331,11 +332,11 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-  sprintf(buf, "123456789~123456789~123456789~^^");
+//  sprintf(buf, "123456789~123456789~123456789~^^");
   //  sprintf(buf, "123456789");
-//  for ( int i = 0; i < len; i++ ) {
-//    buf[i] = (byte)random( 0, 256 );
-//  }
+  for ( int i = 0; i < len; i++ ) {
+    buf[i] = (byte)random( 0, 256 );
+  }
 
 
 
@@ -373,11 +374,11 @@ int setRandomMsg(int len) {
 }
 
 void loop() {
-  ////
-  //  if( millis() - test_ts > 250 ) {
-  //      test_ts = millis();
-  //      int e = setRandomMsg(8);
-  //    }
+//  ////
+//    if( millis() - test_ts > 250 ) {
+//        test_ts = millis();
+//        int e = setRandomMsg(8);
+//      }
   //
   //
   //  sendTest();
@@ -392,29 +393,13 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
-  //
-  if ( millis() - test_ts > 1000 ) {
-    test_ts = millis();
-    ircomm.printRxMsgForDebugging();
+//  //
+//  if ( millis() - test_ts > 1000 ) {
+//    test_ts = millis();
+//    ircomm.printRxMsgForDebugging();
+//  }
 
 
-  }
-
-
-}
-
-void sendTest() {
-  // Checking HardwareSerial.cpp, .write() is a blocking
-  // function.  Therefore we don't need .flush()
-  //Serial.availableForWrite();
-  ircomm.enableTx();
-  for ( int j = 0; j < ircomm.config.tx.len; j++ ) {
-    Serial.write( ircomm.tx_buf[j] );
-  }
-
-  //Serial.print(tx_buf);
-  Serial.flush();
-  ircomm.disableTx();
 }
 
 

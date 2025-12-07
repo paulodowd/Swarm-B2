@@ -1,9 +1,9 @@
+// The following provide the default configuration
+// of the communication board.
 
 #ifndef IRCOMM_CONFIG_H
 #define IRCOMM_CONFIG_H
 
-// The following provide the default configuration
-// of the communication board.
 
 
 
@@ -39,7 +39,8 @@
 #define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
-
+#define US_PER_BYTE_58KHZ     1250   // 58khz
+#define US_PER_BYTE_38KHZ     2500   // 38khz
 
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.

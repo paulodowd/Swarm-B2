@@ -93,7 +93,7 @@ void setup() {
   motors.initialise();
 
   updateSettings();
-
+  delay(1000);
   // Make sure the IR Communication board
   // is reset and ready.
   pos = 0;
@@ -107,11 +107,62 @@ void setup() {
     reportStatusErrorsCSV();
     delay(1);
 //    getByteTimings();
-    delay(100);
+    delay(200);
+    getRxSettings();
   }
 
 
 }
+
+
+
+void updateSettings() {
+
+  // Uncomment below for the example
+  // that changes the board configuration
+
+  if ( millis() - settings_ts > settings_update_ms ) {
+    settings_ts = millis();
+
+    // To be safe, lets first get the current settings
+    // from the board.  These update the structs declared
+    // in the global scope.
+    getRxSettings();
+    delay(10);
+    //getTxSettings();
+    //delay(10);
+
+    // Let's now modify the structs and send it back.
+    // We should see the change on the next iteration
+    // of loop()
+    // Lets test by just togggling some binary flags
+    rx_settings.flags.bits.cycle = true;
+    rx_settings.flags.bits.cycle_on_rx = true;
+    rx_settings.flags.bits.desync = false;          // don't randomise
+    rx_settings.flags.bits.overrun = true;
+    rx_settings.index = 0;
+    rx_settings.flags.bits.predict_period = true; // don't optimise
+    rx_settings.period_max = 20;  // use 2000ms
+    rx_settings.flags.bits.desaturate = 0;
+    rx_settings.flags.bits.rx0 = 1;
+    rx_settings.flags.bits.rx1 = 1;
+    rx_settings.flags.bits.rx2 = 1;
+    rx_settings.flags.bits.rx3 = 1;
+    rx_settings.predict_multi = 1.5;
+    //    tx_settings.tx_desync = 0;         // don't randomise
+    //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
+    //
+    setRxSettings();
+    //    delay(5);
+    //    setTxSettings();
+
+    getRxSettings();
+  }
+
+}
+
+
+
 void initRandomSeed() {
   pinMode(A1, INPUT);
   byte r = 0x00;
@@ -232,49 +283,6 @@ void updateMessageToSend() {
 }
 
 
-
-void updateSettings() {
-
-  // Uncomment below for the example
-  // that changes the board configuration
-
-  if ( millis() - settings_ts > settings_update_ms ) {
-    settings_ts = millis();
-
-    // To be safe, lets first get the current settings
-    // from the board.  These update the structs declared
-    // in the global scope.
-    getRxSettings();
-    delay(10);
-    //getTxSettings();
-    //delay(10);
-
-    // Let's now modify the structs and send it back.
-    // We should see the change on the next iteration
-    // of loop()
-    // Lets test by just togggling some binary flags
-    rx_settings.flags.bits.cycle = false;
-    rx_settings.flags.bits.cycle_on_rx = true;
-    rx_settings.flags.bits.desync = false;          // don't randomise
-    rx_settings.flags.bits.overrun = true;
-    rx_settings.index = 0;
-    rx_settings.flags.bits.predict_period = true; // don't optimise
-    rx_settings.period_max = 2000;  // use 2000ms
-    rx_settings.flags.bits.rx0 = 1;
-    rx_settings.flags.bits.rx1 = 1;
-    rx_settings.flags.bits.rx2 = 1;
-    rx_settings.flags.bits.rx3 = 1;
-    //    tx_settings.tx_desync = 0;         // don't randomise
-    //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
-    //
-    setRxSettings();
-    //    delay(5);
-    //    setTxSettings();
-
-    getRxSettings();
-  }
-
-}
 
 void checkForMessages() {
   // Periodically check to see if there are new messages
@@ -408,6 +416,7 @@ void getRxSettings() {
 
   // Show data for debugging
   Serial.println("Rx settings:");
+  Serial.print(" - last len: ");    Serial.println(rx_settings.len );
   Serial.print(" - cycle: ");       Serial.println(rx_settings.flags.bits.cycle > 0 ? "true" : "false");
   Serial.print(" - cycle on rx: ");  Serial.println(rx_settings.flags.bits.cycle_on_rx > 0 ? "true" : "false");
   Serial.print(" - desync rx: ");  Serial.println(rx_settings.flags.bits.desync > 0 ? "true" : "false");
@@ -422,6 +431,7 @@ void getRxSettings() {
   Serial.print(" - Rx1 available: ");    Serial.println(rx_settings.flags.bits.rx1 > 0 ? "true" : "false");
   Serial.print(" - Rx2 available: ");    Serial.println(rx_settings.flags.bits.rx2 > 0 ? "true" : "false");
   Serial.print(" - Rx3 available: ");    Serial.println(rx_settings.flags.bits.rx3 > 0 ? "true" : "false");
+  Serial.print(" - Desaturate: ");    Serial.println(rx_settings.flags.bits.desaturate > 0 ? "true" : "false");
   Serial.println();
 }
 
@@ -681,6 +691,7 @@ void reportStatusErrorsCSV() {
     Serial.print(",");
   }
 
+  
 
   ir_errors_t errors;
   ircomm_mode.mode = MODE_REPORT_ERRORS;
@@ -695,7 +706,7 @@ void reportStatusErrorsCSV() {
   for ( int i = 0; i < 4; i++ ) {
 
     // error type
-
+    Serial.print("E");Serial.print(i);Serial.print(",");
     //  Serial.print("E");Serial.print(i);Serial.print(",");
     for ( int j = 0; j < 4; j++ ) {
       Serial.print( errors.type[i][j] );

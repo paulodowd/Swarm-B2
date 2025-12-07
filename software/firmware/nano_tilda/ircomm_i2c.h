@@ -174,7 +174,8 @@ typedef struct ir_rx_params {   // total = 19 bytes.
       uint16_t rx2             : 1; // receiver available to use?
       uint16_t rx3             : 1; // recevier available to use?
       uint16_t desaturate      : 1;
-      uint16_t reserved;       : 6; // 7 more bools available
+      uint16_t rand_rx         : 1; // randomise rx cycling
+      uint16_t reserved;       : 5; // 5 more bools available
     } bits;
   } flags;
   float predict_multi;
