@@ -8,18 +8,18 @@ IRParser_c::IRParser_c() {
 
 void IRParser_c::reset() {
   rx_state    = RX_WAIT_START;
-  
+
   dec_pos     = 0;
   enc_remain  = 0;
   esc_count   = 0;
-  
+
   timeout_ts  = millis();
 
 }
 
 void IRParser_c:: copyMsg( uint8_t * dest ) {
 
-  // Make sure the underlying memory is clear. I've 
+  // Make sure the underlying memory is clear. I've
   // found that copying in a shorter amount of memory
   // can leave some persistent garbage in the rest
   // and cause trouble later.
@@ -33,17 +33,9 @@ void IRParser_c:: copyMsg( uint8_t * dest ) {
 
 }
 
+static unsigned long last_t;
 int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
-  // If we started to receive a message but we
-  // didn't get any more bytes, indicate the
-  // timeout error
-  if ( rx_state != RX_WAIT_START ) {
-    if ( millis() - timeout_ts > byte_timeout ) {
-      reset();
-      return -ERR_BYTE_TIMEOUT;
-    }
-  }
 
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
@@ -88,7 +80,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
       // the two CRC bytes after the message
       // payload.
       enc_remain = b + NUM_CRC_BYTES;
-      
+
       //Serial.print("set encRemain to "); Serial.println( encRemain );
       rx_state = RX_READ_ENC;
 
@@ -151,7 +143,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           msg_len = payload_len;
           reset();
 
-          digitalWrite( 13, HIGH );
+          //          digitalWrite( 13, HIGH );
 
           uint8_t total_decoded;
           total_decoded = NUM_HEADER_BYTES + msg_len + NUM_CRC_BYTES + esc_count;
@@ -163,6 +155,16 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           return -ERR_BAD_CRC;
         }
       }
+    }
+  }
+
+  // If we started to receive a message but we
+  // didn't get any more bytes, indicate the
+  // timeout error
+  if ( rx_state != RX_WAIT_START ) {
+    if ( millis() - timeout_ts > byte_timeout ) {
+      reset();
+      return -ERR_BYTE_TIMEOUT;
     }
   }
 

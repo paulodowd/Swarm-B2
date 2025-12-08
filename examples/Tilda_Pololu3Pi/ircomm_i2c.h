@@ -93,9 +93,9 @@ typedef struct ir_errors {  // 32 bytes
 } ir_errors_t;
 
 typedef struct ir_cycles {  // 4 bytes
-  uint16_t rx;
-  uint16_t tx;
-} ir_cycles_t;
+  uint16_t rx;              // 2
+  uint16_t tx;              // 2
+} ir_cycles_t;  
 
 // To find out if a message is ready
 // to collect
@@ -158,7 +158,7 @@ typedef struct ir_tx_params {   // total = 18 bytes
 
 
 
-typedef struct ir_rx_params {   // total = 19 bytes.
+typedef struct ir_rx_params {   // total = 24 bytes.
   union {                       // 2 bytes
     uint16_t all_flags;  // access all flags at once
     struct {
@@ -177,10 +177,11 @@ typedef struct ir_rx_params {   // total = 19 bytes.
       uint16_t reserved;       : 4; // 4 more bools available
     } bits;
   } flags;
-  float predict_multi;
+  float predict_multi;         //  4: multiplier when predicting how long to listen for.
   unsigned long period;        //  4: current ms used to wait before switching receiver
   unsigned long period_max;    //  4: maximum rx_period allowable
   byte          index;         //  1: Which receiver is active? if cycle is false, sets Rx
+  uint8_t       skip_multi;
   unsigned long byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
   unsigned long sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
   byte          len;           //  1: how long was the last received message?

@@ -313,7 +313,7 @@ void setup() {
 
   full_reset = false;
   // Paul: I was using this to test
-//  setRandomMsg(8);
+  //setRandomMsg(8);
 }
 
 
@@ -376,6 +376,9 @@ int setRandomMsg(int len) {
 }
 
 void loop() {
+//
+//  ircomm.doTransmit();
+//  return;
 //  ////
 //    if( millis() - test_ts > 250 ) {
 //        test_ts = millis();

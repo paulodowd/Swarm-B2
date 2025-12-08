@@ -113,8 +113,9 @@ class IRComm_c {
     bool doTransmit();    
 
     void updateMsgTimings();  // 
-    void updateByteTimings();
-    void advanceTimings();
+    void updateByteTimestamp();
+    void updateByteElapsedTime();
+    void advanceByteTimestamps();
 
     // Used to update the bearing estimates
     void resetBearingActivity();

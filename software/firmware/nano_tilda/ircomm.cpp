@@ -46,6 +46,7 @@ void IRComm_c::init() {
   config.rx.flags.bits.rand_rx          = RX_RAND_RX;
   config.rx.flags.bits.skip_inactive    = RX_SKIP_INACTIVE;
   config.rx.len                         = RX_DEFAULT_MSG_LEN;
+  config.rx.skip_multi                  = RX_SKIP_MULTI;
   config.rx.period                      = 0; // updated below
   config.rx.period_max                  = RX_PERIOD_MAX;
   config.rx.predict_multi               = RX_PREDICT_MULTIPLIER;
@@ -641,16 +642,14 @@ void IRComm_c::clearTxBuf() {
 bool IRComm_c::update() {
 
 
-  bool activity = false;
-
   // We periodically track update the activity
   // of each receiver to help estimate a bearing
   // of neighbouring boards.
   // Activity is simply bytes received
-  if ( millis() - bearing_ts > UPDATE_BEARING_MS ) {
-    bearing_ts = millis();
-    updateBearingActivity();
-  }
+  //  if ( millis() - bearing_ts > UPDATE_BEARING_MS ) {
+  //    bearing_ts = millis();
+  //    updateBearingActivity();
+  //  }
 
   // toggles off the LED if it was put on
   // somewhere else
@@ -670,11 +669,21 @@ bool IRComm_c::update() {
   bool transmit = false;
   bool cycle = false;
 
+  // Assume there is no byte activity
+  bool activity = false;
+
+
   // We assume we always want to get the latest
   // byte from the UART buffer
   int status = parser.getNextByte( config.rx.byte_timeout );
 
   if ( status < 0 ) { // something went wrong.
+
+    if ( status != -ERR_BYTE_TIMEOUT ) {
+
+      // Register that there was some byte activity
+      activity = true;
+    }
 
     // Increase count of fails for this rx
     metrics.status.fail_count[ config.rx.index ]++;
@@ -693,8 +702,7 @@ bool IRComm_c::update() {
     // Increase count of error type
     metrics.errors.type[ config.rx.index ][ status ]++;
 
-    // Register that there was some byte activity
-    activity = true;
+
 
   } else if ( status == 1 ) { // just got a byte
 
@@ -703,6 +711,9 @@ bool IRComm_c::update() {
 
 
   } else if ( status > 1 ) { // got a message
+
+    digitalWrite(13, HIGH);
+        
 
     // Register that there was some byte activity
     activity = true;
@@ -735,6 +746,7 @@ bool IRComm_c::update() {
 
     if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
       transmit = true;
+
       if ( config.rx.flags.bits.cycle == true ) {
         cycle = true;
       }
@@ -749,8 +761,7 @@ bool IRComm_c::update() {
   if ( activity ) {
 
     // Record timing statistics for byte activity
-    updateByteTimings();
-
+    updateByteTimestamp();
 
     //    digitalWrite(13, HIGH);
     bearing_activity[ config.rx.index ] += 1;
@@ -782,10 +793,10 @@ bool IRComm_c::update() {
     }
   }
 
-
-  if ( disabled == true ) {
-    return activity;
-  }
+  //
+  //  if ( disabled == true ) {
+  //    return activity;
+  //  }
 
 
 
@@ -867,25 +878,29 @@ bool IRComm_c::update() {
         // spent transmitting. So we
         // update the saturation timestamp
         // here.
-        advanceTimings();
+        advanceByteTimestamps();
       }
 
     }
 
-    // TODO: I'm having trouble getting this to work, I'm not
-    // sure why.
-//    if ( config.rx.flags.bits.skip_inactive == 1 ) {
-//      unsigned long dt = micros();
-//      dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
-//      if ( dt > (US_PER_BYTE_58KHZ * 20) ) {
-//
-//        
-//        cycle = true;
-//        // Add to our count of saturation
-//        // occurences.
-//        metrics.status.saturation[config.rx.index]++;
-//      }
-//    }
+
+    // The following functionality has an interesting
+    // design choice.  If the cycle flag is required as
+    // true, this would mean that skipping would just
+    // rotate the receiver quicker than rx.period.
+    // If the cycle flag is not required, it means the
+    // receiver will rotate and then stop when it finds
+    // byte activity on a receiver. 
+    updateByteElapsedTime();
+    if ( config.rx.flags.bits.skip_inactive == true ) {
+      if ( metrics.byte_timings.dt_us[config.rx.index] > (US_PER_BYTE_58KHZ * config.rx.skip_multi) ) {
+        //Serial.println( config.rx.index );
+        cycle = true;
+        // Add to our count of saturation
+        // occurences.
+        metrics.status.saturation[config.rx.index]++;
+      }
+    }
 
     if ( cycle ) {
 
@@ -895,7 +910,7 @@ bool IRComm_c::update() {
       // This sets the new rx timestamp
       if ( cyclePowerRx() ) {
         parser.reset();
-        advanceTimings();
+        advanceByteTimestamps();
       }
 
     }
@@ -912,7 +927,7 @@ bool IRComm_c::update() {
   // matter of interest.
   // But for byte activity, we are using this
   // to detect receiver saturation.
-  void IRComm_c::advanceTimings() {
+  void IRComm_c::advanceByteTimestamps() {
     for ( int i = 0; i < 4; i++ ) metrics.byte_timings.ts_us[i] = micros();
   }
 
@@ -928,10 +943,13 @@ bool IRComm_c::update() {
   // Note: in microseconds. It is possible
   // to receive a byte in 1.2ms, so millis
   // isn't quite precise enough.
-  void IRComm_c::updateByteTimings() {
+  void IRComm_c::updateByteTimestamp() {
+    metrics.byte_timings.ts_us[ config.rx.index ] = micros();
+  }
+
+  void IRComm_c::updateByteElapsedTime() {
     unsigned long dt = micros() - metrics.byte_timings.ts_us[ config.rx.index ];
     metrics.byte_timings.dt_us[ config.rx.index ] = dt;
-    metrics.byte_timings.ts_us[ config.rx.index ] = micros();
   }
 
 

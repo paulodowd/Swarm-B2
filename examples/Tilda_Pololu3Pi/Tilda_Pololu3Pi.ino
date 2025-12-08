@@ -103,12 +103,18 @@ void setup() {
   //  motors.setMotorsPWM( 20, 20 );
 
   delay(100);
+  int count = 0;
   while ( true ) {
-    reportStatusErrorsCSV();
-    delay(1);
 //    getByteTimings();
-    delay(200);
-    getRxSettings();
+    reportStatusErrorsCSV();
+//    delay(1);
+//    getByteTimings();
+    delay(250);
+    count++;
+    if( count > 10 ) {
+      getRxSettings();
+      count = 0;
+    }
   }
 
 
@@ -120,9 +126,9 @@ void updateSettings() {
 
   // Uncomment below for the example
   // that changes the board configuration
-
-  if ( millis() - settings_ts > settings_update_ms ) {
-    settings_ts = millis();
+//
+//  if ( millis() - settings_ts > settings_update_ms ) {
+//    settings_ts = millis();
 
     // To be safe, lets first get the current settings
     // from the board.  These update the structs declared
@@ -150,7 +156,8 @@ void updateSettings() {
     rx_settings.flags.bits.rx3 = 1;
     rx_settings.flags.bits.rand_rx = 0;
     rx_settings.flags.bits.skip_inactive = 1;
-    rx_settings.predict_multi = 1.5;
+    rx_settings.skip_multi = 10;
+    rx_settings.predict_multi = 0.5;
     //    tx_settings.tx_desync = 0;         // don't randomise
     //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
     //
@@ -159,7 +166,7 @@ void updateSettings() {
     //    setTxSettings();
 
     getRxSettings();
-  }
+//  }
 
 }
 
@@ -424,7 +431,7 @@ void getRxSettings() {
   Serial.print(" - desync rx: ");  Serial.println(rx_settings.flags.bits.desync > 0 ? "true" : "false");
   Serial.print(" - predict timeout: "); Serial.println(rx_settings.flags.bits.predict_period > 0 ? "true" : "false");
   Serial.print(" - overrun: ");    Serial.println(rx_settings.flags.bits.overrun > 0 ? "true" : "false");
-  Serial.print(" - current timeout: ");    Serial.println(rx_settings.period);
+  Serial.print(" - rx timeout: ");    Serial.println(rx_settings.period);
   Serial.print(" - timeout max: ");    Serial.println(rx_settings.period_max);
   Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.predict_multi);
   Serial.print(" - power index: ");    Serial.println(rx_settings.index);
@@ -515,13 +522,21 @@ void getByteTimings() {
     Serial.print( byte_timings.dt_us[i] );
     Serial.print(",");
   }
-  //Serial.println();
-  //  //Serial.println("Last rx time in ms:");
+//  Serial.println();
+//    Serial.println("Last rx time in ms:");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( byte_timings.ts_us[i] );
     Serial.print(",");
   }
   Serial.println();
+//
+//  for( int i = 0; i < 3; i++ ) {
+//      unsigned long u = byte_timings.ts_us[i];
+//      u -= byte_timings.ts_us[i+1];
+//      Serial.print( u );
+//      Serial.print(",");
+//  }
+//  Serial.println();
 
 
 }

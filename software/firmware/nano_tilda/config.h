@@ -37,6 +37,7 @@
 #define RX_DESATURATE         false
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
+#define RX_SKIP_MULTI         4
 #define RX_RAND_RX            false
 #define RX_SKIP_INACTIVE      true
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
