@@ -145,17 +145,15 @@ typedef struct ir_tx_params {   // total = 18 bytes
       uint8_t predict_period     : 1; // predict repeat period on len?
       uint8_t defer         : 1; // if received a byte, defer tx?
       uint8_t desync          : 1; // randomise period?
-      uint8_t reserved             : 4; // 3 more bools available
+      uint8_t preamble        : 1;
+      uint8_t reserved             : 3; // 3 more bools available
     } bits;
   } flags;
-  //byte          mode;           // 1: 0 = periodic, 1 = interleaved
-  byte          repeat;         // 1: how many repeated IR transmissions?
-  //bool          predict_period; // 1: show we try to predict a good tx period?
+  uint8_t        repeat;         // 1: how many repeated IR transmissions?
   float          predict_multi;   // 4: how many multiples of tx_len to use with predict?
   unsigned long period;         // 4: periodic:  current ms period to send messages
   unsigned long period_max;     // 4: maximum tx period allowable
-  //bool          desync;         // 1: should tx_period receive small randomisation?
-  byte          len;            // 1: how long is the message to transmit?
+  uint8_t          len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
 
@@ -173,8 +171,10 @@ typedef struct ir_rx_params {   // total = 19 bytes.
       uint16_t rx1             : 1; // receiver available to use?
       uint16_t rx2             : 1; // receiver available to use?
       uint16_t rx3             : 1; // recevier available to use?
-      uint16_t desaturate      : 1;
-      uint16_t reserved;       : 6; // 7 more bools available
+      uint16_t desaturate      : 1; // toggle power to receiver if zero activity
+      uint16_t rand_rx         : 1; // randomise rx cycling
+      uint16_t skip_inactive   : 1; // skip a receiver with no activity?
+      uint16_t reserved;       : 4; // 4 more bools available
     } bits;
   } flags;
   float predict_multi;

@@ -31,12 +31,14 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              false  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
-#define RX_PREDICT_PERIOD    true  // try to optimse polling performance?
+#define RX_PREDICT_PERIOD    false  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
-#define RX_DESYNC             true
-#define RX_DESATURATE         true
+#define RX_DESYNC             false
+#define RX_DESATURATE         false
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
+#define RX_RAND_RX            false
+#define RX_SKIP_INACTIVE      true
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
 #define US_PER_BYTE_58KHZ     1250   // 58khz
@@ -81,6 +83,9 @@
 //#define TX_MODE (TX_MODE_INTERLEAVED)
 #define TX_PREDICT_PERIOD     true
 #define TX_PREDICT_MULTI      4.0
+#define TX_PREAMBLE           true
+#define TX_PREAMBLE_REPEAT    4
+#define TX_PREAMBLE_BYTE      0x55 // 0b01010101
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -115,10 +120,6 @@
 
 // How often should the bearing estimate be updated?
 #define UPDATE_BEARING_MS  250
-
-
-
-#define START_TOKEN '~'     // 
 
 
 // I2C constrains the message payload to 32

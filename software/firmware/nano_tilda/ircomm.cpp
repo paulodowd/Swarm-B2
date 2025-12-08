@@ -17,17 +17,20 @@ void IRComm_c::init() {
   // set by the #define in ircomm.h, which
   // can then be over-rided by i2c.
   if ( TX_MODE == TX_MODE_PERIODIC ) {
-    config.tx.flags.bits.mode       = TX_MODE_PERIODIC;
-  } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
-    config.tx.flags.bits.mode       = TX_MODE_INTERLEAVED;
-  }
-  config.tx.flags.bits.predict_period = TX_PREDICT_PERIOD;
-  config.tx.predict_multi  = TX_PREDICT_MULTI;
+    config.tx.flags.bits.mode           = TX_MODE_PERIODIC;
 
-  config.tx.repeat     = DEFAULT_TX_REPEAT;
-  config.tx.flags.bits.desync     = TX_DESYNC;
-  config.tx.flags.bits.defer      = TX_DEFER;
-  config.tx.period_max = DEFAULT_TX_PERIOD;
+  } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+    config.tx.flags.bits.mode           = TX_MODE_INTERLEAVED;
+
+  }
+  config.tx.flags.bits.predict_period   = TX_PREDICT_PERIOD;
+  config.tx.predict_multi               = TX_PREDICT_MULTI;
+
+  config.tx.repeat                      = DEFAULT_TX_REPEAT;
+  config.tx.flags.bits.desync           = TX_DESYNC;
+  config.tx.flags.bits.defer            = TX_DEFER;
+  config.tx.period_max                  = DEFAULT_TX_PERIOD;
+  config.tx.flags.bits.preamble         = TX_PREAMBLE;
   config.tx.len = 0;
 
   config.rx.flags.bits.cycle            = RX_CYCLE;
@@ -40,6 +43,8 @@ void IRComm_c::init() {
   config.rx.flags.bits.rx1              = 1;
   config.rx.flags.bits.rx2              = 1;
   config.rx.flags.bits.rx3              = 1;
+  config.rx.flags.bits.rand_rx          = RX_RAND_RX;
+  config.rx.flags.bits.skip_inactive    = RX_SKIP_INACTIVE;
   config.rx.len                         = RX_DEFAULT_MSG_LEN;
   config.rx.period                      = 0; // updated below
   config.rx.period_max                  = RX_PERIOD_MAX;
@@ -175,7 +180,8 @@ bool IRComm_c::cyclePowerRx() {
   // the receiver, we simply update the
   // continue functioning, without changing
   // to a new receiver.
-  if ( config.rx.flags.bits.cycle == false || config.rx.period_max == 0 ) {
+  //  if ( config.rx.flags.bits.cycle == false || config.rx.period_max == 0 ) {
+  if ( config.rx.period_max == 0 ) {
 
     // If we are not cycling the RX receiver
     // there seems to be an issue where the demod
@@ -201,7 +207,7 @@ bool IRComm_c::cyclePowerRx() {
     int watchdog = 0;
     int rx;
     do {
-      rx = random(0, 4);
+      rx = (int)random(0, 4);
       watchdog++;
 
     } while ( !isRxAvailable( rx ) && watchdog < 10 );
@@ -222,7 +228,6 @@ bool IRComm_c::cyclePowerRx() {
     do {
       rx++;
       if ( rx >= MAX_RX ) rx = 0;
-    
       watchdog++;
     } while ( !isRxAvailable( rx ) && watchdog < 4 );
 
@@ -745,6 +750,31 @@ bool IRComm_c::update() {
     //    digitalWrite(13, HIGH);
     bearing_activity[ config.rx.index ] += 1;
     metrics.status.activity[ config.rx.index ]++;
+
+
+  } else { // no activity
+
+    // Although we track a dt for the bytes
+    // of each receiver, the dt is updated
+    // when a byte is received. Here we are
+    // checking specifically when a byte
+    // hasn't been received.
+    if ( config.rx.flags.bits.desaturate == 1 ) {
+      unsigned long dt = micros();
+      dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
+      if ( dt > (unsigned long)config.rx.sat_timeout ) {m
+        toggleRxPower();
+
+        // Advance this byte time stamp so
+        // that we don't immediately trigger
+        // again.
+        metrics.byte_timings.ts_us[config.rx.index] = micros();
+
+        // Add to our count of saturation
+        // occurences.
+        metrics.status.saturation[config.rx.index]++;
+      }
+    }
   }
 
 
@@ -793,41 +823,6 @@ bool IRComm_c::update() {
     }
   }
 
-  // This means there was 0 byte activity.
-  // If this happens for a "long" time, we
-  // probably have an issue with the
-  // receiver module.  Normally the board
-  // will pick up a few bytes from ambient
-  // noise.  The IR demodulator seems to
-  // lock up sometimes, I think  it reaches
-  // the limit of it's continuous operation
-  // (see datasheet).
-  if ( activity == false ) {
-
-    // Although we track a dt for the bytes
-    // of each receiver, the dt is updated
-    // when a byte is received. Here we are
-    // checking specifically when a byte
-    // hasn't been received.
-    if ( config.rx.flags.bits.desaturate == 1 ) {
-      unsigned long dt = micros();
-      dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
-      if ( dt > (unsigned long)config.rx.sat_timeout ) {
-        toggleRxPower();
-
-
-        // Advance this byte time stamp so
-        // that we don't immediately trigger
-        // again.
-        metrics.byte_timings.ts_us[config.rx.index] = micros();
-
-        // Add to our count of saturation
-        // occurences.
-        metrics.status.saturation[config.rx.index]++;
-      }
-    }
-  }
-
 
   // defer == true: recent byte activity will mean
   // that the transmission is deferred (cancelled)
@@ -836,10 +831,10 @@ bool IRComm_c::update() {
     // Was the last byte activity within the time
     // expected?
 #ifdef IR_FREQ_58
-    if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ ) {
+    if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ * 2 ) {
 #endif
 #ifdef IR_FREQ_38
-      if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_38KHZ ) {
+      if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_38KHZ * 2 ) {
 #endif
 
         transmit = false;
@@ -937,6 +932,20 @@ bool IRComm_c::update() {
       // Stop receiving
       disableRx();
       enableTx();
+
+
+      // Transmission might be improved with some message
+      // pre-amble that allows the receiving UART to
+      // determine the clock of the source.
+      if ( config.tx.flags.bits.preamble == 1 ) {
+
+        // Add some preamble bytes. 0x55 = 0b01010101
+        for ( int i = 0; i < TX_PREAMBLE_REPEAT; i++ ) {
+          Serial.write( TX_PREAMBLE_BYTE );
+        }
+
+      }
+
       // Using Serial.print transmits over
       // IR.  Serial TX is modulated with
       // the 38Khz or 58khz carrier in hardware.

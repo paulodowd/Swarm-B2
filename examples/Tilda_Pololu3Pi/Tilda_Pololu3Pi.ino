@@ -137,7 +137,7 @@ void updateSettings() {
     // of loop()
     // Lets test by just togggling some binary flags
     rx_settings.flags.bits.cycle = true;
-    rx_settings.flags.bits.cycle_on_rx = true;
+    rx_settings.flags.bits.cycle_on_rx = false;
     rx_settings.flags.bits.desync = false;          // don't randomise
     rx_settings.flags.bits.overrun = true;
     rx_settings.index = 0;
@@ -145,9 +145,11 @@ void updateSettings() {
     rx_settings.period_max = 20;  // use 2000ms
     rx_settings.flags.bits.desaturate = 0;
     rx_settings.flags.bits.rx0 = 1;
-    rx_settings.flags.bits.rx1 = 1;
-    rx_settings.flags.bits.rx2 = 1;
-    rx_settings.flags.bits.rx3 = 1;
+    rx_settings.flags.bits.rx1 = 0;
+    rx_settings.flags.bits.rx2 = 0;
+    rx_settings.flags.bits.rx3 = 0;
+    rx_settings.flags.bits.rand_rx = 0;
+    rx_settings.flags.bits.skip_inactive = 1;
     rx_settings.predict_multi = 1.5;
     //    tx_settings.tx_desync = 0;         // don't randomise
     //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds

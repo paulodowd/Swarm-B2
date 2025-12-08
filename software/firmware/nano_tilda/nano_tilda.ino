@@ -307,11 +307,13 @@ void setup() {
   // Start the IR communication board.
   ircomm.init();
 
+  Serial.println("Nano");
+
   last_mode.mode = MODE_NOT_SET;
 
   full_reset = false;
   // Paul: I was using this to test
-  //setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
@@ -399,6 +401,7 @@ void loop() {
 //    ircomm.printRxMsgForDebugging();
 //  }
 
+  
 
 }
 
