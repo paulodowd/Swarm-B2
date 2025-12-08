@@ -333,7 +333,12 @@ void IRComm_c::powerOnRx( byte index ) {
     digitalWrite( RX_PWR_3, HIGH );
 
   }
-  delayMicroseconds(250);
+  // too quick?
+  //delayMicroseconds(250);
+
+  // Vishay stipulate 1-2ms for functional operation
+  // but up to 20ms for stable filtering.
+  delay(20);
 
   // After changing which receiver is active,
   // the serial buffer is full of old data.
@@ -762,7 +767,7 @@ bool IRComm_c::update() {
     if ( config.rx.flags.bits.desaturate == 1 ) {
       unsigned long dt = micros();
       dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
-      if ( dt > (unsigned long)config.rx.sat_timeout ) {m
+      if ( dt > (unsigned long)config.rx.sat_timeout ) {
         toggleRxPower();
 
         // Advance this byte time stamp so
@@ -866,6 +871,21 @@ bool IRComm_c::update() {
       }
 
     }
+
+    // TODO: I'm having trouble getting this to work, I'm not
+    // sure why.
+//    if ( config.rx.flags.bits.skip_inactive == 1 ) {
+//      unsigned long dt = micros();
+//      dt -= (unsigned long)metrics.byte_timings.ts_us[config.rx.index];
+//      if ( dt > (US_PER_BYTE_58KHZ * 20) ) {
+//
+//        
+//        cycle = true;
+//        // Add to our count of saturation
+//        // occurences.
+//        metrics.status.saturation[config.rx.index]++;
+//      }
+//    }
 
     if ( cycle ) {
 
