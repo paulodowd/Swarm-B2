@@ -742,7 +742,7 @@ bool IRComm_c::update() {
     //    }
 
     // Record timing statistics for messaging
-    updateMsgTimings();
+    updateMsgTimestamp();
 
     if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
       transmit = true;
@@ -757,6 +757,10 @@ bool IRComm_c::update() {
     }
 
   }
+
+
+  // Track time between receiving messages
+  updateMsgElapsedTime();
 
   if ( activity ) {
 
@@ -934,10 +938,17 @@ bool IRComm_c::update() {
   // Note: in milliseconds.  At 58khz, it
   // takes about 1.2ms to receive 1 byte,
   // and the minimum message is 5 bytes
-  void IRComm_c::updateMsgTimings() {
+  void IRComm_c::updateMsgTimestamp() {
+    metrics.msg_timings.ts_ms[ config.rx.index ] = millis();
+  }
+  void IRComm_c::updateMsgElapsedTime() {
     unsigned long dt = millis() - metrics.msg_timings.ts_ms[ config.rx.index ];
     metrics.msg_timings.dt_ms[ config.rx.index ] = dt;
-    metrics.msg_timings.ts_ms[ config.rx.index ] = millis();
+  }
+  void IRComm_c::advanceMsgTimestamps() {
+    for( int i = 0; i < 4; i++ ) {
+      metrics.msg_timings.ts_ms[ i ] = millis();
+    }
   }
 
   // Note: in microseconds. It is possible

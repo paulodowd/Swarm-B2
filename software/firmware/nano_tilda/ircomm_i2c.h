@@ -181,7 +181,7 @@ typedef struct ir_rx_params {   // total = 24 bytes.
   unsigned long period;        //  4: current ms used to wait before switching receiver
   unsigned long period_max;    //  4: maximum rx_period allowable
   byte          index;         //  1: Which receiver is active? if cycle is false, sets Rx
-  uint8_t       skip_multi;
+  uint8_t       skip_multi;    //  1: how many multiples of a byte inactivity before skip?
   unsigned long byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
   unsigned long sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
   byte          len;           //  1: how long was the last received message?

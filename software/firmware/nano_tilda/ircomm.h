@@ -112,7 +112,9 @@ class IRComm_c {
     // disables Rx, does Tx, enables Rx again
     bool doTransmit();    
 
-    void updateMsgTimings();  // 
+    void updateMsgTimestamp(); 
+    void updateMsgElapsedTime();
+    void advanceMsgTimestamps(); 
     void updateByteTimestamp();
     void updateByteElapsedTime();
     void advanceByteTimestamps();
