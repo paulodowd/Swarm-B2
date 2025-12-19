@@ -1,9 +1,9 @@
+// The following provide the default configuration
+// of the communication board.
 
 #ifndef IRCOMM_CONFIG_H
 #define IRCOMM_CONFIG_H
 
-// The following provide the default configuration
-// of the communication board.
 
 
 
@@ -31,29 +31,43 @@
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE              false  // should the board poll receivers?
 #define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
-#define RX_PREDICT_TIMEOUT    true  // try to optimse polling performance?
+#define RX_PREDICT_PERIOD    false  // try to optimse polling performance?
 #define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
-#define RX_DESYNC             true
+#define RX_DESYNC             false
+#define RX_DESATURATE         false
 #define RX_OVERRUN            true  // allow for rx message to complete? 
-#define RX_DEFAULT_MSG_LEN    MAX_BUF // 36 is worst case
+#define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
+#define RX_SKIP_MULTI         4
+#define RX_RAND_RX            false
+#define RX_SKIP_INACTIVE      true
 #define MS_PER_BYTE_58KHZ     1.2   // 58khz
 #define MS_PER_BYTE_38KHZ     2.5   // 38khz
+#define US_PER_BYTE_58KHZ     1250   // 58khz
+#define US_PER_BYTE_38KHZ     2500   // 38khz
 
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
 #ifdef IR_FREQ_58
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_58KHZ*4.0)     
+#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_58KHZ*4)
 #endif
 #ifdef IR_FREQ_38
-#define MS_BYTE_TIMEOUT       (MS_PER_BYTE_38KHZ*4.0)     
+#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_38KHZ*4)     
 #endif
 
 #ifdef IR_FREQ_58
-#define RX_TIMEOUT_MAX       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_DEFAULT_PERIOD       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 #ifdef IR_FREQ_38
-#define RX_TIMEOUT_MAX       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_DEFAULT_PERIOD       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
+
+#ifdef IR_FREQ_58
+#define RX_SAT_TIMEOUT_US       (20000) // I measured 8000us for ambient noise
+#endif
+#ifdef IR_FREQ_38
+#define RX_SAT_TIMEOUT_US       (20000)     
+#endif
+
 
 
 
@@ -68,6 +82,11 @@
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
 #define TX_MODE (TX_MODE_PERIODIC)
 //#define TX_MODE (TX_MODE_INTERLEAVED)
+#define TX_PREDICT_PERIOD     true
+#define TX_PREDICT_MULTI      4.0
+#define TX_PREAMBLE           true
+#define TX_PREAMBLE_REPEAT    4
+#define TX_PREAMBLE_BYTE      0x55 // 0b01010101
 
 // When set in TX_MODE_PERIODIC
 // How long should the robot wait before doing another
@@ -77,47 +96,55 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (140) // in ms, 0 disables tx
+#define TX_DEFAULT_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (60) // in ms, 0 disables tx
+#define TX_DEFAULT_PERIOD (160) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots
 // by randomising the tx period?
-#define TX_desync  1 
+#define TX_DESYNC  1
+
+ // Try to minimise interference by only transmitting
+ // when no other IR transmission has been detected
+ // If IR detected, will try again on next iteration
+#define TX_DEFER   0
 
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define DEFAULT_TX_REPEAT 3
+#define TX_DEFAULT_REPEAT 3
 
-// Uncomment to see debug output.  Note that, we
-// are going to use the serial port for debugging,
-// which means we will effectively be transmitting
-// debug output to other boards, and without disabling
-// the rx component we'll also receive our own
-// transmission.  Complicated!
-//#define IR_DEBUG_OUTPUT true
-#define IR_DEBUG_OUTPUT false
+
 
 // How often should the bearing estimate be updated?
-#define UPDATE_ACTIVITY_MS  250
+#define UPDATE_BEARING_MS  250
 
 
-// I think that having the least number of logic 
-// transitions in the byte will create the most 
-// reliable transmission/reception.  
-// Noise or interference can distort the 
-// transitions. 
-// Since we are looking out for the start token
-// to begin receiving a message it makes sense to
-// use one of these.  
-// We can't use 0x00 because that is a string null
-// character, which we're using with strlen()
-#define START_TOKEN '~'     //  
-#define CRC_TOKEN   '}'     // 
+// I2C constrains the message payload to 32
+// bytes.  
+#define MAX_MSG 32
+
+// When we encode a message, the worst case
+// is 32 bytes of payload, and each byte is
+// escaped with a byte. We also need to add
+// the start, length and CRC bytes (+4).
+#define MAX_TX_BUF (MAX_MSG * 2) + 4
+
+
+
+#define RX_PWR_0  3 // Forward
+#define RX_PWR_1  2 // LEFT
+#define RX_PWR_2  5 // BACK
+#define RX_PWR_3  7 // RIGHT
+#define MAX_RX  4 // How many?
+
+
+// 38Khz signal generated on
+// digital pin 4.
+#define TX_CLK_OUT 4
 
 
 

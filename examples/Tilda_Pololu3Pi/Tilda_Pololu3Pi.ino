@@ -28,10 +28,7 @@ float bearing_lpf = 0.0;
 // Keep consistent between devices.
 ir_mode_t ircomm_mode;
 
-// A data structure to receive back
-// the status of the board.
-// Keep consistent between devices.
-ir_status_t ircomm_status;
+
 
 // struct to store sensor data
 ir_sensors_t sensors;
@@ -106,6 +103,7 @@ void setup() {
   int count = 0;
   while ( true ) {
 //    getByteTimings();
+//    reportFrameErrors();
     reportStatusErrorsCSV();
 //    delay(1);
 //    getByteTimings();
@@ -142,24 +140,24 @@ void updateSettings() {
     // We should see the change on the next iteration
     // of loop()
     // Lets test by just togggling some binary flags
-    rx_settings.flags.bits.cycle = true;
+    rx_settings.flags.bits.cycle = false;
     rx_settings.flags.bits.cycle_on_rx = false;
     rx_settings.flags.bits.desync = false;          // don't randomise
     rx_settings.flags.bits.overrun = true;
     rx_settings.index = 0;
     rx_settings.flags.bits.predict_period = false; // don't optimise
-    rx_settings.period_max = 80;  // use 2000ms
-    rx_settings.flags.bits.desaturate = 0;
+    rx_settings.period_norm = 80;  // use 2000ms
+    rx_settings.flags.bits.desaturate = true;
     rx_settings.flags.bits.rx0 = 1;
     rx_settings.flags.bits.rx1 = 1;
     rx_settings.flags.bits.rx2 = 1;
     rx_settings.flags.bits.rx3 = 1;
-    rx_settings.flags.bits.rand_rx = 0;
-    rx_settings.flags.bits.skip_inactive = 1;
+    rx_settings.flags.bits.rand_rx = false;
+    rx_settings.flags.bits.skip_inactive = false;
     rx_settings.skip_multi = 10;
-    rx_settings.predict_multi = 0.5;
+    rx_settings.predict_multi = 1.5;
     //    tx_settings.tx_desync = 0;         // don't randomise
-    //    tx_settings.tx_period_max = 10000; // transmit every 2 seconds
+    //    tx_settings.tx_period_norm = 10000; // transmit every 2 seconds
     //
     setRxSettings();
     //    delay(5);
@@ -291,7 +289,26 @@ void updateMessageToSend() {
   }
 }
 
+void reportFrameErrors() {
 
+  // Set correct mode.
+  ircomm_mode.mode = MODE_REPORT_FRAME_ERRS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_frame_errors_t frame_errors;
+
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( frame_errors ));
+  Wire.readBytes( (uint8_t*)&frame_errors, sizeof( frame_errors ));
+
+  for( int i = 0; i < 4; i++ ) {
+    Serial.print( frame_errors.rx[i] );Serial.print(",");
+    
+  }
+  Serial.println();
+  
+}
 
 void checkForMessages() {
   // Periodically check to see if there are new messages
@@ -432,7 +449,7 @@ void getRxSettings() {
   Serial.print(" - predict timeout: "); Serial.println(rx_settings.flags.bits.predict_period > 0 ? "true" : "false");
   Serial.print(" - overrun: ");    Serial.println(rx_settings.flags.bits.overrun > 0 ? "true" : "false");
   Serial.print(" - rx timeout: ");    Serial.println(rx_settings.period);
-  Serial.print(" - timeout max: ");    Serial.println(rx_settings.period_max);
+  Serial.print(" - timeout max: ");    Serial.println(rx_settings.period_norm);
   Serial.print(" - timeout multiplier: ");    Serial.println(rx_settings.predict_multi);
   Serial.print(" - power index: ");    Serial.println(rx_settings.index);
   Serial.print(" - byte timeout: ");    Serial.println(rx_settings.byte_timeout);
@@ -461,7 +478,7 @@ void getTxSettings() {
   Serial.print(" - desync: ");       Serial.println(tx_settings.flags.bits.desync > 0 ? "true" : "false");
   Serial.print(" - repeat: ");  Serial.println(tx_settings.repeat );
   Serial.print(" - current period: "); Serial.println(tx_settings.period);
-  Serial.print(" - max period: "); Serial.println(tx_settings.period_max);
+  Serial.print(" - max period: "); Serial.println(tx_settings.period_norm);
   Serial.println();
 
 }
@@ -670,20 +687,21 @@ int checkRxMsgReady(int which_rx) {
 void reportStatusErrorsCSV() {
 
 
-  ircomm_mode.mode = MODE_REPORT_STATUS;
+  ircomm_mode.mode = MODE_REPORT_CRC;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-  Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
+  ir_crc_t crc_status;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( crc_status ));
+  Wire.readBytes( (uint8_t*)&crc_status, sizeof( crc_status ));
 
 
   // Report how many messages have been received on each
   // receiver
     Serial.print("P,");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.pass_count[i] );
+    Serial.print( crc_status.pass[i] );
     Serial.print(",");
   }
 
@@ -693,22 +711,73 @@ void reportStatusErrorsCSV() {
 
     Serial.print("F,");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.fail_count[i] );
+    Serial.print( crc_status.fail[i] );
     Serial.print(",");
   }
+
+    ircomm_mode.mode = MODE_REPORT_FRAME_ERRS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_frame_errors_t frame_errors;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( frame_errors));
+  Wire.readBytes( (uint8_t*)&frame_errors, sizeof( frame_errors ));
+
+  Serial.print("fe,");
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( frame_errors.rx[i] );
+    Serial.print(",");
+  }
+
+
+  ircomm_mode.mode = MODE_REPORT_ACTIVITY;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_activity_t activity;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( activity ));
+  Wire.readBytes( (uint8_t*)&activity, sizeof(  activity ));
+
 
     Serial.print("A,");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.activity[i] );
-    Serial.print(",");
-  }
-  Serial.print("S,");
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.saturation[i] );
+    Serial.print( activity.rx[i] );
     Serial.print(",");
   }
 
+  ircomm_mode.mode = MODE_REPORT_SATURATION;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_saturation_t saturation;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( saturation ));
+  Wire.readBytes( (uint8_t*)&saturation, sizeof(  saturation ));
+
   
+  Serial.print("S,");
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( saturation.rx[i] );
+    Serial.print(",");
+  }
+
+  ircomm_mode.mode = MODE_REPORT_SKIPS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  ir_skips_t skips;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( skips ));
+  Wire.readBytes( (uint8_t*)&skips, sizeof(  skips ));
+
+  
+  Serial.print("$,");
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( skips.rx[i] );
+    Serial.print(",");
+  }
 
   ir_errors_t errors;
   ircomm_mode.mode = MODE_REPORT_ERRORS;
@@ -777,74 +846,31 @@ void reportErrorsCSV() {
 }
 
 // Gets the status metrics of communication and
-// prints them as comma separated values.
-void reportStatusCSV() {
-  //         Set mode to status request
-  ircomm_mode.mode = MODE_REPORT_STATUS;
-  Wire.beginTransmission( IRCOMM_I2C_ADDR );
-  Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
-  Wire.endTransmission();
-
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-  Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
-
-
-  // Report how many messages have been received on each
-  // receiver
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.pass_count[i] );
-    Serial.print(",");
-  }
-
-  // Let's show the message failures as negative numbers
-  // so that we can view both at the same time on the plotter
-  // to compare pass versus fail.
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.fail_count[i] );
-    Serial.print(",");
-  }
-
-  //  // The type of failures
-  //  for ( int i = 0; i < 4; i++ ) {
-  //    Serial.print( ircomm_status.error_type[i] );
-  //    Serial.print(",");
-  //  }
-
-  // Quantity of bytes received
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.activity[i] );
-    Serial.print(",");
-  }
-
-  Serial.println();
-
-}
-
-// Gets the status metrics of communication and
 // prints them in a more readable format.
 void reportStatus() {
 
   //         Set mode to status request
-  ircomm_mode.mode = MODE_REPORT_STATUS;
+  ircomm_mode.mode = MODE_REPORT_CRC;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
 
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ircomm_status ));
-  Wire.readBytes( (uint8_t*)&ircomm_status, sizeof( ircomm_status ));
+  ir_crc_t crc_status;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( crc_status ));
+  Wire.readBytes( (uint8_t*)&crc_status, sizeof( crc_status ));
 
 
   // Report how many messages have been received on each
   // receiver
   Serial.print("Msg Pass:\t");
   for ( int i = 0; i < 4; i++ ) {
-    Serial.print( ircomm_status.pass_count[i] );
+    Serial.print( crc_status.pass[i] );
     Serial.print("\t");
   }
   Serial.println();
   Serial.print("Msg Fail:\t");
   for ( int i = 0; i < 4; i++ ) {
-    float m = (float)ircomm_status.fail_count[i];
+    float m = (float)crc_status.fail[i];
 
     Serial.print( -m );
     Serial.print("\t");

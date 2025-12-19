@@ -1,5 +1,6 @@
 #include "ir_parser.h"
-
+#include <NeoHWSerial.h>
+#include <NeoHWSerial_private.h>
 
 
 IRParser_c::IRParser_c() {
@@ -40,12 +41,12 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
   // function iteratively and fast.
-  if ( Serial.available() ) {
+  if ( NeoSerial.available() ) {
 
     // move the timeout timestamp forwards
     timeout_ts = millis();
 
-    uint8_t b = (uint8_t)Serial.read();
+    uint8_t b = (uint8_t)NeoSerial.read();
 
     // We're either in WAIT_START or WAIT LEN and
     // get the start byte
@@ -81,7 +82,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
       // payload.
       enc_remain = b + NUM_CRC_BYTES;
 
-      //Serial.print("set encRemain to "); Serial.println( encRemain );
+      //NeoSerial.print("set encRemain to "); NeoSerial.println( encRemain );
       rx_state = RX_READ_ENC;
 
       // No error, just indicate 1 byte received
@@ -113,11 +114,11 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
         // received the start byte again.
         if ( b == START_BYTE ) {
 
-          //          Serial.println("Got ~ inside decoding");
+          //          NeoSerial.println("Got ~ inside decoding");
           //          for( int i = 0; i < decPos; i++ ) {
-          //            Serial.println( (char)decBuf[i]);
+          //            NeoSerial.println( (char)decBuf[i]);
           //          }
-          //          Serial.println( encRemain );
+          //          NeoSerial.println( encRemain );
           reset();
           rx_state = RX_WAIT_LEN;
           return -ERR_RESYNC;
@@ -150,7 +151,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           return total_decoded;
 
         } else {
-          //Serial.println("Bad CRC");
+          //NeoSerial.println("Bad CRC");
           reset();
           return -ERR_BAD_CRC;
         }
@@ -160,11 +161,15 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
 
   // If we started to receive a message but we
   // didn't get any more bytes, indicate the
-  // timeout error
+  // timeout error.  We also reset the parser
+  // because we need to have consecutive bytes 
+  // to get a correct message (CRC).
   if ( rx_state != RX_WAIT_START ) {
-    if ( millis() - timeout_ts > byte_timeout ) {
-      reset();
-      return -ERR_BYTE_TIMEOUT;
+    if ( byte_timeout > 0 ) {
+      if ( millis() - timeout_ts > byte_timeout ) {
+        reset();
+        return -ERR_BYTE_TIMEOUT;
+      }
     }
   }
 

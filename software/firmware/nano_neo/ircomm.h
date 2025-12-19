@@ -23,8 +23,12 @@ typedef struct ircomm_config { // 31 bytes
 // All relating to board functions and
 // performance.
 typedef struct ircomm_metrics {
-  ir_status_t       status;
+  ir_crc_t          crc;
+  ir_activity_t     activity;
+  ir_saturation_t   saturation;
+  ir_skips_t        skips;
   ir_errors_t       errors;
+  ir_frame_errors_t frame_errors;
   ir_cycles_t       cycles;
   ir_msg_timings_t  msg_timings;
   ir_byte_timings_t  byte_timings;
@@ -38,14 +42,20 @@ class IRComm_c {
 
   public:
 
-    // How the board should operate
+    // How the board should operate. 
+    // Can be modified in real time 
+    // via i2c
     ircomm_config_t config;
 
     // Metrics and status of the
-    // board operation
+    // board operation. Contains
+    // the set of structures sent
+    // over i2c.
     ircomm_metrics_t  metrics;
 
-    // Instance of the parser
+    // Instance of the parser which handles
+    // the byte receiving and decoding with
+    // CRC checks etc.
     IRParser_c parser;
 
     // A buffer to store the message
@@ -112,6 +122,8 @@ class IRComm_c {
     // disables Rx, does Tx, enables Rx again
     bool doTransmit();    
 
+    // timestamp routines used for metrics
+    // and monitoring/actions on inactivity
     void updateMsgTimestamp(); 
     void updateMsgElapsedTime();
     void advanceMsgTimestamps(); 
@@ -123,7 +135,8 @@ class IRComm_c {
     void resetBearingActivity();
     void updateBearingActivity();
 
-    // Enables and disables Timer2
+    // Enables and disables Timer2, which is
+    // generating the carrier frequency
     void enableTx();
     void disableTx();
 
@@ -135,10 +148,6 @@ class IRComm_c {
     // i2c.  Is called automatically when a 
     // message is downloaded via i2c.
     void clearRxMsg(int which);
-
-    void printTxMsgForDebugging();
-    void printRxMsgForDebugging();
-    void printMetricsForDebugging();
 
 };
 

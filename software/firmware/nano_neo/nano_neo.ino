@@ -1,3 +1,6 @@
+#include <NeoHWSerial.h>
+#include <NeoHWSerial_private.h>
+
 /*
 
 
@@ -30,7 +33,6 @@ IRComm_c ircomm;
 // Used to track requests made to
 // the board over i2c
 volatile ir_mode_t last_mode;
-volatile ir_status_t status;
 
 volatile boolean full_reset;
 
@@ -157,9 +159,21 @@ void i2c_receive( int len ) {
 // is executed.
 void i2c_request() {
 
-  if ( last_mode.mode == MODE_REPORT_STATUS ) {
+if( last_mode.mode == MODE_REPORT_CRC ) {
 
-    Wire.write( (byte*)&ircomm.metrics.status, sizeof(ircomm.metrics.status) );
+    Wire.write( (byte*)&ircomm.metrics.crc, sizeof(ircomm.metrics.crc) );
+
+  } else if( last_mode.mode == MODE_REPORT_ACTIVITY ) {
+
+    Wire.write( (byte*)&ircomm.metrics.activity, sizeof(ircomm.metrics.activity) );
+
+  } else if( last_mode.mode == MODE_REPORT_SATURATION ) {
+
+    Wire.write( (byte*)&ircomm.metrics.saturation, sizeof(ircomm.metrics.saturation) );
+
+  } else if( last_mode.mode == MODE_REPORT_SKIPS ) {
+
+    Wire.write( (byte*)&ircomm.metrics.skips, sizeof(ircomm.metrics.skips) );
 
   } else if ( last_mode.mode == MODE_REPORT_MSG_TIMINGS ) {
 
@@ -168,6 +182,10 @@ void i2c_request() {
   }  else if ( last_mode.mode == MODE_REPORT_BYTE_TIMINGS ) {
 
     Wire.write( (byte*)&ircomm.metrics.byte_timings, sizeof( ircomm.metrics.byte_timings ) );
+
+  } else if ( last_mode.mode == MODE_REPORT_FRAME_ERRS ) {
+    
+    Wire.write( (byte*)&ircomm.metrics.frame_errors, sizeof( ircomm.metrics.frame_errors ) );
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
 
@@ -307,13 +325,13 @@ void setup() {
   // Start the IR communication board.
   ircomm.init();
 
-  Serial.println("Nano");
+  NeoSerial.println("Nano");
 
   last_mode.mode = MODE_NOT_SET;
 
   full_reset = false;
   // Paul: I was using this to test
-  //setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
@@ -353,15 +371,15 @@ int setRandomMsg(int len) {
   //  Checking the format of what is being sent.
   ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
   //  while(1) {
-  //    Serial.print("tx buf: ");
-  //    Serial.println( (char*)ircomm.tx_buf );
+  //    NeoSerial.print("tx buf: ");
+  //    NeoSerial.println( (char*)ircomm.tx_buf );
   //    for( int i = 0; i < ircomm.tx_len; i++ ) {
-  //      Serial.print( (char)ircomm.tx_buf[i] );
-  //      Serial.print( " = " );
-  //      Serial.print( ircomm.tx_buf[i], DEC);
-  //      Serial.print(",");
+  //      NeoSerial.print( (char)ircomm.tx_buf[i] );
+  //      NeoSerial.print( " = " );
+  //      NeoSerial.print( ircomm.tx_buf[i], DEC);
+  //      NeoSerial.print(",");
   //    }
-  //    Serial.println();
+  //    NeoSerial.println();
   //    delay(1000);
   //
   //  }
@@ -421,11 +439,11 @@ void initRandomSeed() {
   for ( int i = 0; i < 8; i++ ) {
     byte b = (byte)analogRead(A3);
     b = b & 0x01;
-    //Serial.println(b, BIN);
+    //NeoSerial.println(b, BIN);
 
     r |= (b << i);
     delayMicroseconds(10);
   }
-  //Serial.println(r, BIN);
+  //NeoSerial.println(r, BIN);
   randomSeed( r );
 }

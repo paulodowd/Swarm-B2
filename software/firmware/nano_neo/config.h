@@ -9,7 +9,7 @@
 
 // Uncomment depending on your IR
 // Receiver module.  This will determine
-// the correct Serial Baud rate and the
+// the correct NeoSerial Baud rate and the
 // configuration of timer2 for the carrier
 // signal
 // Other parts of the code depend on this
@@ -55,10 +55,10 @@
 #endif
 
 #ifdef IR_FREQ_58
-#define RX_PERIOD_MAX       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_DEFAULT_PERIOD       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 #ifdef IR_FREQ_38
-#define RX_PERIOD_MAX       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
+#define RX_DEFAULT_PERIOD       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 
 #ifdef IR_FREQ_58
@@ -96,11 +96,11 @@
 // For 58khz, a 32byte message will take approximately 
 // 39ms to transmit/receive
 #ifdef IR_FREQ_38
-#define DEFAULT_TX_PERIOD (320) // in ms, 0 disables tx
+#define TX_DEFAULT_PERIOD (320) // in ms, 0 disables tx
 #endif
 
 #ifdef IR_FREQ_58
-#define DEFAULT_TX_PERIOD (160) // in ms, 0 disables tx
+#define TX_DEFAULT_PERIOD (160) // in ms, 0 disables tx
 #endif
 
 // Should we try to break synchrony between robots
@@ -115,7 +115,7 @@
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define DEFAULT_TX_REPEAT 3
+#define TX_DEFAULT_REPEAT 3
 
 
 
