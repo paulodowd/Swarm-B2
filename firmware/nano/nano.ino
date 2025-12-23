@@ -60,7 +60,9 @@ void i2c_receive( int len ) {
       // Clearing tx  buff will stop transmission of messages
       ircomm.clearTxBuf();
 
-    } else if ( new_mode.mode == MODE_RESET_STATUS ) {
+    } else if( new_mode.mode == MODE_RESET_METRICS ) {
+      ircomm.resetMetrics();
+    } else if ( new_mode.mode == MODE_FULL_RESET ) {
       full_reset = true;
     } else if ( new_mode.mode == MODE_STOP_RX ) {
       ircomm.disabled = true;

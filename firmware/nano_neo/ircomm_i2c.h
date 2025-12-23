@@ -16,6 +16,8 @@
 #ifndef IRCOMM_IR_H
 #define IRCOMM_IR_H
 
+#include <stdint.h>
+
 #pragma pack(1)
 
 #define IRCOMM_I2C_ADDR  0x11
@@ -55,24 +57,25 @@ typedef struct ir_mode {
 #define MODE_CLEAR_MSG2         19
 #define MODE_CLEAR_MSG3         20
 #define MODE_REPORT_SENSORS     21
-#define MODE_RESET_STATUS       22
+#define MODE_RESET_METRICS      22
 #define MODE_REPORT_RX_VECTORS  23
 #define MODE_REPORT_RX_BEARING  24
 #define MODE_REPORT_MSG_TIMINGS 25
 #define MODE_REPORT_BYTE_TIMINGS 26
 #define MODE_REPORT_HIST        27
-#define MODE_CLEAR_HIST         28
-#define MODE_FULL_RESET         29
-#define MODE_REPORT_CYCLES      30
-#define MODE_REPORT_ERRORS      31
-#define MODE_STOP_RX            32
-#define MODE_START_RX           33
-#define MODE_SET_RX             34
-#define MODE_SET_TX             35
-#define MODE_GET_RX             36
-#define MODE_GET_TX             37
-#define MODE_SET_MSG            38
-#define MAX_MODE                39
+#define MODE_REPORT_FRAME_ERRS  28
+#define MODE_CLEAR_HIST         29
+#define MODE_FULL_RESET         30
+#define MODE_REPORT_CYCLES      31
+#define MODE_REPORT_ERRORS      32
+#define MODE_STOP_RX            33
+#define MODE_START_RX           34
+#define MODE_SET_RX             35
+#define MODE_SET_TX             36
+#define MODE_GET_RX             37
+#define MODE_GET_TX             38
+#define MODE_SET_MSG            39
+#define MAX_MODE                40
 
 
 typedef struct ir_crc {
@@ -83,6 +86,10 @@ typedef struct ir_crc {
 typedef struct ir_activity {
   uint32_t rx[4];
 } ir_activity_t;
+
+typedef struct ir_frame_errors {
+  uint32_t rx[4];
+} ir_frame_errors_t;
 
 typedef struct ir_saturation {
   uint32_t rx[4];
@@ -103,7 +110,7 @@ typedef struct ir_errors {  // 32 bytes
 typedef struct ir_cycles {  // 4 bytes
   uint16_t rx;              // 2
   uint16_t tx;              // 2
-} ir_cycles_t;  
+} ir_cycles_t;
 
 // To find out if a message is ready
 // to collect
@@ -159,8 +166,8 @@ typedef struct ir_tx_params {      // total = 18 bytes
   } flags;
   uint8_t       repeat;         // 1: how many repeated IR transmissions?
   float         predict_multi;  // 4: how many multiples of tx_len to use with predict?
-  unsigned long period;         // 4: periodic:  current ms period to send messages
-  unsigned long period_norm;    // 4: maximum tx period allowable
+  uint32_t period;         // 4: periodic:  current ms period to send messages
+  uint32_t period_norm;    // 4: maximum tx period allowable
   uint8_t       len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
@@ -186,13 +193,13 @@ typedef struct ir_rx_params {       // total = 24 bytes.
     } bits;
   } flags;
   float predict_multi;         //  4: multiplier when predicting how long to listen for.
-  unsigned long period;        //  4: current ms used to wait before switching receiver
-  unsigned long period_norm;    //  4: normal rx_period to use (can be modified)
-  byte          index;         //  1: Which receiver is active? if cycle is false, sets Rx
+  uint32_t      period;        //  4: current ms used to wait before switching receiver
+  uint32_t     period_norm;    //  4: normal rx_period to use (can be modified)
+  uint8_t       index;         //  1: Which receiver is active? if cycle is false, sets Rx
   uint8_t       skip_multi;    //  1: how many multiples of a byte inactivity before skip?
-  unsigned long byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
-  unsigned long sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
-  byte          len;           //  1: how long was the last received message?
+  uint32_t      byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
+  uint32_t      sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
+  uint8_t       len;           //  1: how long was the last received message?
 } ir_rx_params_t;
 
 
