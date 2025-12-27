@@ -198,11 +198,11 @@ typedef struct ir_tx_params {      // total = 18 bytes
       uint8_t reserved        : 3; // 3 more bools available
     } bits;
   } flags;
-  uint8_t       repeat;         // 1: how many repeated IR transmissions?
-  float         predict_multi;  // 4: how many multiples of tx_len to use with predict?
+  uint8_t  repeat;         // 1: how many repeated IR transmissions?
+  float    predict_multi;  // 4: how many multiples of tx_len to use with predict?
   uint32_t period;         // 4: periodic:  current ms period to send messages
   uint32_t period_norm;    // 4: maximum tx period allowable
-  uint8_t       len;            // 1: how long is the message to transmit?
+  uint8_t  len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
 
@@ -227,14 +227,14 @@ typedef struct ir_rx_params {       // total = 24 bytes.
       uint16_t reserved;       : 4; // 4 more bools available
     } bits;
   } flags;
-  float predict_multi;         //  4: multiplier when predicting how long to listen for.
-  uint32_t      period;        //  4: current ms used to wait before switching receiver
-  uint32_t     period_norm;    //  4: normal rx_period to use (can be modified)
-  uint8_t       index;         //  1: Which receiver is active? if cycle is false, sets Rx
-  uint8_t       skip_multi;    //  1: how many multiples of a byte inactivity before skip?
-  uint32_t      byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
-  uint32_t      sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
-  uint8_t       len;           //  1: how long was the last received message?
+  float     predict_multi; //  4: multiplier when predicting how long to listen for.
+  uint32_t  period;        //  4: current ms used to wait before switching receiver
+  uint32_t  period_norm;   //  4: normal rx_period to use (can be modified)
+  uint8_t   index;         //  1: Which receiver is active? if cycle is false, sets Rx
+  uint8_t   skip_multi;    //  1: how many multiples of a byte inactivity before skip?
+  uint32_t  byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
+  uint32_t  sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
+  uint8_t   len;           //  1: how long was the last received message?
 } ir_rx_params_t;
 
 

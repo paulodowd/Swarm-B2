@@ -100,7 +100,7 @@ class IRComm_c {
     IRComm_c();           // blank.
     void init();          // configures UART etc.
     bool update();         // main function.
-    void setupTimer2();   // 38khz or 58khz
+    void setupTimer1();   // 38khz or 58khz
     void setRxPeriod();  // set how long to listen for.
     void setTxPeriod();   // set how often to transmit.
 

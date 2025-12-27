@@ -60,7 +60,7 @@ void IRComm_c::init() {
   NeoSerial.begin( 4800 );
 #endif
 
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
   NeoSerial.begin( 9600 );
 #endif
 
@@ -107,8 +107,6 @@ void IRComm_c::init() {
 
   resetBearingActivity();
   resetMetrics();
-
-
 }
 
 void IRComm_c::resetMetrics() {
@@ -285,9 +283,6 @@ void IRComm_c::powerOnRx( byte index ) {
 // When we re-enable it, this has the beneficial
 // side-effect of clearing the input buffer.
 void IRComm_c::disableRx() {
-
-  
-
   cli();
   UCSR0B &= ~(1 << RXEN0);
   UCSR0B &= ~(1 << RXCIE0);
@@ -390,7 +385,7 @@ void IRComm_c::setRxPeriod() {
     t *= config.rx.predict_multi;
 
     // Scale for milliseconds
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
     t *= MS_PER_BYTE_58KHZ; // How many ms per byte to transmit?
 #endif
 
@@ -433,7 +428,7 @@ void IRComm_c::setTxPeriod() {
     t *= config.tx.predict_multi;
 
     // Scale for milliseconds per byte
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
     t *= MS_PER_BYTE_58KHZ; // How many ms per byte to transmit?
 #endif
 
@@ -469,63 +464,67 @@ void IRComm_c::disableTx() {
 
   // Termporarily stop interupts
   cli();
-  // clear prescale on clock source
-  TCCR2B = 0;
 
+  // disable t1 interrupts
+  TIMSK1 = 0;
+
+  // stop t1 clock
+  TCCR1B = 0;
+
+  // reset counter
+  TCNT1 = 0;
+
+  // Should we hold d4 high or low
+  // here? 
+  
   // enable interrupts
   sei();
 }
 
 void IRComm_c::enableTx() {
-  setupTimer2();
+  setupTimer1();
 }
 
 
 // We use Timer2 to generate a 38khz clock
 // which is electronically OR'd with the
 // NeoSerial TX.
-void IRComm_c::setupTimer2() {
+void IRComm_c::setupTimer1() {
 
   // Termporarily stop interupts
   cli();
 
-  // Setup Timer 2 to fire ISR every 38khz
-  // Enable CTC mode
-  TCCR2A = 0;
-  TCCR2A |= (1 << WGM21);
+  // Clear config
+  TCCR1A  = 0;
+  TCCR1B  = 0;
+  TCNT1   = 0;
 
-  // Setup ctc prescaler
-  TCCR2B = 0;
+  // CTC Mode, Top = 0CR1A
+  TCCR1B |= _BV(WGM12);
 
-  // No prescale - therefore "counting" at the
-  // system clock of 16Mhz (16,000,000)
-  TCCR2B |= (1 << CS20);
+  // no prescale (16mhz)
+  TCCR1B |= _BV(CS10);
 
   // Setup for 37khz, 4800 baud
 #ifdef IR_FREQ_38
   // match value
-  // TSDP34138 datasheet says 38.4Khz
-  // Therefore, 16000000/208 = 76923.07
-  // We need to toggle on then off.
-  // 76923.07/2 = 38461.53hz (38.4khz)
-  OCR2A = 208; // was 210?
+  OCR1A = 209; 
 #endif
 
 
   // Setup for 58khz, 9600 baud
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
   // match value
-  // TSDP34156 datasheet says 57.6Khz
-  // Therefore, 16000000/139 = 115107.9
-  // We need to toggle on then off.
-  // 115107.9/2 = 57553.96hz (57.6khz)
-  OCR2A = 139;
+  // TSDP34156 datasheet says 56Khz
+  OCR1A = 142;
 #endif
 
-  // Set up which interupt flag is triggered
-  TIMSK2 = 0;
-  TIMSK2 |= (1 << OCIE2A);
+  // Clear any pending match
+  TIFR1 |= _BV(OCF1A);
 
+  // enable compare match interrupt
+  TIMSK1 |= _BV(OCIE1A);
+  
   // enable interrupts
   sei();
 }
@@ -735,7 +734,7 @@ bool IRComm_c::update() {
     // overrun check (if a message start has been received).
     if ( config.rx.flags.bits.skip_inactive == true ) {
 
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
       if ( metrics.byte_timings.dt_us[config.rx.index] > (US_PER_BYTE_58KHZ * config.rx.skip_multi) ) {
 #endif
 
@@ -832,7 +831,7 @@ bool IRComm_c::update() {
 
       // Was the last byte activity within the time
       // expected?
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
       if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ * 2 ) {
 #endif
 #ifdef IR_FREQ_38
@@ -991,7 +990,9 @@ bool IRComm_c::update() {
         // Since we used disableRx(), we need to
         // re-enable the UART and so clear
         // the rx flags and rx_buf
+        
         disableTx();
+        
         resetUART();
 
         // Schedule next transmission
@@ -1020,9 +1021,9 @@ bool IRComm_c::update() {
     }
 
     // The smallest ISR I've written :)
-    // This ISR simply toggles the state of
-    // pin D4 to generate a 38khz or 58khz
+    // Toggles the state of
+    // pin D4 to generate a 38khz or 56khz
     // carrier signal.
-    ISR(TIMER2_COMPA_vect) {
+    ISR(TIMER1_COMPA_vect) {
       PORTD ^= (1 << PD4);
     }

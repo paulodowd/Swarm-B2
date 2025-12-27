@@ -174,6 +174,32 @@ void SwarmB2_c::getTxSettings() {
 }
 
 void SwarmB2_c::setRxSettings() {
+
+  ir_mode_t ircomm_mode;
+  
+  // First, set the mode
+  ircomm_mode.mode = MODE_SET_RX;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (uint8_t*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  // Now send the struct
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (uint8_t*)&rx_settings, sizeof( rx_settings ));
+  Wire.endTransmission();
 }
 void SwarmB2_c::setTxSettings() {
+
+  ir_mode_t ircomm_mode;
+  
+  // First, set the mode
+  ircomm_mode.mode = MODE_SET_TX;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (uint8_t*)&ircomm_mode, sizeof( ircomm_mode));
+  Wire.endTransmission();
+
+  // Now send the struct
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (uint8_t*)&tx_settings, sizeof( tx_settings ));
+  Wire.endTransmission();
 }

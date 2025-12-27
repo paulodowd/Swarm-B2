@@ -7,9 +7,18 @@
 class SwarmB2_c {
 
   public:
-    // Empty constructor intended.
-    SwarmB2_c() {}
     
+    // Persistent cache of board settings
+    ir_rx_params_t rx_settings;
+    ir_tx_params_t tx_settings;
+
+    SwarmB2_c() {
+      memset( &rx_settings, 0, sizeof( rx_settings ));
+      memset( &tx_settings, 0, sizeof( tx_settings ));  
+    }
+
+    // Fetches current config from board
+    // storing into cache
     void init();
 
     // Basic commands
@@ -38,14 +47,6 @@ class SwarmB2_c {
     ir_crc_t          getRxCRC();
     ir_cycles_t       getRxCycles();
     ir_sensors_t      getSensors();
-
-  protected:
-    // Persistent cache of board settings
-    // to reduce the number of total i2c
-    // transactions
-    ir_rx_params_t rx_settings;
-    ir_tx_params_t tx_settings;
-
 };
 
 #endif

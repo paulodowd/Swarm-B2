@@ -16,9 +16,10 @@
 #ifndef IRCOMM_IR_H
 #define IRCOMM_IR_H
 
+#include <Arduino.h>
 #include <stdint.h>
 
-#pragma pack(1)
+#pragma pack(1) 
 
 #define IRCOMM_I2C_ADDR  0x11
 
@@ -77,43 +78,84 @@ typedef struct ir_mode {
 #define MODE_SET_MSG            39
 #define MAX_MODE                40
 
-
+// Contains pass/fail count for the
+// crc decoded at the end of each message.
 typedef struct ir_crc {
   uint32_t fail[4];   // 4 * 4 = 16bytes
   uint32_t pass[4];   // 4 * 4 = 16bytes
 } ir_crc_t;
 
+// Contains a simple count of byte activity
+// per receiver.  Used to estimate bearing
+// elsewhere.
 typedef struct ir_activity {
   uint32_t rx[4];
 } ir_activity_t;
 
+// Used to periodically create component
+// vectors for a bearing estimation, 
+// drawn from the activity struct.
+typedef struct ir_vectors {
+  float rx[4];         // 4x4 = 16bytes
+} ir_vectors_t;
+
+// Contains the latest bearing estimation
+// components.
+// Theta: angle estimate.
+// Mag: resultant magnitude. If 1, theta
+//      is very confident. If 0, counts for
+//      each receiver have cancelled out.
+// Sum: Pre-normalised sum of rx counts used.
+typedef struct ir_bearing {
+  float theta;
+  float mag;
+  float sum;
+} ir_bearing_t;
+
+// Used to store a count of frame errors at
+// the UART hardware level.
 typedef struct ir_frame_errors {
   uint32_t rx[4];
 } ir_frame_errors_t;
 
+// Used to count how often the receivers 
+// are power cycled due to prolonged period
+// of inactivity.
 typedef struct ir_saturation {
   uint32_t rx[4];
 } ir_saturation_t;
 
+// Used to count how often the receiver is
+// cycled because of a byte timeout error 
+// or no activity in a short period.
 typedef struct ir_skips {
   uint32_t rx[4];
 } ir_skips_t;
 
+// Used by Paul for some tests
+// To be removed!
 typedef struct ir_hist {
   uint16_t id[4];
 } ir_hist_t;
 
+// Counts for each type of error
+// per receiver.
+// [ rx ][ error ]
 typedef struct ir_errors {  // 32 bytes
   uint16_t type[4][4];// 4*4 = 16*2bytes
 } ir_errors_t;
 
+// Used to count how many cycles of the
+// receivers have taken place.
 typedef struct ir_cycles {  // 4 bytes
   uint16_t rx;              // 2
   uint16_t tx;              // 2
 } ir_cycles_t;
 
 // To find out if a message is ready
-// to collect
+// to collect.
+// 0: no message.
+// <33: message length. 
 typedef struct ir_msg_status {  // 1 byte
   uint8_t n_bytes;
 } ir_msg_status_t;
@@ -125,33 +167,25 @@ typedef struct ir_msg_timings { // 32 bytes
   uint32_t ts_ms[4];            // 16 bytes
 } ir_msg_timings_t;
 
+// To find out the relative timing of
+// byte activity (not full messages 
+// correctly received)
 typedef struct ir_byte_timings { // 32 bytes
   uint32_t dt_us[4];           // 16 bytes
   uint32_t ts_us[4];            // 16 bytes
 } ir_byte_timings_t;
 
-
-// Struct to track the activity levels
-// of the receivers
-typedef struct ir_vectors {
-  float rx[4];         // 4x4 = 16bytes
-} ir_vectors_t;
-
-// Struct to report just the estimated
-// direction of neighbours
-typedef struct ir_bearing {
-  float theta;
-  float mag;
-  float sum;
-} ir_bearing_t;
-
+// Used to report back readings from the
+// extra sensors that can be mounted on
+// the communication board
 typedef struct ir_sensors {
   int16_t ldr[3];     // 6 bytes
   int16_t prox[2];    // 4 bytes
 } ir_sensors_t;
 
 
-
+// Struct to contain the configuration
+// for transmission.
 typedef struct ir_tx_params {      // total = 18 bytes
   union {                          // 2 bytes
     uint8_t all_flags;             // to access all flags at once
@@ -164,15 +198,16 @@ typedef struct ir_tx_params {      // total = 18 bytes
       uint8_t reserved        : 3; // 3 more bools available
     } bits;
   } flags;
-  uint8_t       repeat;         // 1: how many repeated IR transmissions?
-  float         predict_multi;  // 4: how many multiples of tx_len to use with predict?
+  uint8_t  repeat;         // 1: how many repeated IR transmissions?
+  float    predict_multi;  // 4: how many multiples of tx_len to use with predict?
   uint32_t period;         // 4: periodic:  current ms period to send messages
   uint32_t period_norm;    // 4: maximum tx period allowable
-  uint8_t       len;            // 1: how long is the message to transmit?
+  uint8_t  len;            // 1: how long is the message to transmit?
 } ir_tx_params_t;
 
 
-
+// Struct to contain the configuration
+// for reception.
 typedef struct ir_rx_params {       // total = 24 bytes.
   union {                           // 2 bytes
     uint16_t all_flags;             // to access all flags at once
@@ -192,14 +227,14 @@ typedef struct ir_rx_params {       // total = 24 bytes.
       uint16_t reserved;       : 4; // 4 more bools available
     } bits;
   } flags;
-  float predict_multi;         //  4: multiplier when predicting how long to listen for.
-  uint32_t      period;        //  4: current ms used to wait before switching receiver
-  uint32_t     period_norm;    //  4: normal rx_period to use (can be modified)
-  uint8_t       index;         //  1: Which receiver is active? if cycle is false, sets Rx
-  uint8_t       skip_multi;    //  1: how many multiples of a byte inactivity before skip?
-  uint32_t      byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
-  uint32_t      sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
-  uint8_t       len;           //  1: how long was the last received message?
+  float     predict_multi; //  4: multiplier when predicting how long to listen for.
+  uint32_t  period;        //  4: current ms used to wait before switching receiver
+  uint32_t  period_norm;   //  4: normal rx_period to use (can be modified)
+  uint8_t   index;         //  1: Which receiver is active? if cycle is false, sets Rx
+  uint8_t   skip_multi;    //  1: how many multiples of a byte inactivity before skip?
+  uint32_t  byte_timeout;  //  4: If we haven't received a consecutive byte, timeout
+  uint32_t  sat_timeout;   //  4: Rx seems to saturate, watch for 0 byte activity.
+  uint8_t   len;           //  1: how long was the last received message?
 } ir_rx_params_t;
 
 

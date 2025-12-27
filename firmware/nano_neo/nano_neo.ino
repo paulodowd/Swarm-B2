@@ -1,13 +1,6 @@
 #include <NeoHWSerial.h>
 #include <NeoHWSerial_private.h>
 
-/*
-
-
-
-*/
-
-
 #include <avr/io.h>
 #include <Wire.h>
 #include "ircomm.h"
@@ -327,11 +320,12 @@ void setup() {
   // Start the IR communication board.
   ircomm.init();
 
-  NeoSerial.println("Nano");
 
   last_mode.mode = MODE_NOT_SET;
 
   full_reset = false;
+
+  
   // Paul: I was using this to test
 //  setRandomMsg(8);
 }
@@ -344,8 +338,8 @@ void setup() {
 // * and @
 int setRandomMsg(int len) {
   // Let's test variable message lengths
-  int max_chars = len;
   byte buf[ MAX_MSG ];
+
 
   memset( buf, 0, sizeof( buf ) );
 
@@ -358,9 +352,8 @@ int setRandomMsg(int len) {
   //  sprintf(buf, "123456789");
   for ( int i = 0; i < len; i++ ) {
     buf[i] = (byte)random( 0, 256 );
+    
   }
-
-
 
   //  typedef struct msg {
   //    float v[2];
@@ -392,11 +385,12 @@ int setRandomMsg(int len) {
   //    delay(500);
   //  }
 
+
   return ircomm.config.tx.len;
 }
 
 void loop() {
-//
+////
 //  ircomm.doTransmit();
 //  return;
 //  ////

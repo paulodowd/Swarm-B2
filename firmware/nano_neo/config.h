@@ -15,7 +15,7 @@
 // Other parts of the code depend on this
 // being set correctly.
 //#define IR_FREQ_38  // For chip TSDP34138
-#define IR_FREQ_58    // For chip TSDP34156
+#define IR_FREQ_56    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -47,21 +47,21 @@
 
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
 #define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_58KHZ*4)
 #endif
 #ifdef IR_FREQ_38
 #define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_38KHZ*4)     
 #endif
 
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
 #define RX_DEFAULT_PERIOD       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 #ifdef IR_FREQ_38
 #define RX_DEFAULT_PERIOD       (MS_PER_BYTE_38KHZ*RX_DEFAULT_MSG_LEN)     
 #endif
 
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
 #define RX_SAT_TIMEOUT_US       (20000) // I measured 8000us for ambient noise
 #endif
 #ifdef IR_FREQ_38
@@ -99,7 +99,7 @@
 #define TX_DEFAULT_PERIOD (320) // in ms, 0 disables tx
 #endif
 
-#ifdef IR_FREQ_58
+#ifdef IR_FREQ_56
 #define TX_DEFAULT_PERIOD (160) // in ms, 0 disables tx
 #endif
 
