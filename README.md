@@ -1,4 +1,7 @@
 # Swarm-B2
+
+Note: Information in this readme is a bit out-of-date and needs updating, sorry :)
+
 IR Communication board for Pololu 3Pi+ robots that also accommodates an M5 Stack Core2.  
 <p align="center">
 <br>
