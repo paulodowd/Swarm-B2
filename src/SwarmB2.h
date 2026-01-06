@@ -32,7 +32,7 @@ class SwarmB2_c {
     // Messaging operations
     uint8_t getMsgStatus( int which_rx );
     void    setIRMessage( uint8_t * payload, int len );
-    bool    getIRMessage( uint8_t * message, int rx );
+    bool    getIRMessage( uint8_t * msg_buf, int rx );
 
     // Functions for board metrics
     // Refer to ircomm_i2c.h for datatypes

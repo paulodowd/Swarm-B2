@@ -7,7 +7,7 @@ void SwarmB2_c::init() {
   getTxSettings();
 }
 
-bool SwarmB2_c::getIRMessage( uint8_t * buf, int which_rx ) {
+bool SwarmB2_c::getIRMessage( uint8_t * msg_buf, int which_rx ) {
 
   // Check receiver index is valid
   if ( which_rx >= 0 && which_rx < 4 ) {
@@ -18,7 +18,7 @@ bool SwarmB2_c::getIRMessage( uint8_t * buf, int which_rx ) {
     // maximum number of uint8_ts in an i2c
     // transaction on Arduino
     if ( len > 0 && len < 33 ) {
-      
+
       ir_mode_t ircomm_mode;
 
       // Format mode request for which receiver
@@ -42,7 +42,7 @@ bool SwarmB2_c::getIRMessage( uint8_t * buf, int which_rx ) {
       // Read across uint8_ts using the anticipated len.
       // Store into buffer provided as function argument
       Wire.requestFrom( IRCOMM_I2C_ADDR, len );
-      Wire.readBytes( (uint8_t*)buf, len );
+      Wire.readBytes( (uint8_t*)msg_buf, len );
 
       // Flag that a message was copied across.
       return true;
@@ -159,7 +159,6 @@ void SwarmB2_c::getRxSettings() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_settings ));
   Wire.readBytes( (uint8_t*)&rx_settings, sizeof( rx_settings ));
 }
-
 void SwarmB2_c::getTxSettings() {
   ir_mode_t ircomm_mode;
 
@@ -172,11 +171,10 @@ void SwarmB2_c::getTxSettings() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( rx_settings ));
   Wire.readBytes( (uint8_t*)&tx_settings, sizeof( tx_settings ));
 }
-
 void SwarmB2_c::setRxSettings() {
 
   ir_mode_t ircomm_mode;
-  
+
   // First, set the mode
   ircomm_mode.mode = MODE_SET_RX;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -191,7 +189,7 @@ void SwarmB2_c::setRxSettings() {
 void SwarmB2_c::setTxSettings() {
 
   ir_mode_t ircomm_mode;
-  
+
   // First, set the mode
   ircomm_mode.mode = MODE_SET_TX;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -202,4 +200,35 @@ void SwarmB2_c::setTxSettings() {
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (uint8_t*)&tx_settings, sizeof( tx_settings ));
   Wire.endTransmission();
+}
+
+ir_vectors_t      SwarmB2_c::getRxVectors() {
+
+}
+ir_activity_t     SwarmB2_c::getRxActivity() {
+
+}
+ir_saturation_t   SwarmB2_c::getRxSaturation() {
+
+}
+ir_msg_timings_t  SwarmB2_c::getMsgTimings() {
+
+}
+ir_byte_timings_t SwarmB2_c::getByteTimings() {
+
+}
+ir_skips_t        SwarmB2_c::getRxSkips() {
+
+}
+ir_errors_t       SwarmB2_c::getRxErrors() {
+
+}
+ir_crc_t          SwarmB2_c::getRxCRC() {
+
+}
+ir_cycles_t       SwarmB2_c::getRxCycles() {
+
+}
+ir_sensors_t      SwarmB2_c::getSensors() {
+
 }

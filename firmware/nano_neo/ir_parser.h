@@ -5,21 +5,22 @@
 #include "Arduino.h"
 #include "config.h"
 
-#define ERR_RESYNC        1
-#define ERR_BAD_LENGTH    2
-#define ERR_BAD_CRC       3
-#define ERR_BYTE_TIMEOUT  4
+#define ERR_RESYNC        1   // getting start byte again
+#define ERR_BAD_LENGTH    2   // len byte error
+#define ERR_BAD_CRC       3   // crc error
+#define ERR_BYTE_TIMEOUT  4   // too much time between bytes
 
 #define NUM_CRC_BYTES       2 // using CRC16, so 2 bytes.
 #define NUM_HEADER_BYTES    2 // start byte and message length byte
 
-#define REPORT_ONE_BYTES    1
+#define REPORT_ONE_BYTES    1 
 #define REPORT_ZERO_BYTES   0
 
 #define START_BYTE  '~'
 #define ESC_BYTE    '^'
 #define XOR_MASK    0x20
 
+// Decoding FSM states
 #define RX_WAIT_START 0
 #define RX_WAIT_LEN   1
 #define RX_READ_ENC   2
