@@ -102,16 +102,18 @@ void setup() {
   delay(100);
   int count = 0;
   while ( true ) {
-//    getByteTimings();
-//    reportFrameErrors();
+    //    getByteTimings();
+    //    reportFrameErrors();
     reportStatusErrorsCSV();
-//    delay(1);
-//    getByteTimings();
+    //    delay(1);
+    //    getByteTimings();
     delay(250);
     count++;
-    if( count > 10 ) {
+    if ( count > 10 ) {
       getRxSettings();
       count = 0;
+
+      updateMessageToSend();
     }
   }
 
@@ -124,47 +126,47 @@ void updateSettings() {
 
   // Uncomment below for the example
   // that changes the board configuration
-//
-//  if ( millis() - settings_ts > settings_update_ms ) {
-//    settings_ts = millis();
+  //
+  //  if ( millis() - settings_ts > settings_update_ms ) {
+  //    settings_ts = millis();
 
-    // To be safe, lets first get the current settings
-    // from the board.  These update the structs declared
-    // in the global scope.
-    getRxSettings();
-    delay(10);
-    //getTxSettings();
-    //delay(10);
+  // To be safe, lets first get the current settings
+  // from the board.  These update the structs declared
+  // in the global scope.
+  getRxSettings();
+  delay(10);
+  //getTxSettings();
+  //delay(10);
 
-    // Let's now modify the structs and send it back.
-    // We should see the change on the next iteration
-    // of loop()
-    // Lets test by just togggling some binary flags
-    rx_settings.flags.bits.cycle = false;
-    rx_settings.flags.bits.cycle_on_rx = false;
-    rx_settings.flags.bits.desync = false;          // don't randomise
-    rx_settings.flags.bits.overrun = true;
-    rx_settings.index = 0;
-    rx_settings.flags.bits.predict_period = false; // don't optimise
-    rx_settings.period_norm = 80;  // use 2000ms
-    rx_settings.flags.bits.desaturate = true;
-    rx_settings.flags.bits.rx0 = 1;
-    rx_settings.flags.bits.rx1 = 1;
-    rx_settings.flags.bits.rx2 = 1;
-    rx_settings.flags.bits.rx3 = 1;
-    rx_settings.flags.bits.rand_rx = false;
-    rx_settings.flags.bits.skip_inactive = false;
-    rx_settings.skip_multi = 10;
-    rx_settings.predict_multi = 1.5;
-    //    tx_settings.tx_desync = 0;         // don't randomise
-    //    tx_settings.tx_period_norm = 10000; // transmit every 2 seconds
-    //
-    setRxSettings();
-    //    delay(5);
-    //    setTxSettings();
+  // Let's now modify the structs and send it back.
+  // We should see the change on the next iteration
+  // of loop()
+  // Lets test by just togggling some binary flags
+  rx_settings.flags.bits.cycle = false;
+  rx_settings.flags.bits.cycle_on_rx = false;
+  rx_settings.flags.bits.desync = false;          // don't randomise
+  rx_settings.flags.bits.overrun = true;
+  rx_settings.index = 0;
+  rx_settings.flags.bits.predict_period = false; // don't optimise
+  rx_settings.period_norm = 80;  // use 2000ms
+  rx_settings.flags.bits.desaturate = true;
+  rx_settings.flags.bits.rx0 = 1;
+  rx_settings.flags.bits.rx1 = 1;
+  rx_settings.flags.bits.rx2 = 1;
+  rx_settings.flags.bits.rx3 = 1;
+  rx_settings.flags.bits.rand_rx = false;
+  rx_settings.flags.bits.skip_inactive = false;
+  rx_settings.skip_multi = 10;
+  rx_settings.predict_multi = 1.5;
+  //    tx_settings.tx_desync = 0;         // don't randomise
+  //    tx_settings.tx_period_norm = 10000; // transmit every 2 seconds
+  //
+  setRxSettings();
+  //    delay(5);
+  //    setTxSettings();
 
-    getRxSettings();
-//  }
+  getRxSettings();
+  //  }
 
 }
 
@@ -186,7 +188,7 @@ void initRandomSeed() {
 }
 
 void loop() {
-
+  updateMessageToSend();
 
   //getMsgTimings();
 
@@ -276,15 +278,15 @@ void updateMessageToSend() {
 
     // Let's print what we are going to send to make sure
     //    // it is sensible.
-    //                Serial.print("Going to send: ");
-    //                Serial.println( buf );
+    Serial.print("Going to send: ");
+    Serial.println( buf );
 
     // This function call tells the communication board
     // (the nano) to start ending the requested message.
     // It will keep doing this until a new call to this
     // function is made.
 
-    //setIRMessage(buf, strlen(buf));
+    setIRMessage(buf, strlen(buf));
 
   }
 }
@@ -302,12 +304,12 @@ void reportFrameErrors() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( frame_errors ));
   Wire.readBytes( (uint8_t*)&frame_errors, sizeof( frame_errors ));
 
-  for( int i = 0; i < 4; i++ ) {
-    Serial.print( frame_errors.rx[i] );Serial.print(",");
-    
+  for ( int i = 0; i < 4; i++ ) {
+    Serial.print( frame_errors.rx[i] ); Serial.print(",");
+
   }
   Serial.println();
-  
+
 }
 
 void checkForMessages() {
@@ -539,21 +541,21 @@ void getByteTimings() {
     Serial.print( byte_timings.dt_us[i] );
     Serial.print(",");
   }
-//  Serial.println();
-//    Serial.println("Last rx time in ms:");
+  //  Serial.println();
+  //    Serial.println("Last rx time in ms:");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( byte_timings.ts_us[i] );
     Serial.print(",");
   }
   Serial.println();
-//
-//  for( int i = 0; i < 3; i++ ) {
-//      unsigned long u = byte_timings.ts_us[i];
-//      u -= byte_timings.ts_us[i+1];
-//      Serial.print( u );
-//      Serial.print(",");
-//  }
-//  Serial.println();
+  //
+  //  for( int i = 0; i < 3; i++ ) {
+  //      unsigned long u = byte_timings.ts_us[i];
+  //      u -= byte_timings.ts_us[i+1];
+  //      Serial.print( u );
+  //      Serial.print(",");
+  //  }
+  //  Serial.println();
 
 
 }
@@ -699,7 +701,7 @@ void reportStatusErrorsCSV() {
 
   // Report how many messages have been received on each
   // receiver
-    Serial.print("P,");
+  Serial.print("P,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( crc_status.pass[i] );
     Serial.print(",");
@@ -709,13 +711,13 @@ void reportStatusErrorsCSV() {
   // so that we can view both at the same time on the plotter
   // to compare pass versus fail.
 
-    Serial.print("F,");
+  Serial.print("F,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( crc_status.fail[i] );
     Serial.print(",");
   }
 
-    ircomm_mode.mode = MODE_REPORT_FRAME_ERRS;
+  ircomm_mode.mode = MODE_REPORT_FRAME_ERRS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm_mode, sizeof( ircomm_mode));
   Wire.endTransmission();
@@ -741,7 +743,7 @@ void reportStatusErrorsCSV() {
   Wire.readBytes( (uint8_t*)&activity, sizeof(  activity ));
 
 
-    Serial.print("A,");
+  Serial.print("A,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( activity.rx[i] );
     Serial.print(",");
@@ -756,7 +758,7 @@ void reportStatusErrorsCSV() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( saturation ));
   Wire.readBytes( (uint8_t*)&saturation, sizeof(  saturation ));
 
-  
+
   Serial.print("S,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( saturation.rx[i] );
@@ -772,7 +774,7 @@ void reportStatusErrorsCSV() {
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( skips ));
   Wire.readBytes( (uint8_t*)&skips, sizeof(  skips ));
 
-  
+
   Serial.print("$,");
   for ( int i = 0; i < 4; i++ ) {
     Serial.print( skips.rx[i] );
@@ -792,7 +794,7 @@ void reportStatusErrorsCSV() {
   for ( int i = 0; i < 4; i++ ) {
 
     // error type
-    Serial.print("E");Serial.print(i);Serial.print(",");
+    Serial.print("E"); Serial.print(i); Serial.print(",");
     //  Serial.print("E");Serial.print(i);Serial.print(",");
     for ( int j = 0; j < 4; j++ ) {
       Serial.print( errors.type[i][j] );

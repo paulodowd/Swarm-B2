@@ -7,14 +7,18 @@
 class SwarmB2_c {
 
   public:
-    
+
     // Persistent cache of board settings
-    ir_rx_params_t rx_settings;
-    ir_tx_params_t tx_settings;
+    // Because the settings are numerous
+    // and would require some informed 
+    // decision making, I think it is best
+    // if the user edits these directly
+    // and simply called get/set below.
+    volatile ir_rx_params_t rx_settings;
+    volatile ir_tx_params_t tx_settings;
 
     SwarmB2_c() {
-      memset( &rx_settings, 0, sizeof( rx_settings ));
-      memset( &tx_settings, 0, sizeof( tx_settings ));  
+
     }
 
     // Fetches current config from board
@@ -26,13 +30,16 @@ class SwarmB2_c {
     void getTxSettings();
     void setRxSettings();
     void setTxSettings();
+    void printTxSettings();
+    void printRxSettings();
     void resetMetrics();
     void stopTransmitting();
 
     // Messaging operations
-    uint8_t getMsgStatus( int which_rx );
+    uint8_t getMsgLength( int which_rx );
     void    setIRMessage( uint8_t * payload, int len );
-    bool    getIRMessage( uint8_t * msg_buf, int rx );
+    int     getIRMessage( uint8_t * msg_buf, int rx );
+    void    updateSettings();
 
     // Functions for board metrics
     // Refer to ircomm_i2c.h for datatypes
@@ -47,6 +54,7 @@ class SwarmB2_c {
     ir_crc_t          getRxCRC();
     ir_cycles_t       getRxCycles();
     ir_sensors_t      getSensors();
+    ir_frame_errors_t getRxFrameErrors();
 };
 
 #endif

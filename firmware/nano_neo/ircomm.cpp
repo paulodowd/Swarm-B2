@@ -1009,7 +1009,6 @@ bool IRComm_c::update() {
 
     void IRComm_c::fullReset() {
 
-
       for ( int i = 0; i < 4; i++ ) {
         bearing_activity[i] = 0;
         clearRxMsg(i);
