@@ -28,6 +28,14 @@ The board functions as an i2c device, so it should be quite easy to integrate in
 - Header pins to attach to a Pololu 3Pi+ robot.
 - Header pins for an M5Stack Core2 device interfacing.
 
+## Things I wish I had included
+At some point you have to stop tinkering to achieve a larger goal.  If I was to revise this board again I would:
+- Include an LED next to each IR Demodulator, so I could easily see when/where messages are being received from.
+- Fix IR LED resistance, and wire the supply of the each LED to the Nano digital pins.  Note that, with 5k ohm resistance in series with the 8 IR LEDs, transmission can still occur over 2cm.  So it seems possible to simply drive each IR LED from the Nano directly (very low current) for a reasonable transmission distance (30cm?), and this would allow for directional transmission.
+- Or, find a digital potentiometer to allow for the transmission power to be set from the device, rather than a potentiometer.
+- Include a reset button on the top side of the board for the Nano device.
+- Move away from the Arduino Nano, to something like the Teensy 4.0/1 which has 8 (!) hardware UART interfaces - which would remove the need to poll receivers, and provide continuous directional receiving.   
+
 ## SwarmB2 fully assembled
 
 ## SwarmB2 Programming / Updating
