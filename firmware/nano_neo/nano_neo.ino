@@ -1,5 +1,5 @@
-#include <NeoHWSerial.h>
-#include <NeoHWSerial_private.h>
+#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
+#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
 
 #include <avr/io.h>
 #include <Wire.h>

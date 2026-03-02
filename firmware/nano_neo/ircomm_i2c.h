@@ -187,8 +187,6 @@ typedef struct ir_tx_params {      // total = 17 bytes
   union {                          // 2 bytes
     uint8_t all_flags;             // to access all flags at once
     struct {
-      //uint8_t mode            : 1; // 0=periodic, 1=interleaved                         // x
-      //uint8_t predict_period  : 1; // predict repeat period on len?                     // x
       uint8_t defer           : 1; // if received a byte, defer tx?
       uint8_t desync          : 1; // randomise period?
       uint8_t reserved        : 6; // 3 more bools available
@@ -210,16 +208,13 @@ typedef struct ir_rx_params {       // total = ?? bytes.
   union {                           // 2 bytes
     uint16_t all_flags;             // to access all flags at once
     struct {
-      //uint16_t cycle           : 1; // should the board cycle receivers?            // x
       uint16_t cycle_on_rx     : 1; // cycle when message received?
-      //uint16_t predict_period  : 1; // predict period on msg len?                   // x
       uint16_t overrun         : 1; // complete recieve outside period?
       uint16_t desync          : 1; // randomise period?
       uint16_t rx0             : 1; // receiver available to use?
       uint16_t rx1             : 1; // receiver available to use?
       uint16_t rx2             : 1; // receiver available to use?
       uint16_t rx3             : 1; // recevier available to use?
-      //uint16_t desaturate      : 1; // toggle power to receiver if zero activity    // x
       uint16_t rand_rx         : 1; // randomise rx cycling
       uint16_t skip_inactive   : 1; // skip a receiver with no activity?
       uint16_t reserved;       : 7; // 4 more bools available
