@@ -1,11 +1,4 @@
 
-<p align="center">
-<br>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true" width="250"></img>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true" width="250"></img>
-<br>
-</p>
-
 # Swarm-B2
 Infra-red (IR) Communication board for Pololu 3Pi+ robots that also has a pin header to interface with an M5 Stack Core2.  I've designed this board to conduct research into specific aspects of IR Communication in a swarm robotics context.  This is the second major design of such a board, hence the name (S)warm (B)oard 2 - SwarmB2.
 
@@ -29,7 +22,7 @@ The board functions as an i2c device, so it should be quite easy to integrate in
 - Header pins for an M5Stack Core2 device interfacing.
 
 ## Things I wish I had included
-At some point you have to stop tinkering to achieve a larger goal.  If I was to revise this board again I would:
+At some point one has to stop tinkering to achieve a larger goal.  If I was to revise this board again I would:
 - Include an LED next to each IR Demodulator, so I could easily see when/where messages are being received from.
 - Fix IR LED resistance, and wire the supply of the each LED to the Nano digital pins.  Note that, with 5k ohm resistance in series with the 8 IR LEDs, transmission can still occur over 2cm.  So it seems possible to simply drive each IR LED from the Nano directly (very low current) for a reasonable transmission distance (30cm?), and this would allow for directional transmission.
 - Or, find a digital potentiometer to allow for the transmission power to be set from the device, rather than a potentiometer.
@@ -37,9 +30,17 @@ At some point you have to stop tinkering to achieve a larger goal.  If I was to 
 - Move away from the Arduino Nano, to something like the Teensy 4.0/1 which has 8 (!) hardware UART interfaces - which would remove the need to poll receivers, and provide continuous directional receiving.   
 
 ## SwarmB2 fully assembled
+<p align="center">
+<br>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true" width="250"></img>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true" width="250"></img>
+<br>
+</p>
 
 ## SwarmB2 Programming / Updating
 SwarmB2 is built around an Arduino Nano, so you should follow the normal steps to program one.  To program the IR Communication board with the software, or to update it with your own software, it is necessary to first remove the jumper situated on the back of the circuit board labelled `RX_break`.  If you do not do this, the Arduino IDE will report that the programmer cannot sync with the arduino device (or similar error).  Remember to replace this jumper, because it connects the IR receiver modules electronically to the Arduino. Without the jumper, your board won't receive any IR messages.
+
+The current firmware includes a modified copy of the library <a href="https://github.com/SlashDevin/NeoHWSerial">NeoHWSerial originally by SlashDevin</a>.  My modification allows for UART frame errors to be caught, counted, reported and reset.  This seems like a very niche requirement, I'm not sure how portable the modification is - so I've opted not to fork/make a pull request.  The original attribution and licensing information are included within the sub-directory `Swarm-B2/firmware/nano_neo/NeoHWSerial_Modded/`. 
 
 ## SwarmB2 in other Projects
 This IR communication board can be used as a general purpose communication board.  The firmware on this github page is written as an i2c slave device with address `0x11`.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
