@@ -37,7 +37,7 @@ class IRParser_c {
     uint8_t dec_buf[MAX_MSG + NUM_CRC_BYTES ];  // Temporary buffer of incoming decoded bytes
     uint8_t dec_pos;                            // Tracks decoded byte buffer position
     uint8_t esc_count;                          // Counts up how many bytes that were escaped
-    unsigned long timeout_ts;                   // timestamp to watch for a lapse in receiving bytes
+    uint32_t timeout_ts;                   // timestamp to watch for a lapse in receiving bytes
 
     IRParser_c();
 

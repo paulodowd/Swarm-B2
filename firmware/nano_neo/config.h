@@ -84,7 +84,7 @@
 //#define TX_MODE (TX_MODE_INTERLEAVED)
 #define TX_PREDICT_PERIOD     true
 #define TX_PREDICT_MULTI      4.0
-#define TX_PREAMBLE           true
+#define TX_DEFER_MULTI        4
 #define TX_PREAMBLE_REPEAT    4
 #define TX_PREAMBLE_BYTE      0x55 // 0b01010101
 

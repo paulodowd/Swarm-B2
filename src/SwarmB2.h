@@ -52,7 +52,7 @@ class SwarmB2_c {
     ir_skips_t        getRxSkips();
     ir_errors_t       getRxErrors();
     ir_crc_t          getRxCRC();
-    ir_cycles_t       getRxCycles();
+    ir_cycles_t       getCycles();
     ir_sensors_t      getSensors();
     ir_frame_errors_t getRxFrameErrors();
 };

@@ -243,44 +243,43 @@ void SwarmB2_c::setTxSettings() {
 void SwarmB2_c::printTxSettings() {
 
   Serial.println("SwarmB2 Tx Settings:");
-  Serial.print(" Mode: \t\t\t"); Serial.println( tx_settings.flags.bits.mode > 0 ? "interleaved" : "periodic" );
-  Serial.print(" Predict Period: \t"); Serial.println( tx_settings.flags.bits.predict_period > 0 ? "true" : "false" );
+  //Serial.print(" Mode: \t\t\t"); Serial.println( tx_settings.flags.bits.mode > 0 ? "interleaved" : "periodic" );
+  //Serial.print(" Predict Period: \t"); Serial.println( tx_settings.flags.bits.predict_period > 0 ? "true" : "false" );
   Serial.print(" Defer: \t\t"); Serial.println( tx_settings.flags.bits.defer > 0 ? "true" : "false" );
   Serial.print(" Desync: \t\t"); Serial.println( tx_settings.flags.bits.desync > 0 ? "true" : "false" );
-  Serial.print(" Preamble: \t\t"); Serial.println( tx_settings.flags.bits.preamble > 0 ? "true" : "false" );
+  Serial.print(" Preamble repeat: \t"); Serial.println( tx_settings.preamble_repeat );
+  Serial.print(" Defer multi: \t"); Serial.println( tx_settings.defer_multi );
   Serial.print(" Repeats: \t\t"); Serial.println( tx_settings.repeat );
   Serial.print(" Predict Multi: \t"); Serial.println( tx_settings.predict_multi);
-  Serial.print(" Period: \t\t"); Serial.println( tx_settings.period );
-  Serial.print(" Period Norm: \t\t"); Serial.println( tx_settings.period_norm );
+  Serial.print(" Period: \t\t"); Serial.println( tx_settings.period_ms );
+  Serial.print(" Period Norm: \t\t"); Serial.println( tx_settings.period_base_ms );
   Serial.print(" Len: \t\t\t"); Serial.println( tx_settings.len );
   Serial.println("\n");
 }
 void SwarmB2_c::printRxSettings() {
   Serial.println("SwarmB2 Rx Settings:");
-  Serial.print(" Cycle: \t\t");       Serial.println(rx_settings.flags.bits.cycle > 0 ? "true" : "false");
+  //Serial.print(" Cycle: \t\t");       Serial.println(rx_settings.flags.bits.cycle > 0 ? "true" : "false");
   Serial.print(" Cycle on Rx: \t\t");  Serial.println(rx_settings.flags.bits.cycle_on_rx > 0 ? "true" : "false");
-  Serial.print(" Predict period: \t"); Serial.println(rx_settings.flags.bits.predict_period > 0 ? "true" : "false");
+  //Serial.print(" Predict period: \t"); Serial.println(rx_settings.flags.bits.predict_period > 0 ? "true" : "false");
   Serial.print(" Overrun: \t\t");    Serial.println(rx_settings.flags.bits.overrun > 0 ? "true" : "false");
   Serial.print(" Desync: \t\t");  Serial.println(rx_settings.flags.bits.desync > 0 ? "true" : "false");
   Serial.print(" Rx0 available: \t");    Serial.println(rx_settings.flags.bits.rx0 > 0 ? "true" : "false");
   Serial.print(" Rx1 available: \t");    Serial.println(rx_settings.flags.bits.rx1 > 0 ? "true" : "false");
   Serial.print(" Rx2 available: \t");    Serial.println(rx_settings.flags.bits.rx2 > 0 ? "true" : "false");
   Serial.print(" Rx3 available: \t");    Serial.println(rx_settings.flags.bits.rx3 > 0 ? "true" : "false");
-  Serial.print(" Desaturate: \t\t");    Serial.println(rx_settings.flags.bits.desaturate > 0 ? "true" : "false");
+  //Serial.print(" Desaturate: \t\t");    Serial.println(rx_settings.flags.bits.desaturate > 0 ? "true" : "false");
   Serial.print(" Rand Rx: \t\t");    Serial.println(rx_settings.flags.bits.rand_rx > 0 ? "true" : "false");
   Serial.print(" Skip Inactive: \t");    Serial.println(rx_settings.flags.bits.skip_inactive > 0 ? "true" : "false");
   Serial.print(" Predict multi: \t");    Serial.println(rx_settings.predict_multi);
-  Serial.print(" Period: \t\t");    Serial.println(rx_settings.period);
-  Serial.print(" Period norm: \t\t");    Serial.println(rx_settings.period_norm);
+  Serial.print(" Period: \t\t");    Serial.println(rx_settings.period_ms);
+  Serial.print(" Period norm: \t\t");    Serial.println(rx_settings.period_base_ms);
   Serial.print(" Index: \t\t");    Serial.println(rx_settings.index);
   Serial.print(" Skip multi: \t\t");    Serial.println(rx_settings.skip_multi);
-  Serial.print(" Byte timeout: \t\t");    Serial.println(rx_settings.byte_timeout);
-  Serial.print(" Saturation timeout: \t");    Serial.println(rx_settings.sat_timeout);
+  Serial.print(" Byte timeout: \t\t");    Serial.println(rx_settings.byte_timeout_ms);
+  Serial.print(" Saturation timeout: \t");    Serial.println(rx_settings.sat_timeout_us);
   Serial.print(" Last len: \t\t");    Serial.println(rx_settings.len );
   Serial.println("\n");
 }
-
-
 
 
 ir_vectors_t      SwarmB2_c::getRxVectors() {
@@ -302,22 +301,16 @@ ir_vectors_t      SwarmB2_c::getRxVectors() {
 
 ir_activity_t     SwarmB2_c::getRxActivity() {
   ir_mode_t ircomm;
-  ircomm.mode = MODE_REPORT_RX_VECTORS;
+  ircomm.mode = MODE_REPORT_ACTIVITY;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm, sizeof( ircomm));
   Wire.endTransmission();
 
-  ir_vectors_t vectors;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( vectors));
-  Wire.readBytes( (uint8_t*)&vectors, sizeof( vectors ));
-
-  for ( int i = 0; i < 4; i++ ) {
-    Serial.print( vectors.rx[i], 4 );
-    Serial.print(",");
-
-  }
-  Serial.println();
-
+  ir_activity_t activity;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( activity ));
+  Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
+  
+  return activity;
 }
 
 ir_saturation_t   SwarmB2_c::getRxSaturation() {
@@ -421,7 +414,7 @@ ir_crc_t          SwarmB2_c::getRxCRC() {
   return crc;
 }
 
-ir_cycles_t       SwarmB2_c::getRxCycles() {
+ir_cycles_t       SwarmB2_c::getCycles() {
   // Set correct more
   ir_mode_t ircomm;
   ircomm.mode = MODE_REPORT_CYCLES;

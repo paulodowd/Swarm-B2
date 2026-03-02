@@ -149,6 +149,16 @@ class IRComm_c {
     // message is downloaded via i2c.
     void clearRxMsg(int which);
 
+    // Tiny functions to improve code readablity
+    bool isTxInterleaved();
+    bool isTxPeriodic();
+    bool isTxPredictPeriod();
+    bool isRxCycle();
+    bool isRxDesaturate();
+    bool isRxPredictPeriod();
+    bool isRxDisabled();
+    
+
 };
 
 

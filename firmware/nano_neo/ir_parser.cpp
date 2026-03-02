@@ -34,14 +34,14 @@ void IRParser_c:: copyMsg( uint8_t * dest ) {
 
 }
 
-static unsigned long last_t;
-int IRParser_c::getNextByte( unsigned long byte_timeout ) {
-
+int IRParser_c::getNextByte( uint32_t byte_timeout ) {
 
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
   // function iteratively and fast.
   if ( NeoSerial.available() ) {
+
+    
 
     // move the timeout timestamp forwards
     timeout_ts = millis();
@@ -144,7 +144,7 @@ int IRParser_c::getNextByte( unsigned long byte_timeout ) {
           msg_len = payload_len;
           reset();
 
-          //          digitalWrite( 13, HIGH );
+//                    digitalWrite( 13, HIGH );
 
           uint8_t total_decoded;
           total_decoded = NUM_HEADER_BYTES + msg_len + NUM_CRC_BYTES + esc_count;

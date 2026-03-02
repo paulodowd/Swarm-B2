@@ -349,11 +349,11 @@ int setRandomMsg(int len) {
   //ms_len++;
 
 //  sprintf(buf, "123456789~123456789~123456789~^^");
-  //  sprintf(buf, "123456789");
-  for ( int i = 0; i < len; i++ ) {
-    buf[i] = (byte)random( 0, 256 );
-    
-  }
+    sprintf(buf, "12345678");
+//  for ( int i = 0; i < len; i++ ) {
+//    buf[i] = (byte)random( 0, 256 );
+//    
+//  }
 
   //  typedef struct msg {
   //    float v[2];
