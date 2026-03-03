@@ -269,7 +269,6 @@ void SwarmB2_c::printRxSettings() {
   Serial.print(" Rx3 available: \t");    Serial.println(rx_settings.flags.bits.rx3 > 0 ? "true" : "false");
   //Serial.print(" Desaturate: \t\t");    Serial.println(rx_settings.flags.bits.desaturate > 0 ? "true" : "false");
   Serial.print(" Rand Rx: \t\t");    Serial.println(rx_settings.flags.bits.rand_rx > 0 ? "true" : "false");
-  Serial.print(" Skip Inactive: \t");    Serial.println(rx_settings.flags.bits.skip_inactive > 0 ? "true" : "false");
   Serial.print(" Predict multi: \t");    Serial.println(rx_settings.predict_multi);
   Serial.print(" Period: \t\t");    Serial.println(rx_settings.period_ms);
   Serial.print(" Period norm: \t\t");    Serial.println(rx_settings.period_base_ms);

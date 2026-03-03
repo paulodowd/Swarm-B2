@@ -205,19 +205,17 @@ typedef struct ir_tx_params {      // total = 17 bytes
 // Struct to contain the configuration
 // for reception.
 typedef struct ir_rx_params {       // total = ?? bytes.
-  union {                           // 2 bytes
-    uint16_t all_flags;             // to access all flags at once
+  union {                           // 1 bytes
+    uint8_t all_flags;             // to access all flags at once
     struct {
-      uint16_t cycle_on_rx     : 1; // cycle when message received?
-      uint16_t overrun         : 1; // complete recieve outside period?
-      uint16_t desync          : 1; // randomise period?
-      uint16_t rx0             : 1; // receiver available to use?
-      uint16_t rx1             : 1; // receiver available to use?
-      uint16_t rx2             : 1; // receiver available to use?
-      uint16_t rx3             : 1; // recevier available to use?
-      uint16_t rand_rx         : 1; // randomise rx cycling
-      uint16_t skip_inactive   : 1; // skip a receiver with no activity?
-      uint16_t reserved;       : 7; // 4 more bools available
+      uint8_t cycle_on_rx     : 1; // cycle when message received?
+      uint8_t overrun         : 1; // complete recieve outside period?
+      uint8_t desync          : 1; // randomise period?
+      uint8_t rx0             : 1; // receiver available to use?
+      uint8_t rx1             : 1; // receiver available to use?
+      uint8_t rx2             : 1; // receiver available to use?
+      uint8_t rx3             : 1; // recevier available to use?
+      uint8_t rand_rx         : 1; // randomise rx cycling
     } bits;
   } flags;
   float     predict_multi; //  4: multiplier when predicting how long to listen for.

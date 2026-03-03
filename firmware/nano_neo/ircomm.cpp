@@ -47,7 +47,6 @@ void IRComm_c::init() {
   config.rx.flags.bits.rx2              = 1;
   config.rx.flags.bits.rx3              = 1;
   config.rx.flags.bits.rand_rx          = RX_RAND_RX;
-  config.rx.flags.bits.skip_inactive    = RX_SKIP_INACTIVE;
   config.rx.len                         = RX_DEFAULT_MSG_LEN;
   config.rx.skip_multi                  = RX_SKIP_MULTI;
   config.rx.period_ms                   = 0; // updated below
@@ -587,7 +586,10 @@ bool IRComm_c::isRxDisabled() {
   if ( config.rx.flags.bits.rx2 == 1 ) return false;
   if ( config.rx.flags.bits.rx3 == 1 ) return false;
   return true;
-
+}
+bool IRComm_c::isRxSkipInactive() {
+  if( config.rx.skip_multi > 0 ) return true;
+  return false;
 }
 
 /* main update.
@@ -792,7 +794,7 @@ bool IRComm_c::update() {
       // time.  Whilst we set cycle = true here, it is still
       // possible for this to be over-ruled later by the
       // overrun check (if a message start has been received).
-      if ( config.rx.flags.bits.skip_inactive == true ) {
+      if ( isRxSkipInactive() ) {
 
 #ifdef IR_FREQ_56
         if ( metrics.byte_timings.dt_us[config.rx.index] > (US_PER_BYTE_58KHZ * config.rx.skip_multi) ) {

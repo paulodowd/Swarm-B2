@@ -32,7 +32,6 @@ void setup() {
   SwarmB2.rx_settings.flags.bits.rx2            = true;
   SwarmB2.rx_settings.flags.bits.rx3            = true;
 
-  SwarmB2.rx_settings.flags.bits.skip_inactive  = false;
   SwarmB2.rx_settings.skip_multi                = 0;
   SwarmB2.rx_settings.predict_multi             = 1.0;
   SwarmB2.rx_settings.index                     = 0;

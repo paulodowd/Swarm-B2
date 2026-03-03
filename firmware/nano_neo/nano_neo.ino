@@ -6,12 +6,6 @@
 #include "ircomm.h"
 #include "ircomm_i2c.h"
 
-// A timestamp used only to configure various
-// testing/debugging activities.
-unsigned long test_ts;
-#define TEST_MS 50 // Good for test tx
-#define TEST_MS 1000 // good for test rx
-
 // Pin definitions for extra sensors
 // on the communication board, if present
 #define LDR0_PIN  A0
@@ -39,13 +33,18 @@ void i2c_receive( int len ) {
   // ready the board to send back information or to ask the
   // board to complete specific actions (e.g, delete a
   // message).
+  // It is possible to send a 1 byte message, so we catch
+  // that possibility here.  The other time we may set 
+  // data is for rx and tx settings, but these will 
+  // always be len > 1
   if ( len == 1 && last_mode.mode != MODE_SET_MSG ) { // receiving a mode change.
     ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
 
 
     // Check we are setting to a valid mode.
-    if ( new_mode.mode < MAX_MODE && new_mode.mode >= 0 ) {
+    // Data type cannot represent negative
+    if ( new_mode.mode < MAX_MODE ) {
       last_mode.mode = new_mode.mode;
     }
 
@@ -106,7 +105,7 @@ void i2c_receive( int len ) {
       byte buf[MAX_MSG];
       memset( buf, 0, sizeof( buf ));
       Wire.readBytes( buf, len );
-      ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+      ircomm.config.tx.len = ircomm.parser.formatIRMessage( (uint8_t*)ircomm.tx_buf, buf, len );
     }
 
     last_mode.mode = MODE_NOT_SET;
@@ -338,7 +337,7 @@ void setup() {
 // * and @
 int setRandomMsg(int len) {
   // Let's test variable message lengths
-  byte buf[ MAX_MSG ];
+  char buf[ MAX_MSG ];
 
 
   memset( buf, 0, sizeof( buf ) );
@@ -364,7 +363,7 @@ int setRandomMsg(int len) {
 
 
   //  Checking the format of what is being sent.
-  ircomm.config.tx.len = ircomm.parser.formatIRMessage( ircomm.tx_buf, buf, len );
+  ircomm.config.tx.len = ircomm.parser.formatIRMessage( (uint8_t*)ircomm.tx_buf, (uint8_t*)buf, len );
   //  while(1) {
   //    NeoSerial.print("tx buf: ");
   //    NeoSerial.println( (char*)ircomm.tx_buf );

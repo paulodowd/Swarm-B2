@@ -157,6 +157,7 @@ class IRComm_c {
     bool isRxDesaturate();
     bool isRxPredictPeriod();
     bool isRxDisabled();
+    bool isRxSkipInactive();
     
 
 };
