@@ -7,6 +7,8 @@ The board functions as an i2c device, so it should be quite easy to integrate in
 ## Features
 - 32 bytes per message.
 - 9600 or 4800 baudrate (device dependent)
+- Receive or transmit, cannot do both concurrently.
+- Receiving is polled across 4 receivers.
 - Transmission power set by a potentiometer (0-2.5m)
 - Message framing with start delimiter and message length embedded.
 - A 16 bit CRC to detect transmission errors.
@@ -49,6 +51,10 @@ This IR communication board can be used as a general purpose communication board
 This board is designed around the use of either the TSDP34138 or the TSDP34156, which demodulate a 38.4Khz or 57.6Khz carrier frequency respectively.  The firmware needs to be configured (config.h - comment/uncomment as necessary) for which TSDP341xx device you've populated on your SwarmB2 board.  
 
 Please note that all IR Demodulators like this are not created equally!  These two in particular are designed by Vishay for "continuous" data rates, which is important for the IR communication boards.  
+
+## SwarmB2 Configuration
+
+The SwarmB2 board has a lot of possible configuration. I expect that different tasks will require different configuration.  The firmware has been written to accept various configuration and with an order of precedence for which settings are applied and when.  The complexity comes from the necessity to poll receivers, and that receive and transmit must happen independently (not at the same time).  This sets up some interesting variations such as (a) transmit after checking each receiver (b) transmit periodically, independent of receivers.
 
 ## Minor Modifications to the Pololu 3Pi+
 The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
