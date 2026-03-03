@@ -54,7 +54,7 @@ Please note that all IR Demodulators like this are not created equally!  These t
 
 ## SwarmB2 Configuration
 
-The SwarmB2 board has a lot of possible configuration. I expect that different tasks will require different configuration.  The firmware has been written to accept various configuration and with an order of precedence for which settings are applied and when.  The complexity comes from the necessity to poll receivers, and that receive and transmit must happen independently (not at the same time).  This sets up some interesting variations such as (a) transmit after checking each receiver (b) transmit periodically, independent of receivers.
+The SwarmB2 board has a lot of possible configuration. I expect that different tasks will require different configuration.  The firmware has been written to accept various configuration and with an order of precedence for which settings are applied and when.  The complexity comes from the necessity to poll receivers, and that receive and transmit must happen independently (not at the same time).  This sets up some interesting variations such as (a) transmit after checking each receiver (b) transmit periodically, independent of receivers.  We can even ask whether tranmsitting or receiving should take priority.  When transmitting, how many times to transmit the message (i.e. repeating the transmission).  When receiving, how long to listen for.  And so on...
 
 ## Minor Modifications to the Pololu 3Pi+
 The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
