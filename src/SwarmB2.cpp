@@ -1,5 +1,7 @@
 #include "SwarmB2.h"
 #include <Wire.h>
+#include <stdint.h>
+#include <limits.h>
 
 void SwarmB2_c::init() {
   // Populate the board config cache ready for
@@ -12,6 +14,40 @@ void SwarmB2_c::init() {
   getTxSettings();
 
 }
+
+void SwarmB2_c::updateSettings() {
+
+  // Settings for receiving
+  rx_settings.flags.bits.cycle_on_rx    = false;
+  rx_settings.flags.bits.desync         = false;
+  rx_settings.flags.bits.overrun        = true;
+  rx_settings.flags.bits.rand_rx        = false;
+  rx_settings.flags.bits.rx0            = true;
+  rx_settings.flags.bits.rx1            = true;
+  rx_settings.flags.bits.rx2            = true;
+  rx_settings.flags.bits.rx3            = true;
+  rx_settings.skip_multi                = 0;
+  rx_settings.predict_multi             = 4;
+  rx_settings.index                     = 0;
+  rx_settings.period_base_ms            = 0;
+  rx_settings.timeout_multi             = 6;
+  rx_settings.saturation_us             = 20000;
+  setRxSettings();
+
+  // Settings for tranmission
+  tx_settings.flags.bits.defer  = 0;
+  tx_settings.flags.bits.desync = 1;
+  //tx_settings.repeat            = UINT32_MAX;
+  tx_settings.repeat            = 0;
+  tx_settings.predict_multi     = 4;
+  tx_settings.defer_multi       = 0;
+  tx_settings.preamble_repeat   = 0;
+  tx_settings.period_base_ms    = 170;
+  setTxSettings();
+
+  resetMetrics();
+}
+
 
 // This function is used to fetch a message
 // from one of the four receivers on the
@@ -274,8 +310,8 @@ void SwarmB2_c::printRxSettings() {
   Serial.print(" Period norm: \t\t");    Serial.println(rx_settings.period_base_ms);
   Serial.print(" Index: \t\t");    Serial.println(rx_settings.index);
   Serial.print(" Skip multi: \t\t");    Serial.println(rx_settings.skip_multi);
-  Serial.print(" Byte timeout: \t\t");    Serial.println(rx_settings.byte_timeout_ms);
-  Serial.print(" Saturation timeout: \t");    Serial.println(rx_settings.sat_timeout_us);
+  Serial.print(" Byte timeout: \t\t");    Serial.println(rx_settings.timeout_multi);
+  Serial.print(" Saturation timeout: \t");    Serial.println(rx_settings.saturation_us);
   Serial.print(" Last len: \t\t");    Serial.println(rx_settings.len );
   Serial.println("\n");
 }

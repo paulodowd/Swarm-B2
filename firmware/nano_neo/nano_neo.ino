@@ -17,11 +17,9 @@
 // Used to control the IR communication.
 IRComm_c ircomm;
 
-// Used to track requests made to
-// the board over i2c
-volatile ir_mode_t last_mode;
-
 volatile boolean full_reset;
+
+volatile ir_mode_t last_mode;
 
 // Function to receive commands from the master device.
 // This will typically be in the format of a mode change
@@ -34,9 +32,9 @@ void i2c_receive( int len ) {
   // board to complete specific actions (e.g, delete a
   // message).
   // It is possible to send a 1 byte message, so we catch
-  // that possibility here.  The other time we may set 
-  // data is for rx and tx settings, but these will 
-  // always be len > 1
+  // that possibility here.  The other time we may set
+  // data is for rx and tx settings, but these will
+  // always be len > 1c
   if ( len == 1 && last_mode.mode != MODE_SET_MSG ) { // receiving a mode change.
     ir_mode_t new_mode;
     Wire.readBytes( (byte*)&new_mode, sizeof( new_mode ) );
@@ -55,7 +53,7 @@ void i2c_receive( int len ) {
       // Clearing tx  buff will stop transmission of messages
       ircomm.clearTxBuf();
 
-    } else if( new_mode.mode == MODE_RESET_METRICS ) {
+    } else if ( new_mode.mode == MODE_RESET_METRICS ) {
       ircomm.resetMetrics();
     } else if ( new_mode.mode == MODE_FULL_RESET ) {
       full_reset = true;
@@ -132,6 +130,8 @@ void i2c_receive( int len ) {
   } else if ( last_mode.mode == MODE_SET_TX ) {
     if ( len == sizeof( ir_tx_params_t ) ) {
       Wire.readBytes( (uint8_t*)&ircomm.config.tx, sizeof( ircomm.config.tx ));
+
+      
     } else {
 
       // Something has gone wrong. Just
@@ -153,19 +153,19 @@ void i2c_receive( int len ) {
 // is executed.
 void i2c_request() {
 
-if( last_mode.mode == MODE_REPORT_CRC ) {
+  if ( last_mode.mode == MODE_REPORT_CRC ) {
 
     Wire.write( (byte*)&ircomm.metrics.crc, sizeof(ircomm.metrics.crc) );
 
-  } else if( last_mode.mode == MODE_REPORT_ACTIVITY ) {
+  } else if ( last_mode.mode == MODE_REPORT_ACTIVITY ) {
 
     Wire.write( (byte*)&ircomm.metrics.activity, sizeof(ircomm.metrics.activity) );
 
-  } else if( last_mode.mode == MODE_REPORT_SATURATION ) {
+  } else if ( last_mode.mode == MODE_REPORT_SATURATION ) {
 
     Wire.write( (byte*)&ircomm.metrics.saturation, sizeof(ircomm.metrics.saturation) );
 
-  } else if( last_mode.mode == MODE_REPORT_SKIPS ) {
+  } else if ( last_mode.mode == MODE_REPORT_SKIPS ) {
 
     Wire.write( (byte*)&ircomm.metrics.skips, sizeof(ircomm.metrics.skips) );
 
@@ -178,7 +178,7 @@ if( last_mode.mode == MODE_REPORT_CRC ) {
     Wire.write( (byte*)&ircomm.metrics.byte_timings, sizeof( ircomm.metrics.byte_timings ) );
 
   } else if ( last_mode.mode == MODE_REPORT_FRAME_ERRS ) {
-    
+
     Wire.write( (byte*)&ircomm.metrics.frame_errors, sizeof( ircomm.metrics.frame_errors ) );
 
   }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
@@ -294,8 +294,6 @@ if( last_mode.mode == MODE_REPORT_CRC ) {
 }
 
 
-
-
 void setup() {
 
   // Set random seed.
@@ -324,9 +322,9 @@ void setup() {
 
   full_reset = false;
 
-  
+
   // Paul: I was using this to test
-//  setRandomMsg(8);
+  //  setRandomMsg(8);
 }
 
 
@@ -347,12 +345,16 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-//  sprintf(buf, "123456789~123456789~123456789~^^");
-    sprintf(buf, "12345678");
-//  for ( int i = 0; i < len; i++ ) {
-//    buf[i] = (byte)random( 0, 256 );
-//    
-//  }
+  //  sprintf(buf, "123456789~123456789~123456789~^^");
+  //    sprintf(buf, "12345678");
+  
+  // Create a random test string, but exclude our
+  // token characters
+  for ( int i = 0; i < len; i++ ) {
+    do {
+      buf[i] = (char)random( 0, 256 );
+    } while( buf[i] == '~' || buf[i] == '^' );
+  }
 
   //  typedef struct msg {
   //    float v[2];
@@ -389,18 +391,10 @@ int setRandomMsg(int len) {
 }
 
 void loop() {
-////
-//  ircomm.doTransmit();
-//  return;
-//  ////
-//    if( millis() - test_ts > 250 ) {
-//        test_ts = millis();
-//        int e = setRandomMsg(8);
-//      }
-  //
-  //
-  //  sendTest();
+  ////
+  //  ircomm.doTransmit();
   //  return;
+
 
   if ( full_reset ) {
     ircomm.fullReset();
@@ -411,14 +405,6 @@ void loop() {
   // This line must be called to process new
   // received messages and transmit new messages
   ircomm.update();
-//  //
-//  if ( millis() - test_ts > 1000 ) {
-//    test_ts = millis();
-//    ircomm.printRxMsgForDebugging();
-//  }
-
-  
-
 }
 
 

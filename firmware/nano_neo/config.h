@@ -30,7 +30,7 @@
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
 #define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
-#define RX_PREDICT_MULTIPLIER 1.0   // how many message-size to wait?
+#define RX_PREDICT_MULTIPLIER 1   // how many message-size to wait?
 #define RX_DESYNC             false
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
@@ -43,12 +43,7 @@
 
 // A rough estimate of how many ms per byte 
 // during the transmit/receive process.
-#ifdef IR_FREQ_56
-#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_58KHZ*4)
-#endif
-#ifdef IR_FREQ_38
-#define RX_BYTE_TIMEOUT_MS       (MS_PER_BYTE_38KHZ*4)     
-#endif
+#define RX_TIMEOUT_MULTI       4
 
 #ifdef IR_FREQ_56
 #define RX_DEFAULT_PERIOD       (MS_PER_BYTE_58KHZ*RX_DEFAULT_MSG_LEN)     
@@ -58,10 +53,10 @@
 #endif
 
 #ifdef IR_FREQ_56
-#define RX_SAT_TIMEOUT_US       (20000) // I measured 8000us for ambient noise
+#define RX_SATURATION_US       8000// I measured 8000us for ambient noise
 #endif
 #ifdef IR_FREQ_38
-#define RX_SAT_TIMEOUT_US       (20000)     
+#define RX_SATURATION_US       8000     
 #endif
 
 
@@ -78,8 +73,8 @@
 #define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
 #define TX_MODE (TX_MODE_PERIODIC)
 //#define TX_MODE (TX_MODE_INTERLEAVED)
-#define TX_PREDICT_PERIOD     true
-#define TX_PREDICT_MULTI      4.0
+#define TX_PREDICT_PERIOD     false
+#define TX_PREDICT_MULTI      8
 #define TX_DEFER_MULTI        4
 #define TX_PREAMBLE_REPEAT    4
 #define TX_PREAMBLE_BYTE      0x55 // 0b01010101

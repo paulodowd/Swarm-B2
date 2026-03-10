@@ -123,8 +123,7 @@ typedef struct ir_saturation {
 } ir_saturation_t;
 
 // Used to count how often the receiver is
-// cycled because of a byte timeout error 
-// or no activity in a short period.
+// cycled because of inactivity.
 typedef struct ir_skips {
   uint32_t rx[4];
 } ir_skips_t;
@@ -184,16 +183,16 @@ typedef struct ir_sensors {
 // Struct to contain the configuration
 // for transmission.
 typedef struct ir_tx_params {      // total = 17 bytes
-  union {                          // 2 bytes
-    uint8_t all_flags;             // to access all flags at once
+  union {                     // 1 byte
+    uint8_t all_flags;        // to access all flags at once
     struct {
       uint8_t defer           : 1; // if received a byte, defer tx?
       uint8_t desync          : 1; // randomise period?
       uint8_t reserved        : 6; // 3 more bools available
     } bits;
   } flags;
-  uint8_t  repeat;            // 1: how many repeated IR transmissions?
-  float    predict_multi;     // 4: how many multiples of tx_len to use with predict?
+  uint32_t repeat;            // 1: how many repeated IR transmissions?
+  uint8_t  predict_multi;     // 1: how many multiples of tx_len to use with predict?
   uint8_t  defer_multi;       // 1: how many multiples of ms since rx to cancel a tx?
   uint8_t  preamble_repeat;   // 1: how many repeated preamble bytes before transmission?
   uint32_t period_ms;         // 4: periodic:  current ms period to send messages
@@ -204,7 +203,7 @@ typedef struct ir_tx_params {      // total = 17 bytes
 
 // Struct to contain the configuration
 // for reception.
-typedef struct ir_rx_params {       // total = ?? bytes.
+typedef struct ir_rx_params {       // total = 14 bytes.
   union {                           // 1 bytes
     uint8_t all_flags;             // to access all flags at once
     struct {
@@ -218,14 +217,26 @@ typedef struct ir_rx_params {       // total = ?? bytes.
       uint8_t rand_rx         : 1; // randomise rx cycling
     } bits;
   } flags;
-  float     predict_multi; //  4: multiplier when predicting how long to listen for.
-  uint32_t  period_ms;        //  4: current ms used to wait before switching receiver
-  uint32_t  period_base_ms;   //  4: normal rx_period to use (can be modified)
-  uint8_t   index;         //  1: Which receiver is active? if cycle is false, sets Rx
-  uint8_t   skip_multi;    //  1: how many multiples of a byte inactivity before skip?
-  uint8_t   byte_timeout_ms;  //  1: If we haven't received a consecutive byte, timeout
-  uint32_t  sat_timeout_us;   //  1: Rx seems to saturate, watch for 0 byte activity.
-  uint8_t   len;           //  1: how long was the last received message?
+
+  // Making some changes:
+  // period_base_ms: by using a 16 bit number, we can set a period of 
+  //                 65 seconds.  That seems plenty.  For anything more
+  //                 the user might as well exercise manual control of
+  //                 which receiver.  
+  // timeout_multi: we only consider a timeout operation for 
+  //                receiving consecutive bytes. Again, we know this will
+  //                be a multiple of the ms to receive bytes
+  // saturation_multi: I think we need a ms value here, and 16 bits seems
+  //                   enough (65535 -> 65 seconds)
+  //                   to trigger desaturation (toggle receiver)
+  uint8_t   predict_multi;      //  1: multiplier when predicting how long to listen for.
+  uint32_t  period_ms;          //  4: current ms used to wa  it before switching receiver
+  uint16_t  period_base_ms;     //  2: normal rx_period to use (can be modified)
+  uint8_t   index;              //  1: Which receiver is active? if cycle is false, sets Rx
+  uint8_t   skip_multi;         //  1: how many multiples of a byte inactivity before skip?
+  uint8_t   timeout_multi;      //  1: If we haven't received a consecutive byte, timeout
+  uint16_t  saturation_us;      //  2: Rx seems to saturate, watch for 0 byte activity.
+  uint8_t   len;                //  1: how long was the last received message?
 } ir_rx_params_t;
 
 

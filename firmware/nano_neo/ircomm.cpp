@@ -53,8 +53,8 @@ void IRComm_c::init() {
   config.rx.period_base_ms              = RX_DEFAULT_PERIOD;
   config.rx.predict_multi               = RX_PREDICT_MULTIPLIER;
   config.rx.index                       = 3;
-  config.rx.byte_timeout_ms             = RX_BYTE_TIMEOUT_MS;
-  config.rx.sat_timeout_us              = RX_SAT_TIMEOUT_US;
+  config.rx.timeout_multi               = RX_TIMEOUT_MULTI;
+  config.rx.saturation_us               = RX_SATURATION_US;
 
 #ifdef IR_FREQ_38
   NeoSerial.begin( 4800 );
@@ -221,7 +221,7 @@ void IRComm_c::updateBearingActivity() {
   // Update bearing estimate.
   metrics.bearing.sum  = sum;
   float x = (metrics.vectors.rx[0] - metrics.vectors.rx[2]);
-  float y = (metrics.vectors.rx[1] - metrics.vectors.rx[3]);
+  float y = (metrics.vectors.rx[3] - metrics.vectors.rx[1]);
   metrics.bearing.theta = atan2( y, x );
   metrics.bearing.mag = sqrt( pow(x, 2) + pow(y, 2));
 
@@ -389,7 +389,7 @@ void IRComm_c::setRxPeriod() {
     t = (float)config.rx.len;
 
     // How many full message-lengths to listen for?
-    t *= config.rx.predict_multi;
+    t *= (float)config.rx.predict_multi;
 
     // Scale for milliseconds
 #ifdef IR_FREQ_56
@@ -434,7 +434,7 @@ void IRComm_c::setTxPeriod() {
 
   if ( isTxPredictPeriod() && config.tx.len > 0 ) {
     t = (float)config.tx.len;
-    t *= config.tx.predict_multi;
+    t *= (float)config.tx.predict_multi;
 
     // Scale for milliseconds per byte
 #ifdef IR_FREQ_56
@@ -569,7 +569,7 @@ bool IRComm_c::isRxCycle() {
   return false;
 }
 bool IRComm_c::isRxDesaturate() {
-  if ( config.rx.sat_timeout_us > 0 ) return true;
+  if ( config.rx.saturation_us > 0 ) return true;
   return false;
 }
 
@@ -655,7 +655,17 @@ bool IRComm_c::update() {
 
     // We assume we always want to get the latest
     // byte from the UART buffer
-    int status = parser.getNextByte( (uint32_t)config.rx.byte_timeout_ms );
+    float timeout_ms = (float)config.rx.timeout_multi;
+
+    // scale for carrier frequency clock
+    #ifdef IR_FREQ_56
+    timeout_ms *= (float)MS_PER_BYTE_58KHZ;
+    #endif
+    #ifdef IR_FREQ_38
+    timeout_ms *= (float)MS_PER_BYTE_38KHZ;
+    #endif
+    
+    int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
 
     // Frame errors can happen even if a byte is not
     // received.  We update the counts here.
@@ -825,7 +835,7 @@ bool IRComm_c::update() {
         //      if ( config.rx.flags.bits.desaturate == 1 ) {
         if ( isRxDesaturate() ) { // if we have a saturation timeout
 
-          if ( metrics.byte_timings.dt_us[config.rx.index] > (unsigned long)config.rx.sat_timeout_us ) {
+          if ( metrics.byte_timings.dt_us[config.rx.index] > (uint32_t)config.rx.saturation_us ) {
 
             toggleRxPower();
 
@@ -882,6 +892,8 @@ bool IRComm_c::update() {
           cycle = true;
 
         }
+      } else {
+        cycle = false;
       }
 
 
@@ -1004,12 +1016,13 @@ bool IRComm_c::update() {
 
       // Don't do anything if there is no message
       // to transmit.
-      if ( config.tx.len == 0 ) {
+      if ( config.tx.len == 0 || config.tx.repeat == 0 ) {
 
         // Schedule next transmission
         // Redundant if set to INTERLEAVED
         setTxPeriod();
-        return false;
+        return false;        
+      
       } else {
 
 
@@ -1031,7 +1044,7 @@ bool IRComm_c::update() {
         // IR.  NeoSerial TX is modulated with
         // the 38Khz or 58khz carrier in hardware.
         //unsigned long start_t = micros();
-        for ( uint8_t i = 0; i < config.tx.repeat; i++ ) {
+        for ( uint32_t i = 0; i < config.tx.repeat; i++ ) {
 
           // Checking HardwareNeoSerial.cpp, .write() is a blocking
           // function.  Therefore we don't need .flush()
