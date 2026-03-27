@@ -19,7 +19,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#pragma pack(1) 
+#pragma pack(push, 1) 
 
 #define IRCOMM_I2C_ADDR  0x11
 
@@ -239,6 +239,6 @@ typedef struct ir_rx_params {       // total = 14 bytes.
   uint8_t   len;                //  1: how long was the last received message?
 } ir_rx_params_t;
 
-
+#pragma pack(pop)
 
 #endif

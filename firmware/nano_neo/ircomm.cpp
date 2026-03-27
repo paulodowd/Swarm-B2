@@ -664,8 +664,10 @@ bool IRComm_c::update() {
     #ifdef IR_FREQ_38
     timeout_ms *= (float)MS_PER_BYTE_38KHZ;
     #endif
-    
-    int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
+
+    // Paul: I think this is a bug, should be timeout_ms?
+    //int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
+    int status = parser.getNextByte( (uint32_t)timeout_ms );
 
     // Frame errors can happen even if a byte is not
     // received.  We update the counts here.
