@@ -186,9 +186,8 @@ typedef struct ir_tx_params {      // total = 17 bytes
   union {                     // 1 byte
     uint8_t all_flags;        // to access all flags at once
     struct {
-      uint8_t defer           : 1; // if received a byte, defer tx?
       uint8_t desync          : 1; // randomise period?
-      uint8_t reserved        : 6; // 3 more bools available
+      uint8_t reserved        : 7; // 3 more bools available
     } bits;
   } flags;
   uint32_t repeat;            // 1: how many repeated IR transmissions?

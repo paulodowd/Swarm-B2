@@ -19,7 +19,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#pragma pack(1) 
+#pragma pack(push, 1) 
 
 #define IRCOMM_I2C_ADDR  0x11
 
@@ -186,9 +186,8 @@ typedef struct ir_tx_params {      // total = 17 bytes
   union {                     // 1 byte
     uint8_t all_flags;        // to access all flags at once
     struct {
-      uint8_t defer           : 1; // if received a byte, defer tx?
       uint8_t desync          : 1; // randomise period?
-      uint8_t reserved        : 6; // 3 more bools available
+      uint8_t reserved        : 7; // 3 more bools available
     } bits;
   } flags;
   uint32_t repeat;            // 1: how many repeated IR transmissions?
@@ -239,6 +238,6 @@ typedef struct ir_rx_params {       // total = 14 bytes.
   uint8_t   len;                //  1: how long was the last received message?
 } ir_rx_params_t;
 
-
+#pragma pack(pop)
 
 #endif

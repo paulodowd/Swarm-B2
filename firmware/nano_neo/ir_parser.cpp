@@ -1,7 +1,8 @@
 #include "ir_parser.h"
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
 #include <NeoHWSerial.h>
 #include <NeoHWSerial_private.h>
-
 
 IRParser_c::IRParser_c() {
   reset();
@@ -60,11 +61,10 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
         return REPORT_ONE_BYTES;
       }
 
-
+      // Since we just got start byte, the next
+      // should be length
       rx_state = RX_WAIT_LEN;
 
-      // Must be in WAIT_LEN, shouldn't have got the
-      // start byte.
       return -ERR_RESYNC;
     }
 

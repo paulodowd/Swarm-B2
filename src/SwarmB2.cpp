@@ -4,21 +4,56 @@
 #include <limits.h>
 
 void SwarmB2_c::init() {
-  // Populate the board config cache ready for
-  // any subsequent user changes
   memset( &rx_settings, 0, sizeof( rx_settings ));
   memset( &tx_settings, 0, sizeof( tx_settings ));
 
+  // Populate the board config cache ready for
+  // any subsequent user changes
   getRxSettings();
   delay(5);
   getTxSettings();
+  delay(5);
 
+  // Ensure we have default settings
+  configureDefault();
+}
+
+
+void SwarmB2_c::configureDefault() {
+  
+  // Settings for receiving
+  rx_settings.flags.bits.cycle_on_rx    = true;
+  rx_settings.flags.bits.desync         = true;
+  rx_settings.flags.bits.overrun        = true;
+  rx_settings.flags.bits.rand_rx        = false;
+  rx_settings.flags.bits.rx0            = true;
+  rx_settings.flags.bits.rx1            = false;
+  rx_settings.flags.bits.rx2            = false;
+  rx_settings.flags.bits.rx3            = true;
+  rx_settings.skip_multi                = 0;
+  rx_settings.predict_multi             = 0;
+  rx_settings.index                     = 0;
+  rx_settings.period_base_ms            = 60;
+  rx_settings.timeout_multi             = 0;
+  rx_settings.saturation_us             = 20000;
+  setRxSettings();
+
+  // Settings for tranmission
+  tx_settings.flags.bits.desync = 1;
+  tx_settings.repeat            = 3;
+  tx_settings.predict_multi     = 4;
+  tx_settings.defer_multi       = 1;
+  tx_settings.preamble_repeat   = 4;
+  tx_settings.period_base_ms    = 170;
+  setTxSettings();
+
+  resetMetrics();
 }
 
 void SwarmB2_c::updateSettings() {
 
   // Settings for receiving
-  rx_settings.flags.bits.cycle_on_rx    = false;
+  rx_settings.flags.bits.cycle_on_rx    = true;
   rx_settings.flags.bits.desync         = false;
   rx_settings.flags.bits.overrun        = true;
   rx_settings.flags.bits.rand_rx        = false;
@@ -29,19 +64,17 @@ void SwarmB2_c::updateSettings() {
   rx_settings.skip_multi                = 0;
   rx_settings.predict_multi             = 4;
   rx_settings.index                     = 0;
-  rx_settings.period_base_ms            = 0;
+  rx_settings.period_base_ms            = 60;
   rx_settings.timeout_multi             = 6;
   rx_settings.saturation_us             = 20000;
   setRxSettings();
 
   // Settings for tranmission
-  tx_settings.flags.bits.defer  = 0;
   tx_settings.flags.bits.desync = 1;
-  //tx_settings.repeat            = UINT32_MAX;
-  tx_settings.repeat            = 0;
+  tx_settings.repeat            = 3;
   tx_settings.predict_multi     = 4;
   tx_settings.defer_multi       = 0;
-  tx_settings.preamble_repeat   = 0;
+  tx_settings.preamble_repeat   = 4;
   tx_settings.period_base_ms    = 170;
   setTxSettings();
 
@@ -281,7 +314,6 @@ void SwarmB2_c::printTxSettings() {
   Serial.println("SwarmB2 Tx Settings:");
   //Serial.print(" Mode: \t\t\t"); Serial.println( tx_settings.flags.bits.mode > 0 ? "interleaved" : "periodic" );
   //Serial.print(" Predict Period: \t"); Serial.println( tx_settings.flags.bits.predict_period > 0 ? "true" : "false" );
-  Serial.print(" Defer: \t\t"); Serial.println( tx_settings.flags.bits.defer > 0 ? "true" : "false" );
   Serial.print(" Desync: \t\t"); Serial.println( tx_settings.flags.bits.desync > 0 ? "true" : "false" );
   Serial.print(" Preamble repeat: \t"); Serial.println( tx_settings.preamble_repeat );
   Serial.print(" Defer multi: \t"); Serial.println( tx_settings.defer_multi );

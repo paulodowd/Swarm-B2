@@ -1,6 +1,7 @@
-#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
-#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
-
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
+#include <NeoHWSerial.h>
+#include <NeoHWSerial_private.h>
 #include <avr/io.h>
 #include <Wire.h>
 #include "ircomm.h"
@@ -324,7 +325,7 @@ void setup() {
 
 
   // Paul: I was using this to test
-  //  setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
@@ -345,16 +346,17 @@ int setRandomMsg(int len) {
   //buf[ms_len] = ':';
   //ms_len++;
 
-  //  sprintf(buf, "123456789~123456789~123456789~^^");
+  sprintf(buf, "paul_test");
+  len = 9;
   //    sprintf(buf, "12345678");
   
   // Create a random test string, but exclude our
   // token characters
-  for ( int i = 0; i < len; i++ ) {
-    do {
-      buf[i] = (char)random( 0, 256 );
-    } while( buf[i] == '~' || buf[i] == '^' );
-  }
+//  for ( int i = 0; i < len; i++ ) {
+//    do {
+//      buf[i] = (char)random( 0, 256 );
+//    } while( buf[i] == '~' || buf[i] == '^' );
+//  }
 
   //  typedef struct msg {
   //    float v[2];

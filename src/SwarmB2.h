@@ -34,6 +34,7 @@ class SwarmB2_c {
     void printRxSettings();
     void resetMetrics();
     void stopTransmitting();
+    void configureDefault();
     void updateSettings();
 
     // Messaging operations

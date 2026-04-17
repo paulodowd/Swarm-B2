@@ -98,17 +98,10 @@
 // by randomising the tx period?
 #define TX_DESYNC  1
 
- // Try to minimise interference by only transmitting
- // when no other IR transmission has been detected
- // If IR detected, will try again on next iteration
-#define TX_DEFER   0
-
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define TX_DEFAULT_REPEAT 3
-
-
+#define TX_DEFAULT_REPEAT UINT32_MAX
 
 // How often should the bearing estimate be updated?
 #define UPDATE_BEARING_MS  250

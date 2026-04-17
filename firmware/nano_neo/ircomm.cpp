@@ -1,5 +1,7 @@
-#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
-#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
+//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
+#include <NeoHWSerial.h>
+#include <NeoHWSerial_private.h>
 #include "ircomm.h"
 
 
@@ -29,7 +31,6 @@ void IRComm_c::init() {
   config.tx.predict_multi               = TX_PREDICT_MULTI;
   config.tx.repeat                      = TX_DEFAULT_REPEAT;
   config.tx.flags.bits.desync           = TX_DESYNC;
-  config.tx.flags.bits.defer            = TX_DEFER;
   config.tx.period_base_ms                 = TX_DEFAULT_PERIOD;
   config.tx.preamble_repeat             = TX_PREAMBLE_REPEAT;
   config.tx.defer_multi                 = TX_DEFER_MULTI;
@@ -117,7 +118,6 @@ void IRComm_c::resetMetrics() {
     metrics.byte_timings.ts_us[i] = micros();
   }
 }
-
 
 
 // Used to activate the next IR receiver.
@@ -308,10 +308,9 @@ void IRComm_c::enableRx() {
 void IRComm_c::resetUART() {
 
   disableRx();
+  while(NeoSerial.available() ) NeoSerial.read();
   delayMicroseconds(10);
   enableRx();
-
-
 }
 
 // TODO: watch out!  We set 4ms here, this might
@@ -766,7 +765,7 @@ bool IRComm_c::update() {
         // User may have configured the board to do interleaved
         // transmission but no cycling of receiver
         //      if ( config.rx.flags.bits.cycle == true ) {
-        if ( config.rx.period_ms > 0 ) { // if we have a >0 period, we are cycling
+        if ( config.rx.period_ms >  0 ) { // if we have a >0 period, we are cycling
           cycle = true;
         }
       }
@@ -901,7 +900,7 @@ bool IRComm_c::update() {
 
       // defer == true: recent byte activity will mean
       // that the transmission is deferred (cancelled)
-      if ( config.tx.flags.bits.defer ) {
+      if ( config.tx.defer_multi > 0 ) {
 
         // Was the last byte activity within the time
         // expected?
@@ -962,8 +961,6 @@ bool IRComm_c::update() {
         if ( skip ) metrics.skips.rx[config.rx.index]++;
 
         if ( cyclePowerRx() ) {
-
-          parser.reset();
           advanceByteTimestamps();
         }
 
