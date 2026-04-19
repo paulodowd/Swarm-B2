@@ -14,7 +14,7 @@ SwarmB2_c SwarmB2;
 void setup() {
   Serial.begin(115200);
   Wire.begin();     // Required for SwarmB2
-//  Wire.setClock(400000);
+  Wire.setClock(400000);
 
   // Wait for connection
   while(!Serial);
@@ -35,6 +35,11 @@ void setup() {
 }
 
 void loop() {
+  SwarmB2.printMsgStatus();
+  delay(20);
+}
+
+void loop2() {
 
 //  SwarmB2.getRxActivity();
 

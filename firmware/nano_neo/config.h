@@ -104,7 +104,7 @@
 #define TX_DEFAULT_REPEAT UINT32_MAX
 
 // How often should the bearing estimate be updated?
-#define UPDATE_BEARING_MS  250
+#define UPDATE_BEARING_MS  100
 
 
 // I2C constrains the message payload to 32

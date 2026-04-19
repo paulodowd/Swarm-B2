@@ -20,15 +20,15 @@ void SwarmB2_c::init() {
 
 
 void SwarmB2_c::configureDefault() {
-  
+
   // Settings for receiving
   rx_settings.flags.bits.cycle_on_rx    = true;
   rx_settings.flags.bits.desync         = true;
   rx_settings.flags.bits.overrun        = true;
   rx_settings.flags.bits.rand_rx        = false;
   rx_settings.flags.bits.rx0            = true;
-  rx_settings.flags.bits.rx1            = false;
-  rx_settings.flags.bits.rx2            = false;
+  rx_settings.flags.bits.rx1            = true;
+  rx_settings.flags.bits.rx2            = true;
   rx_settings.flags.bits.rx3            = true;
   rx_settings.skip_multi                = 0;
   rx_settings.predict_multi             = 0;
@@ -93,8 +93,14 @@ void SwarmB2_c::updateSettings() {
 //  [1:32]valid message length
 int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
 
-  // Check receiver index is valid
-  if ( which_rx >= 0 && which_rx < 4 ) {
+  // Bad request
+  if ( which_rx < 0 || which_rx > 3 ) return -1;
+
+  // Get the message status from the board (1 byte)
+  ir_msg_status_t msg_status = getMsgStatus();
+
+  // If the status bit for this rx is set
+  if ( msg_status.bits & (1 << which_rx) ) {
 
     // First, check if there is a message
     // available (+ve non-zero length)
@@ -138,14 +144,24 @@ int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
       // Flag that no bytes were available
       return 0;
     }
-
-  } else {
-
-    // Invalid receiver, invalid request
-    Serial.println("SwarmB2: Bad receiver request");
-    return -1;
   }
+  return 0;
 
+}
+
+void SwarmB2_c::printMsgStatus() {
+  ir_msg_status_t msg_status = getMsgStatus();
+
+  Serial.print("Msg Status: ");
+
+  for ( int i = 0; i < 4; i++ ) {
+    if ( msg_status.bits & (1 << i) ) {
+      Serial.print("1 ");
+    } else {
+      Serial.print("0 ");
+    }
+  }
+  Serial.println();
 }
 
 // Queries the IR communication board to see if
@@ -160,13 +176,13 @@ uint8_t SwarmB2_c::getMsgLength( int which_rx ) {
   ir_mode_t ircomm;
 
   if ( which_rx == 0 ) {
-    ircomm.mode = MODE_SIZE_MSG0;
+    ircomm.mode = MODE_REPORT_LEN_MSG0;
   } else if ( which_rx == 1 ) {
-    ircomm.mode = MODE_SIZE_MSG1;
+    ircomm.mode = MODE_REPORT_LEN_MSG1;
   } else if ( which_rx == 2 ) {
-    ircomm.mode = MODE_SIZE_MSG2;
+    ircomm.mode = MODE_REPORT_LEN_MSG2;
   } else if ( which_rx == 3 ) {
-    ircomm.mode = MODE_SIZE_MSG3;
+    ircomm.mode = MODE_REPORT_LEN_MSG3;
   } else {
     // Invalid receiver
     return -1;
@@ -181,14 +197,14 @@ uint8_t SwarmB2_c::getMsgLength( int which_rx ) {
   // We'll use this struct to check how many
   // uint8_ts are available of a message.
   // 0 uint8_ts means no message.
-  ir_msg_status_t msg_status;
+  ir_msg_len_t msg_len;
 
   // Request the message size to be sent across into
   // msg_status
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_status ));
-  Wire.readBytes( (uint8_t*)&msg_status, sizeof( msg_status ));
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_len ));
+  Wire.readBytes( (uint8_t*)&msg_len, sizeof( msg_len ));
 
-  return msg_status.n_bytes;// 0 = error, else [1 : 32]
+  return msg_len.n_bytes;// 0 = error, else [1 : 32]
 }
 
 //
@@ -349,6 +365,25 @@ void SwarmB2_c::printRxSettings() {
 }
 
 
+
+ir_msg_status_t   SwarmB2_c::getMsgStatus() {
+  // Set correct more
+  ir_mode_t ircomm;
+  ircomm.mode = MODE_REPORT_MSG_STATUS;
+  Wire.beginTransmission( IRCOMM_I2C_ADDR );
+  Wire.write( (byte*)&ircomm.mode, sizeof( ircomm.mode));
+  Wire.endTransmission();
+
+  // Get data
+  ir_msg_status_t msg_status;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_status));
+  Wire.readBytes( (uint8_t*)&msg_status, sizeof( msg_status));
+
+  // Return result
+  return msg_status;
+
+}
+
 ir_vectors_t      SwarmB2_c::getRxVectors() {
   // Set correct more
   ir_mode_t ircomm;
@@ -376,7 +411,7 @@ ir_activity_t     SwarmB2_c::getRxActivity() {
   ir_activity_t activity;
   Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( activity ));
   Wire.readBytes( (uint8_t*)&activity, sizeof( activity ));
-  
+
   return activity;
 }
 
@@ -498,7 +533,7 @@ ir_cycles_t       SwarmB2_c::getCycles() {
   return cycles;
 }
 ir_sensors_t      SwarmB2_c::getSensors() {
-    // Set correct more
+  // Set correct more
   ir_mode_t ircomm;
   ircomm.mode = MODE_REPORT_SENSORS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
@@ -515,7 +550,7 @@ ir_sensors_t      SwarmB2_c::getSensors() {
 
 }
 ir_frame_errors_t SwarmB2_c::getRxFrameErrors() {
-    // Set correct more
+  // Set correct more
   ir_mode_t ircomm;
   ircomm.mode = MODE_REPORT_FRAME_ERRS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );

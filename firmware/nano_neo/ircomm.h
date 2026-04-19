@@ -45,13 +45,17 @@ class IRComm_c {
     // How the board should operate. 
     // Can be modified in real time 
     // via i2c
-    ircomm_config_t config;
+    volatile ircomm_config_t config;
 
     // Metrics and status of the
     // board operation. Contains
     // the set of structures sent
     // over i2c.
     ircomm_metrics_t  metrics;
+
+    // bitwise flags for a fast response
+    // to i2c polling 
+    volatile ir_msg_status_t msg_status;
 
     // Instance of the parser which handles
     // the byte receiving and decoding with
@@ -149,7 +153,10 @@ class IRComm_c {
     // message is downloaded via i2c.
     void clearRxMsg(int which);
 
-    // Tiny functions to improve code readablity
+    void setMsgStatusBit( int which );
+    void clearMsgStatusBit( int which );
+    
+    // Tiny helper functions to improve code readablity
     bool isTxInterleaved();
     bool isTxPeriodic();
     bool isTxPredictPeriod();
@@ -158,8 +165,6 @@ class IRComm_c {
     bool isRxPredictPeriod();
     bool isRxDisabled();
     bool isRxSkipInactive();
-    
-
 };
 
 

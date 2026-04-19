@@ -14,6 +14,8 @@ void IRComm_c::init() {
 
   disabled = false;
 
+  msg_status.bits = 0;
+
   // Let's set everything to 0 to start with
   memset( &config, 0, sizeof( config ));
 
@@ -541,7 +543,21 @@ void IRComm_c::clearRxMsg(int which) {
   if ( which >= 0 && which < MAX_RX) {
     memset(ir_msg[which], 0, sizeof(ir_msg[which]));
     msg_len[which] = 0;
+    clearMsgStatusBit(which);
   }
+}
+
+void IRComm_c::setMsgStatusBit( int which ) {
+    if( which < 0 || which > 3 ) return;
+    msg_status.bits |= (1 << which );
+} 
+
+void IRComm_c::clearMsgStatusBit( int which ) {
+    if( which < 0 || which > 3 ) return;
+    
+    // clear related bit in status byte
+    msg_status.bits &= ~(1 << which );
+
 }
 
 // This clears out the message we are broadcasting
@@ -744,6 +760,8 @@ bool IRComm_c::update() {
       // Copy message into i2c buffer
       parser.copyMsg( ir_msg[ config.rx.index ] );
 
+      setMsgStatusBit( config.rx.index );
+      
       // Paul: TO REMOVE
       // Try to read out an ID
       //    int id = atoi( ir_msg[ config.rx.index ] );
@@ -1086,6 +1104,7 @@ bool IRComm_c::update() {
       resetMetrics();
       clearTxBuf();
       resetUART();
+      msg_status.bits = 0;
       parser.reset();
     }
 

@@ -19,7 +19,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 
-#pragma pack(push, 1) 
+#pragma pack(push, 1)
 
 #define IRCOMM_I2C_ADDR  0x11
 
@@ -42,10 +42,10 @@ typedef struct ir_mode {
 #define MODE_REPORT_SATURATION  3
 #define MODE_REPORT_SKIPS       4
 #define MODE_STOP_TX            5
-#define MODE_SIZE_MSG0          6
-#define MODE_SIZE_MSG1          7
-#define MODE_SIZE_MSG2          8
-#define MODE_SIZE_MSG3          9
+#define MODE_REPORT_LEN_MSG0    6
+#define MODE_REPORT_LEN_MSG1    7
+#define MODE_REPORT_LEN_MSG2    8
+#define MODE_REPORT_LEN_MSG3    9
 #define MODE_REPORT_MSG0        10
 #define MODE_REPORT_MSG1        11
 #define MODE_REPORT_MSG2        12
@@ -73,7 +73,13 @@ typedef struct ir_mode {
 #define MODE_GET_RX             34
 #define MODE_GET_TX             35
 #define MODE_SET_MSG            36
-#define MAX_MODE                37
+#define MODE_REPORT_MSG_STATUS  37
+#define MAX_MODE                38
+
+
+typedef struct {
+  uint8_t bits;
+} ir_msg_status_t;
 
 // Contains pass/fail count for the
 // crc decoded at the end of each message.
@@ -90,7 +96,7 @@ typedef struct ir_activity {
 } ir_activity_t;
 
 // Used to periodically create component
-// vectors for a bearing estimation, 
+// vectors for a bearing estimation,
 // drawn from the activity struct.
 typedef struct ir_vectors {
   float rx[4];         // 4x4 = 16bytes
@@ -115,7 +121,7 @@ typedef struct ir_frame_errors {
   uint32_t rx[4];       // 4x4 = 16 bytes
 } ir_frame_errors_t;
 
-// Used to count how often the receivers 
+// Used to count how often the receivers
 // are power cycled due to prolonged period
 // of inactivity.
 typedef struct ir_saturation {
@@ -151,10 +157,10 @@ typedef struct ir_cycles {  // 4 bytes
 // To find out if a message is ready
 // to collect.
 // 0: no message.
-// <33: message length. 
+// <33: message length.
 typedef struct ir_msg_status {  // 1 byte
   uint8_t n_bytes;
-} ir_msg_status_t;
+} ir_msg_len_t;
 
 // To find out the relative timing of
 // message activity
@@ -164,7 +170,7 @@ typedef struct ir_msg_timings { // 32 bytes
 } ir_msg_timings_t;
 
 // To find out the relative timing of
-// byte activity (not full messages 
+// byte activity (not full messages
 // correctly received)
 typedef struct ir_byte_timings { // 32 bytes
   uint32_t dt_us[4];           // 16 bytes
@@ -218,11 +224,11 @@ typedef struct ir_rx_params {       // total = 14 bytes.
   } flags;
 
   // Making some changes:
-  // period_base_ms: by using a 16 bit number, we can set a period of 
+  // period_base_ms: by using a 16 bit number, we can set a period of
   //                 65 seconds.  That seems plenty.  For anything more
   //                 the user might as well exercise manual control of
-  //                 which receiver.  
-  // timeout_multi: we only consider a timeout operation for 
+  //                 which receiver.
+  // timeout_multi: we only consider a timeout operation for
   //                receiving consecutive bytes. Again, we know this will
   //                be a multiple of the ms to receive bytes
   // saturation_multi: I think we need a ms value here, and 16 bits seems

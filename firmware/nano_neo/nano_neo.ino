@@ -54,6 +54,7 @@ void i2c_receive( int len ) {
       // Clearing tx  buff will stop transmission of messages
       ircomm.clearTxBuf();
 
+      
     } else if ( new_mode.mode == MODE_RESET_METRICS ) {
       ircomm.resetMetrics();
     } else if ( new_mode.mode == MODE_FULL_RESET ) {
@@ -154,7 +155,10 @@ void i2c_receive( int len ) {
 // is executed.
 void i2c_request() {
 
-  if ( last_mode.mode == MODE_REPORT_CRC ) {
+  if ( last_mode.mode == MODE_REPORT_MSG_STATUS ) {
+    Wire.write( (byte*)&ircomm.msg_status, sizeof(ircomm.msg_status) );
+
+  } else if ( last_mode.mode == MODE_REPORT_CRC ) {
 
     Wire.write( (byte*)&ircomm.metrics.crc, sizeof(ircomm.metrics.crc) );
 
@@ -182,29 +186,32 @@ void i2c_request() {
 
     Wire.write( (byte*)&ircomm.metrics.frame_errors, sizeof( ircomm.metrics.frame_errors ) );
 
-  }  else if ( last_mode.mode == MODE_SIZE_MSG0 ) {
+  }  else if ( last_mode.mode == MODE_REPORT_LEN_MSG0) {
 
-    ir_mode_t msg_status;
-    msg_status.mode = ircomm.msg_len[0];
-    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
-
-
-  } else if ( last_mode.mode == MODE_SIZE_MSG1 ) {
-    ir_mode_t msg_status;
-    msg_status.mode = ircomm.msg_len[1];
-    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+    ir_msg_len_t msg_len;
+    msg_len.n_bytes = ircomm.msg_len[0];
+    Wire.write( (byte*)&msg_len, sizeof( msg_len ) );
 
 
-  } else if ( last_mode.mode == MODE_SIZE_MSG2 ) {
-    ir_mode_t msg_status;
-    msg_status.mode = ircomm.msg_len[2];
-    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+  } else if ( last_mode.mode == MODE_REPORT_LEN_MSG1 ) {
+    
+    ir_msg_len_t msg_len;
+    msg_len.n_bytes = ircomm.msg_len[1];
+    Wire.write( (byte*)&msg_len, sizeof( msg_len ) );
 
 
-  } else if ( last_mode.mode == MODE_SIZE_MSG3 ) {
-    ir_mode_t msg_status;
-    msg_status.mode = ircomm.msg_len[3];
-    Wire.write( (byte*)&msg_status, sizeof( msg_status ) );
+  } else if ( last_mode.mode == MODE_REPORT_LEN_MSG2 ) {
+    
+    ir_msg_len_t msg_len;
+    msg_len.n_bytes = ircomm.msg_len[2];
+    Wire.write( (byte*)&msg_len, sizeof( msg_len ) );
+
+
+  } else if ( last_mode.mode == MODE_REPORT_LEN_MSG3 ) {
+
+    ir_msg_len_t msg_len;
+    msg_len.n_bytes = ircomm.msg_len[3];
+    Wire.write( (byte*)&msg_len, sizeof( msg_len ) );
 
   } else if ( last_mode.mode == MODE_REPORT_MSG0 ) {
     if ( ircomm.msg_len[0] == 0 ) {
@@ -325,7 +332,7 @@ void setup() {
 
 
   // Paul: I was using this to test
-//  setRandomMsg(8);
+  setRandomMsg(8);
 }
 
 
