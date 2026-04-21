@@ -1,7 +1,3 @@
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
-#include <NeoHWSerial.h>
-#include <NeoHWSerial_private.h>
 #include "ircomm.h"
 
 
@@ -14,7 +10,7 @@ void IRComm_c::init() {
 
   disabled = false;
 
-  msg_status.bits = 0;
+  ir_status.bits = 0;
 
   // Let's set everything to 0 to start with
   memset( &config, 0, sizeof( config ));
@@ -60,11 +56,11 @@ void IRComm_c::init() {
   config.rx.saturation_us               = RX_SATURATION_US;
 
 #ifdef IR_FREQ_38
-  NeoSerial.begin( 4800 );
+  Serial.begin( 4800 );
 #endif
 
 #ifdef IR_FREQ_56
-  NeoSerial.begin( 9600 );
+  Serial.begin( 9600 );
 #endif
 
   // Debug led
@@ -114,7 +110,6 @@ void IRComm_c::init() {
 
 void IRComm_c::resetMetrics() {
   memset( &metrics, 0, sizeof( metrics ));
-  NeoSerial.resetFrameErrorCount();
   for ( int i = 0; i < MAX_RX; i++ ) {
     metrics.msg_timings.ts_ms[i] = millis();
     metrics.byte_timings.ts_us[i] = micros();
@@ -264,21 +259,20 @@ void IRComm_c::powerOnRx( byte index ) {
 
   }
 
-  // too quick?
-  //delayMicroseconds(250);
-
+  clearRxActivityBits();
+  
   // Vishay stipulate 1-2ms for functional operation
   // but up to 20ms for stable filtering.
-  delay(20);
+  delay(2);
 
   // After changing which receiver is active,
-  // the NeoSerial buffer is full of old data.
+  // the Serial buffer is full of old data.
   // We clear it now.
   resetUART();
   parser.reset();
 }
 
-// The arduino nano has a parallel NeoSerial
+// The arduino nano has a parallel Serial
 // interface,meaning with IR it can receive
 // it's own tranmission. There, we access the
 // UART register to disable RX functionality.
@@ -291,7 +285,7 @@ void IRComm_c::disableRx() {
   sei();
 }
 
-// Re-enable the NeoSerial port RX hardware.
+// Re-enable the Serial port RX hardware.
 void IRComm_c::enableRx() {
   cli();
   UCSR0A &= ~(1 << FE0);
@@ -310,7 +304,7 @@ void IRComm_c::enableRx() {
 void IRComm_c::resetUART() {
 
   disableRx();
-  while(NeoSerial.available() ) NeoSerial.read();
+  while(Serial.available() ) Serial.read();
   delayMicroseconds(10);
   enableRx();
 }
@@ -367,7 +361,7 @@ void IRComm_c::powerOffAllRx() {
 //}
 
 
-// https://lucidar.me/en/NeoSerialib/most-used-baud-rates-table/
+// https://lucidar.me/en/Serialib/most-used-baud-rates-table/
 void IRComm_c::setRxPeriod() {
 
   // If user sets period_base_ms to 0 it means
@@ -466,7 +460,7 @@ void IRComm_c::setTxPeriod() {
 }
 
 
-// To stop NeoSerial transmission on the IR LEDs
+// To stop Serial transmission on the IR LEDs
 // we stop timer2 by setting the clock source
 // to 0.  We also set pin 4 to HIGH? LOW? to
 // keep the IR LEDs off.
@@ -498,7 +492,7 @@ void IRComm_c::enableTx() {
 
 // We use Timer2 to generate a 38khz clock
 // which is electronically OR'd with the
-// NeoSerial TX.
+// Serial TX.
 void IRComm_c::setupTimer1() {
 
   // Termporarily stop interupts
@@ -549,16 +543,33 @@ void IRComm_c::clearRxMsg(int which) {
 
 void IRComm_c::setMsgStatusBit( int which ) {
     if( which < 0 || which > 3 ) return;
-    msg_status.bits |= (1 << which );
+    ir_status.bits |= (1 << which );
 } 
 
+void IRComm_c::clearRxActivityBits() {
+  ir_status.bits &= 0b00001111;
+}
 void IRComm_c::clearMsgStatusBit( int which ) {
     if( which < 0 || which > 3 ) return;
     
     // clear related bit in status byte
-    msg_status.bits &= ~(1 << which );
+    ir_status.bits &= ~(1 << which );
 
 }
+void IRComm_c::setRxActivityBit( int which ) {
+    if( which < 0 || which > 3 ) return;
+    ir_status.bits |= (1 << (which+4) );
+} 
+
+void IRComm_c::clearRxActivityBit( int which ) {
+    if( which < 0 || which > 3 ) return;
+    
+    // clear related bit in status byte
+    ir_status.bits &= ~(1 << (which+4) );
+
+}
+
+
 
 // This clears out the message we are broadcasting
 void IRComm_c::clearTxBuf() {
@@ -684,13 +695,6 @@ bool IRComm_c::update() {
     //int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
     int status = parser.getNextByte( (uint32_t)timeout_ms );
 
-    // Frame errors can happen even if a byte is not
-    // received.  We update the counts here.
-    // I'm not sure if doing this very frequently will
-    // interfere with the UART process (it suspends
-    // interrupts momentarily).
-    metrics.frame_errors.rx[ config.rx.index ] += NeoSerial.getFrameErrorCount();
-    NeoSerial.resetFrameErrorCount();
 
 
     // Use the value of status to update metrics and/or
@@ -798,6 +802,8 @@ bool IRComm_c::update() {
     }
 
     if ( activity ) { // We had some byte activity, log
+
+      setRxActivityBit( config.rx.index );
 
       // Record timing statistics for byte activity
       updateByteTimestamp();
@@ -1054,24 +1060,24 @@ bool IRComm_c::update() {
         // determine the clock of the source.
         // Add some preamble bytes. 0x55 = 0b01010101
         for ( uint8_t i = 0; i < config.tx.preamble_repeat; i++ ) {
-          NeoSerial.write( TX_PREAMBLE_BYTE );
+          Serial.write( TX_PREAMBLE_BYTE );
         }
 
-        // Using NeoSerial.print transmits over
-        // IR.  NeoSerial TX is modulated with
+        // Using Serial.print transmits over
+        // IR.  Serial TX is modulated with
         // the 38Khz or 58khz carrier in hardware.
         //unsigned long start_t = micros();
         for ( uint32_t i = 0; i < config.tx.repeat; i++ ) {
 
-          // Checking HardwareNeoSerial.cpp, .write() is a blocking
+          // Checking HardwareSerial.cpp, .write() is a blocking
           // function.  Therefore we don't need .flush()
-          //NeoSerial.availableForWrite();
+          //Serial.availableForWrite();
           for ( int j = 0; j < config.tx.len; j++ ) {
-            NeoSerial.write( tx_buf[j] );
+            Serial.write( tx_buf[j] );
           }
 
-          //NeoSerial.print(tx_buf);
-          NeoSerial.flush();  // wait for send to complete
+          //Serial.print(tx_buf);
+          Serial.flush();  // wait for send to complete
           metrics.cycles.tx++;
         }
 
@@ -1104,7 +1110,7 @@ bool IRComm_c::update() {
       resetMetrics();
       clearTxBuf();
       resetUART();
-      msg_status.bits = 0;
+      ir_status.bits = 0;
       parser.reset();
     }
 

@@ -28,7 +28,6 @@ typedef struct ircomm_metrics {
   ir_saturation_t   saturation;
   ir_skips_t        skips;
   ir_errors_t       errors;
-  ir_frame_errors_t frame_errors;
   ir_cycles_t       cycles;
   ir_msg_timings_t  msg_timings;
   ir_byte_timings_t  byte_timings;
@@ -55,7 +54,7 @@ class IRComm_c {
 
     // bitwise flags for a fast response
     // to i2c polling 
-    volatile ir_msg_status_t msg_status;
+    volatile ir_status_t ir_status;
 
     // Instance of the parser which handles
     // the byte receiving and decoding with
@@ -155,6 +154,9 @@ class IRComm_c {
 
     void setMsgStatusBit( int which );
     void clearMsgStatusBit( int which );
+    void setRxActivityBit( int which );
+    void clearRxActivityBit( int which );
+    void clearRxActivityBits();
     
     // Tiny helper functions to improve code readablity
     bool isTxInterleaved();

@@ -42,11 +42,12 @@ class SwarmB2_c {
     void    setIRMessage( uint8_t * payload, int len );
     int     getIRMessage( uint8_t * msg_buf, int rx );
 
-    void printMsgStatus();
+    void printStatus();
+    void printAnyMessage();
 
     // Functions for board metrics
     // Refer to ircomm_i2c.h for datatypes
-    ir_msg_status_t   getMsgStatus();
+    ir_status_t       getStatus();
     ir_bearing_t      getBearing();
     ir_vectors_t      getRxVectors();
     ir_activity_t     getRxActivity();
@@ -58,7 +59,6 @@ class SwarmB2_c {
     ir_crc_t          getRxCRC();
     ir_cycles_t       getCycles();
     ir_sensors_t      getSensors();
-    ir_frame_errors_t getRxFrameErrors();
 };
 
 #endif

@@ -61,7 +61,7 @@ typedef struct ir_mode {
 #define MODE_REPORT_MSG_TIMINGS 22
 #define MODE_REPORT_BYTE_TIMINGS 23
 #define MODE_REPORT_HIST        24
-#define MODE_REPORT_FRAME_ERRS  25
+#define MODE_REPORT_STATUS      25
 #define MODE_CLEAR_HIST         26
 #define MODE_FULL_RESET         27
 #define MODE_REPORT_CYCLES      28
@@ -73,17 +73,18 @@ typedef struct ir_mode {
 #define MODE_GET_RX             34
 #define MODE_GET_TX             35
 #define MODE_SET_MSG            36
-#define MODE_REPORT_MSG_STATUS  37
-#define MAX_MODE                38
+#define MAX_MODE                37
 
 
+// Bits 0:3 Message available rx 0-3
+// Bits 4:7 Rx Activity rx 0-3
 typedef struct {
   uint8_t bits;
-} ir_msg_status_t;
+} ir_status_t;
 
 // Contains pass/fail count for the
 // crc decoded at the end of each message.
-typedef struct ir_crc {
+typedef struct {
   uint32_t fail[4];   // 4 * 4 = 16bytes
   uint32_t pass[4];   // 4 * 4 = 16bytes
 } ir_crc_t;
@@ -91,14 +92,14 @@ typedef struct ir_crc {
 // Contains a simple count of byte activity
 // per receiver.  Used to estimate bearing
 // elsewhere.
-typedef struct ir_activity {
+typedef struct  {
   uint32_t rx[4];
 } ir_activity_t;
 
 // Used to periodically create component
 // vectors for a bearing estimation,
 // drawn from the activity struct.
-typedef struct ir_vectors {
+typedef struct  {
   float rx[4];         // 4x4 = 16bytes
 } ir_vectors_t;
 
@@ -109,47 +110,42 @@ typedef struct ir_vectors {
 //      is very confident. If 0, counts for
 //      each receiver have cancelled out.
 // Sum: Pre-normalised sum of rx counts used.
-typedef struct ir_bearing {
+typedef struct  {
   float theta;
   float mag;
   float sum;
 } ir_bearing_t;
 
-// Used to store a count of frame errors at
-// the UART hardware level.
-typedef struct ir_frame_errors {
-  uint32_t rx[4];       // 4x4 = 16 bytes
-} ir_frame_errors_t;
 
 // Used to count how often the receivers
 // are power cycled due to prolonged period
 // of inactivity.
-typedef struct ir_saturation {
+typedef struct  {
   uint32_t rx[4];
 } ir_saturation_t;
 
 // Used to count how often the receiver is
 // cycled because of inactivity.
-typedef struct ir_skips {
+typedef struct  {
   uint32_t rx[4];
 } ir_skips_t;
 
 // Used by Paul for some tests
 // To be removed!
-typedef struct ir_hist {
+typedef struct  {
   uint16_t id[4];
 } ir_hist_t;
 
 // Counts for each type of error
 // per receiver.
 // [ rx ][ error ]
-typedef struct ir_errors {  // 32 bytes
+typedef struct  {  // 32 bytes
   uint16_t type[4][4];// 4*4 = 16*2bytes
 } ir_errors_t;
 
 // Used to count how many cycles of the
 // receivers have taken place.
-typedef struct ir_cycles {  // 4 bytes
+typedef struct  {  // 4 bytes
   uint32_t rx;              // 2
   uint32_t tx;              // 2
 } ir_cycles_t;
@@ -164,7 +160,7 @@ typedef struct {  // 1 byte
 
 // To find out the relative timing of
 // message activity
-typedef struct ir_msg_timings { // 32 bytes
+typedef struct { // 32 bytes
   uint32_t dt_ms[4];           // 16 bytes
   uint32_t ts_ms[4];            // 16 bytes
 } ir_msg_timings_t;
@@ -172,7 +168,7 @@ typedef struct ir_msg_timings { // 32 bytes
 // To find out the relative timing of
 // byte activity (not full messages
 // correctly received)
-typedef struct ir_byte_timings { // 32 bytes
+typedef struct  { // 32 bytesir_byte_timings
   uint32_t dt_us[4];           // 16 bytes
   uint32_t ts_us[4];            // 16 bytes
 } ir_byte_timings_t;
@@ -180,7 +176,7 @@ typedef struct ir_byte_timings { // 32 bytes
 // Used to report back readings from the
 // extra sensors that can be mounted on
 // the communication board
-typedef struct ir_sensors {
+typedef struct  {
   int16_t ldr[3];     // 6 bytes
   int16_t prox[2];    // 4 bytes
 } ir_sensors_t;
@@ -188,7 +184,7 @@ typedef struct ir_sensors {
 
 // Struct to contain the configuration
 // for transmission.
-typedef struct ir_tx_params {      // total = 17 bytes
+typedef struct {      // total = 17 bytes
   union {                     // 1 byte
     uint8_t all_flags;        // to access all flags at once
     struct {
@@ -208,7 +204,7 @@ typedef struct ir_tx_params {      // total = 17 bytes
 
 // Struct to contain the configuration
 // for reception.
-typedef struct ir_rx_params {       // total = 14 bytes.
+typedef struct {       // total = 14 bytes.
   union {                           // 1 bytes
     uint8_t all_flags;             // to access all flags at once
     struct {

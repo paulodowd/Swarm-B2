@@ -1,8 +1,8 @@
 
 # Swarm-B2
-Infra-red (IR) Communication board for Pololu 3Pi+ robots that also has a pin header to interface with an M5 Stack Core2.  I've designed this board to conduct research into specific aspects of IR Communication in a swarm robotics context.  This is the second major design of such a board, hence the name (S)warm (B)oard 2 - SwarmB2.
+Infra-red (IR) Communication board for Pololu 3Pi+ robots that also has a pin header to interface with an M5 Stack Core2.  This is the second major design of such a board, hence the name (S)warm (B)oard 2 - SwarmB2.  A third version is under-development with the intention to supercede this design ([SwarmB3](https://github.com/paulodowd/SwarmB3)). 
 
-The board functions as an i2c device, so it should be quite easy to integrate into other projects using 5v, ground, SCK and SDA connections.  The board can communicate with other SwarmB2 boards up to about 2.5m.  
+The board functions as an i2c device, so it should be relatively easy to integrate into other projects using 5v, ground, SCK and SDA connections.  The board can communicate with other SwarmB2 boards up to about 2.5m max, or down to less than a centimetre.  
 
 ## Features
 - 32 bytes per message.

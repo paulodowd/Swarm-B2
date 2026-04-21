@@ -4,8 +4,8 @@
 #include <limits.h>
 
 void SwarmB2_c::init() {
-  memset( &rx_settings, 0, sizeof( rx_settings ));
-  memset( &tx_settings, 0, sizeof( tx_settings ));
+  memset( (void*)&rx_settings, 0, sizeof( rx_settings ));
+  memset( (void*)&tx_settings, 0, sizeof( tx_settings ));
 
   // Populate the board config cache ready for
   // any subsequent user changes
@@ -97,10 +97,10 @@ int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
   if ( which_rx < 0 || which_rx > 3 ) return -1;
 
   // Get the message status from the board (1 byte)
-  ir_msg_status_t msg_status = getMsgStatus();
+  ir_status_t ir_status = getStatus();
 
   // If the status bit for this rx is set
-  if ( msg_status.bits & (1 << which_rx) ) {
+  if ( ir_status.bits & (1 << which_rx) ) {
 
     // First, check if there is a message
     // available (+ve non-zero length)
@@ -149,19 +149,47 @@ int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
 
 }
 
-void SwarmB2_c::printMsgStatus() {
-  ir_msg_status_t msg_status = getMsgStatus();
+void SwarmB2_c::printStatus() {
+  
+  ir_status_t ir_status = getStatus();
 
-  Serial.print("Msg Status: ");
+  Serial.print("Msg[0:3], Activity[4:7]: ");
 
-  for ( int i = 0; i < 4; i++ ) {
-    if ( msg_status.bits & (1 << i) ) {
+  for ( int i = 0; i < 8; i++ ) {
+    if ( ir_status.bits & (1 << i) ) {
       Serial.print("1 ");
     } else {
       Serial.print("0 ");
     }
   }
   Serial.println();
+}
+
+
+void SwarmB2_c::printAnyMessage() {
+
+  char buf[32];
+
+  // First, check if any messages are available
+  ir_status_t ir_status = getStatus();
+
+  // Message available is first 4 bits
+  for( int i = 0; i < 4; i++ ) {
+    if ( ir_status.bits & (1 << i) ) {
+      memset( (void*)&buf, 0, sizeof(buf) );
+      int len = getIRMessage( (uint8_t*)buf, i );
+      Serial.print("Rx");
+      Serial.print( i );
+      Serial.print(" len=");
+      Serial.print(len);
+      Serial.print(":");
+      Serial.print( buf );
+      Serial.print(" t=");
+      Serial.println( millis ());
+    }
+  }
+
+  
 }
 
 // Queries the IR communication board to see if
@@ -366,21 +394,21 @@ void SwarmB2_c::printRxSettings() {
 
 
 
-ir_msg_status_t   SwarmB2_c::getMsgStatus() {
+ir_status_t   SwarmB2_c::getStatus() {
   // Set correct more
   ir_mode_t ircomm;
-  ircomm.mode = MODE_REPORT_MSG_STATUS;
+  ircomm.mode = MODE_REPORT_STATUS;
   Wire.beginTransmission( IRCOMM_I2C_ADDR );
   Wire.write( (byte*)&ircomm.mode, sizeof( ircomm.mode));
   Wire.endTransmission();
 
   // Get data
-  ir_msg_status_t msg_status;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( msg_status));
-  Wire.readBytes( (uint8_t*)&msg_status, sizeof( msg_status));
+  ir_status_t ir_status;
+  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( ir_status));
+  Wire.readBytes( (uint8_t*)&ir_status, sizeof( ir_status));
 
   // Return result
-  return msg_status;
+  return ir_status;
 
 }
 
@@ -548,20 +576,4 @@ ir_sensors_t      SwarmB2_c::getSensors() {
   // Return result
   return sensors;
 
-}
-ir_frame_errors_t SwarmB2_c::getRxFrameErrors() {
-  // Set correct more
-  ir_mode_t ircomm;
-  ircomm.mode = MODE_REPORT_FRAME_ERRS;
-  Wire.beginTransmission( IRCOMM_I2C_ADDR );
-  Wire.write( (byte*)&ircomm.mode, sizeof( ircomm.mode));
-  Wire.endTransmission();
-
-  // Get data
-  ir_frame_errors_t frame_errs;
-  Wire.requestFrom( IRCOMM_I2C_ADDR, sizeof( frame_errs ));
-  Wire.readBytes( (uint8_t*)&frame_errs, sizeof( frame_errs ));
-
-  // Return result
-  return frame_errs;
 }

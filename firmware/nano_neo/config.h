@@ -9,7 +9,7 @@
 
 // Uncomment depending on your IR
 // Receiver module.  This will determine
-// the correct NeoSerial Baud rate and the
+// the correct Serial Baud rate and the
 // configuration of timer2 for the carrier
 // signal
 // Other parts of the code depend on this

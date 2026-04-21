@@ -1,7 +1,3 @@
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
-#include <NeoHWSerial.h>
-#include <NeoHWSerial_private.h>
 #include <avr/io.h>
 #include <Wire.h>
 #include "ircomm.h"
@@ -155,8 +151,8 @@ void i2c_receive( int len ) {
 // is executed.
 void i2c_request() {
 
-  if ( last_mode.mode == MODE_REPORT_MSG_STATUS ) {
-    Wire.write( (byte*)&ircomm.msg_status, sizeof(ircomm.msg_status) );
+  if ( last_mode.mode == MODE_REPORT_STATUS ) {
+    Wire.write( (byte*)&ircomm.ir_status, sizeof(ircomm.ir_status) );
 
   } else if ( last_mode.mode == MODE_REPORT_CRC ) {
 
@@ -181,10 +177,6 @@ void i2c_request() {
   }  else if ( last_mode.mode == MODE_REPORT_BYTE_TIMINGS ) {
 
     Wire.write( (byte*)&ircomm.metrics.byte_timings, sizeof( ircomm.metrics.byte_timings ) );
-
-  } else if ( last_mode.mode == MODE_REPORT_FRAME_ERRS ) {
-
-    Wire.write( (byte*)&ircomm.metrics.frame_errors, sizeof( ircomm.metrics.frame_errors ) );
 
   }  else if ( last_mode.mode == MODE_REPORT_LEN_MSG0) {
 
@@ -332,7 +324,7 @@ void setup() {
 
 
   // Paul: I was using this to test
-  setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
@@ -376,15 +368,15 @@ int setRandomMsg(int len) {
   //  Checking the format of what is being sent.
   ircomm.config.tx.len = ircomm.parser.formatIRMessage( (uint8_t*)ircomm.tx_buf, (uint8_t*)buf, len );
   //  while(1) {
-  //    NeoSerial.print("tx buf: ");
-  //    NeoSerial.println( (char*)ircomm.tx_buf );
+  //    Serial.print("tx buf: ");
+  //    Serial.println( (char*)ircomm.tx_buf );
   //    for( int i = 0; i < ircomm.tx_len; i++ ) {
-  //      NeoSerial.print( (char)ircomm.tx_buf[i] );
-  //      NeoSerial.print( " = " );
-  //      NeoSerial.print( ircomm.tx_buf[i], DEC);
-  //      NeoSerial.print(",");
+  //      Serial.print( (char)ircomm.tx_buf[i] );
+  //      Serial.print( " = " );
+  //      Serial.print( ircomm.tx_buf[i], DEC);
+  //      Serial.print(",");
   //    }
-  //    NeoSerial.println();
+  //    Serial.println();
   //    delay(1000);
   //
   //  }
@@ -429,11 +421,11 @@ void initRandomSeed() {
   for ( int i = 0; i < 8; i++ ) {
     byte b = (byte)analogRead(A3);
     b = b & 0x01;
-    //NeoSerial.println(b, BIN);
+    //Serial.println(b, BIN);
 
     r |= (b << i);
     delayMicroseconds(10);
   }
-  //NeoSerial.println(r, BIN);
+  //Serial.println(r, BIN);
   randomSeed( r );
 }

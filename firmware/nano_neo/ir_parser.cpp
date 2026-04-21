@@ -1,8 +1,4 @@
 #include "ir_parser.h"
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial.h"
-//#include "./NeoHWSerial_Modded/src/NeoHWSerial_private.h"
-#include <NeoHWSerial.h>
-#include <NeoHWSerial_private.h>
 
 IRParser_c::IRParser_c() {
   reset();
@@ -40,14 +36,14 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
   // Note: not using while.  We don't want to
   // block the code.  Instead, we'll call this
   // function iteratively and fast.
-  if ( NeoSerial.available() ) {
+  if ( Serial.available() ) {
 
     
 
     // move the timeout timestamp forwards
     timeout_ts = millis();
 
-    uint8_t b = (uint8_t)NeoSerial.read();
+    uint8_t b = (uint8_t)Serial.read();
 
     // We're either in WAIT_START or WAIT LEN and
     // get the start byte
@@ -82,7 +78,7 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
       // payload.
       enc_remain = b + NUM_CRC_BYTES;
 
-      //NeoSerial.print("set encRemain to "); NeoSerial.println( encRemain );
+      //Serial.print("set encRemain to "); Serial.println( encRemain );
       rx_state = RX_READ_ENC;
 
       // No error, just indicate 1 byte received
@@ -114,11 +110,11 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
         // received the start byte again.
         if ( b == START_BYTE ) {
 
-          //          NeoSerial.println("Got ~ inside decoding");
+          //          Serial.println("Got ~ inside decoding");
           //          for( int i = 0; i < decPos; i++ ) {
-          //            NeoSerial.println( (char)decBuf[i]);
+          //            Serial.println( (char)decBuf[i]);
           //          }
-          //          NeoSerial.println( encRemain );
+          //          Serial.println( encRemain );
           reset();
           rx_state = RX_WAIT_LEN;
           return -ERR_RESYNC;
@@ -151,7 +147,7 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
           return total_decoded;
 
         } else {
-          //NeoSerial.println("Bad CRC");
+          //Serial.println("Bad CRC");
           reset();
           return -ERR_BAD_CRC;
         }
