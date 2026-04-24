@@ -76,7 +76,7 @@
 #define TX_PREDICT_PERIOD     false
 #define TX_PREDICT_MULTI      8
 #define TX_DEFER_MULTI        4
-#define TX_PREAMBLE_REPEAT    UINT32_MAX
+#define TX_PREAMBLE_REPEAT    4
 #define TX_PREAMBLE_BYTE      0x55 // 0b01010101
 
 // When set in TX_MODE_PERIODIC

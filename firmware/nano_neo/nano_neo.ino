@@ -324,7 +324,7 @@ void setup() {
 
 
   // Paul: I was using this to test
-  setRandomMsg(8);
+//  setRandomMsg(8);
 }
 
 
@@ -393,8 +393,8 @@ int setRandomMsg(int len) {
 
 void loop() {
   ////
-    ircomm.doTransmit();
-    return;
+  //  ircomm.doTransmit();
+  //  return;
 
 
   if ( full_reset ) {

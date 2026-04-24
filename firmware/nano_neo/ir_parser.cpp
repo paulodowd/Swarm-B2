@@ -152,9 +152,7 @@ int IRParser_c::getNextByte( uint32_t byte_timeout ) {
           return -ERR_BAD_CRC;
         }
       }
-      return REPORT_ONE_BYTES;
     }
-    return REPORT_ONE_BYTES;
   }
 
   // If we started to receive a message but we
