@@ -18,13 +18,13 @@ void IRComm_c::init() {
   // Start by setting up the default config
   // set by the #define in ircomm.h, which
   // can then be over-rided by i2c.
-//  if ( TX_MODE == TX_MODE_PERIODIC ) {
-//    config.tx.flags.bits.mode           = TX_MODE_PERIODIC;
-//
-//  } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
-//    config.tx.flags.bits.mode           = TX_MODE_INTERLEAVED;
-//
-//  }
+  //  if ( TX_MODE == TX_MODE_PERIODIC ) {
+  //    config.tx.flags.bits.mode           = TX_MODE_PERIODIC;
+  //
+  //  } else if ( TX_MODE == TX_MODE_INTERLEAVED ) {
+  //    config.tx.flags.bits.mode           = TX_MODE_INTERLEAVED;
+  //
+  //  }
   //config.tx.flags.bits.predict_period   = TX_PREDICT_PERIOD;
   config.tx.predict_multi               = TX_PREDICT_MULTI;
   config.tx.repeat                      = TX_DEFAULT_REPEAT;
@@ -195,28 +195,33 @@ bool IRComm_c::isRxAvailable( int which ) {
 // level by some decay rate.
 void IRComm_c::updateBearingActivity() {
 
-  float sum = 0;
-  for ( int i = 0; i < MAX_RX; i++ ) {
-    sum += bearing_activity[i];
-  }
 
-  if ( sum > 0 ) {
+  // We know that the baud rate is 9600, and there
+  // are 10 bits per byte on UART (+start & stop bits)
+  // Therefore, we expect 960 bytes per second, or
+  // 96 bytes per 100ms
+  #ifdef IR_FREQ_56
+const float bytes_per_us = 960.0 / 1000000.0;
+  #endif
+  #ifdef IR_FREQ_38
+const float bytes_per_us = 480.0 / 1000000.0;
+  #endif
+  const float max_bytes = bytes_per_us * UPDATE_BEARING_MS;
+
+
+  const float alpha = 0.25;
+  metrics.bearing.sum  = 0.0;
+  for ( int i = 0; i < 4; i++ ) {
+
+    bearing_activity[i] /= max_bytes;
+    metrics.bearing.sum += bearing_activity[i];
 
     // Normalising and filtering
-    for ( int i = 0; i < MAX_RX; i++ ) {
-      metrics.vectors.rx[i] = (metrics.vectors.rx[i] * 0.3 ) + ((bearing_activity[i] / sum) * 0.7);
-    }
+    metrics.vectors.rx[i] = (metrics.vectors.rx[i] * (1.0 - alpha) ) + ((bearing_activity[i]) * alpha);
 
-  } else {
-
-    // No activity? Just decay
-    for ( int i = 0; i < MAX_RX; i++ ) {
-      metrics.vectors.rx[i] = (metrics.vectors.rx[i] * 0.3 );
-    }
   }
 
   // Update bearing estimate.
-  metrics.bearing.sum  = sum;
   float x = (metrics.vectors.rx[0] - metrics.vectors.rx[2]);
   float y = (metrics.vectors.rx[3] - metrics.vectors.rx[1]);
   metrics.bearing.theta = atan2( y, x );
@@ -260,7 +265,7 @@ void IRComm_c::powerOnRx( byte index ) {
   }
 
   clearRxActivityBits();
-  
+
   // Vishay stipulate 1-2ms for functional operation
   // but up to 20ms for stable filtering.
   delay(2);
@@ -304,7 +309,7 @@ void IRComm_c::enableRx() {
 void IRComm_c::resetUART() {
 
   disableRx();
-  while(Serial.available() ) Serial.read();
+  while (Serial.available() ) Serial.read();
   delayMicroseconds(10);
   enableRx();
 }
@@ -367,7 +372,7 @@ void IRComm_c::setRxPeriod() {
   // If user sets period_base_ms to 0 it means
   // that cycling is disabled
   if ( config.rx.period_base_ms == 0 ) {
-    config.rx.period_ms = 0;  
+    config.rx.period_ms = 0;
     return;
   }
 
@@ -542,30 +547,30 @@ void IRComm_c::clearRxMsg(int which) {
 }
 
 void IRComm_c::setMsgStatusBit( int which ) {
-    if( which < 0 || which > 3 ) return;
-    ir_status.bits |= (1 << which );
-} 
+  if ( which < 0 || which > 3 ) return;
+  ir_status.bits |= (1 << which );
+}
 
 void IRComm_c::clearRxActivityBits() {
   ir_status.bits &= 0b00001111;
 }
 void IRComm_c::clearMsgStatusBit( int which ) {
-    if( which < 0 || which > 3 ) return;
-    
-    // clear related bit in status byte
-    ir_status.bits &= ~(1 << which );
+  if ( which < 0 || which > 3 ) return;
+
+  // clear related bit in status byte
+  ir_status.bits &= ~(1 << which );
 
 }
 void IRComm_c::setRxActivityBit( int which ) {
-    if( which < 0 || which > 3 ) return;
-    ir_status.bits |= (1 << (which+4) );
-} 
+  if ( which < 0 || which > 3 ) return;
+  ir_status.bits |= (1 << (which + 4) );
+}
 
 void IRComm_c::clearRxActivityBit( int which ) {
-    if( which < 0 || which > 3 ) return;
-    
-    // clear related bit in status byte
-    ir_status.bits &= ~(1 << (which+4) );
+  if ( which < 0 || which > 3 ) return;
+
+  // clear related bit in status byte
+  ir_status.bits &= ~(1 << (which + 4) );
 
 }
 
@@ -614,7 +619,7 @@ bool IRComm_c::isRxDisabled() {
   return true;
 }
 bool IRComm_c::isRxSkipInactive() {
-  if( config.rx.skip_multi > 0 ) return true;
+  if ( config.rx.skip_multi > 0 ) return true;
   return false;
 }
 
@@ -635,7 +640,6 @@ bool IRComm_c::isRxSkipInactive() {
 
 */
 bool IRComm_c::update() {
-
 
   // We periodically track update the activity
   // of each receiver to help estimate a bearing
@@ -666,8 +670,7 @@ bool IRComm_c::update() {
   bool skip = false; // to register if the cycle
   // is the results of a skip
 
-  // Assume there is no byte activity
-  bool activity = false;
+
 
   if ( isRxDisabled() ) {
 
@@ -684,125 +687,20 @@ bool IRComm_c::update() {
     float timeout_ms = (float)config.rx.timeout_multi;
 
     // scale for carrier frequency clock
-    #ifdef IR_FREQ_56
+#ifdef IR_FREQ_56
     timeout_ms *= (float)MS_PER_BYTE_58KHZ;
-    #endif
-    #ifdef IR_FREQ_38
+#endif
+#ifdef IR_FREQ_38
     timeout_ms *= (float)MS_PER_BYTE_38KHZ;
-    #endif
-
-    // Paul: I think this is a bug, should be timeout_ms?
-    //int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
-    int status = parser.getNextByte( (uint32_t)timeout_ms );
+#endif
 
 
+    parser_status_t parser_status = parser.getNextByte( (uint32_t)timeout_ms );
 
-    // Use the value of status to update metrics and/or
-    // to transfer a message into the i2c variables.
-    // status  < 0 : error type defined in ir_parser.h
-    // status == 0 : no bytes were received
-    // status == 1 : 1 byte was received, not a full message
-    // status  > 1 : a full message was received correctly
-    if ( status < 0 ) { // log the error.
+    // Got some activity.
+    if ( parser_status.bytes > 0 ) {
 
-      // Note, if status equals byte timeout, it
-      // will have reset itself, meaning that later
-      // overrun will not occur (start byte no longer
-      // registered as having been received).
-      if ( status != -ERR_BYTE_TIMEOUT ) {
-
-        // Register that there was some byte activity
-        activity = true;
-
-      }
-
-      // Increase count of fails for this rx
-      metrics.crc.fail[ config.rx.index ]++;
-
-
-      // Use status to index the log of errors.
-      // Errors are returned here as negative sign.
-      // We flip it to use it as the index for the
-      // error type arrays
-      status *= -1;
-
-      // Our status is 1 to 4, but the
-      // index is 0:3
-      status -= 1;
-
-      // Increase count of error type
-      metrics.errors.type[ config.rx.index ][ status ]++;
-
-
-
-    } else if ( status == 1 ) { // just got a byte
-
-      // Register that there was some byte activity
-      activity = true;
-
-    } else if ( status > 1 ) { // got a message
-
-      // Paul: I move this around a lot for debugging
-      //digitalWrite(13, HIGH);
-
-      // Register that there was some byte activity
-      activity = true;
-
-      // Increase count of success for this rx
-      metrics.crc.pass[ config.rx.index ]++;
-
-      // The return value in status is the total number
-      // of decoded bytes, including escaped characters.
-      // This is what we need to know to attempt to
-      // predict or optimise the time to wait when
-      // listening for IR messages
-      config.rx.len = status;
-
-      // Record message length for i2c transfers
-      msg_len[ config.rx.index ] = parser.msg_len;
-
-      // Copy message into i2c buffer
-      parser.copyMsg( ir_msg[ config.rx.index ] );
-
-      setMsgStatusBit( config.rx.index );
-      
-      // Paul: TO REMOVE
-      // Try to read out an ID
-      //    int id = atoi( ir_msg[ config.rx.index ] );
-      //    if ( id > 0 && id < 4 ) {
-      //      metrics.hist.id[id]++;
-      //    }
-
-      // Record timing statistics for messaging
-      updateMsgTimestamp();
-
-      // If the board is configured for interleaved transmission
-      // that means the board will send after a message receipt.
-      // If so, flag for transmission to happen at end of update().
-      //if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
-      if ( isTxInterleaved() ) { // If there is no tx period, we must be interleaved
-
-        transmit = true;
-
-        // User may have configured the board to do interleaved
-        // transmission but no cycling of receiver
-        //      if ( config.rx.flags.bits.cycle == true ) {
-        if ( config.rx.period_ms >  0 ) { // if we have a >0 period, we are cycling
-          cycle = true;
-        }
-      }
-
-      // User may have configured the board to cycle the receiver
-      // only once a message has been received, but not
-      // periodically (i.e. .cycle == false.
-      if ( config.rx.flags.bits.cycle_on_rx ) {
-        cycle = true;
-      }
-
-    }
-
-    if ( activity ) { // We had some byte activity, log
-
+      //
       setRxActivityBit( config.rx.index );
 
       // Record timing statistics for byte activity
@@ -813,22 +711,18 @@ bool IRComm_c::update() {
       metrics.activity.rx[ config.rx.index ]++;
 
 
-    }
+
+    } else { // No activity on receiver
 
 
-    // Track time between receiving messages and
-    // receiving bytes
-    updateMsgElapsedTime();
-    updateByteElapsedTime();
 
-
-    if ( !activity ) { // no activity
-
+      clearRxActivityBit( config.rx.index );
       // The user has configured the board to skip over any
       // receivers which have no activity for a period of
       // time.  Whilst we set cycle = true here, it is still
       // possible for this to be over-ruled later by the
       // overrun check (if a message start has been received).
+
       if ( isRxSkipInactive() ) {
 
 #ifdef IR_FREQ_56
@@ -844,10 +738,8 @@ bool IRComm_c::update() {
 
 
           }
+
         }
-
-
-
 
 
         // This is an attempt at a fix to a problem I haven't
@@ -874,74 +766,145 @@ bool IRComm_c::update() {
             metrics.saturation.rx[config.rx.index]++;
           }
         }
+
+
+      }// end of no activity
+
+
+
+
+      // Got a complete message
+      if ( parser_status.bytes > 1 ) {
+        // Paul: I move this around a lot for debugging
+        //digitalWrite(13, HIGH);
+
+        // Increase count of success for this rx
+        metrics.crc.pass[ config.rx.index ]++;
+
+        // The return value in status is the total number
+        // of decoded bytes, including escaped characters.
+        // This is what we need to know to attempt to
+        // predict or optimise the time to wait when
+        // listening for IR messages
+        config.rx.len = parser_status.bytes;
+
+        // Record message length for i2c transfers
+        msg_len[ config.rx.index ] = parser.msg_len;
+
+        // Copy message into i2c buffer
+        parser.copyMsg( ir_msg[ config.rx.index ] );
+
+        setMsgStatusBit( config.rx.index );
+
+        // Record timing statistics for messaging
+        updateMsgTimestamp();
+
+        // If the board is configured for interleaved transmission
+        // that means the board will send after a message receipt.
+        // If so, flag for transmission to happen at end of update().
+        //if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
+        if ( isTxInterleaved() ) { // If there is no tx period, we must be interleaved
+
+          transmit = true;
+
+          // User may have configured the board to do interleaved
+          // transmission but no cycling of receiver
+          //      if ( config.rx.flags.bits.cycle == true ) {
+          if ( config.rx.period_ms >  0 ) { // if we have a >0 period, we are cycling
+            cycle = true;
+          }
+        }
+
+        // User may have configured the board to cycle the receiver
+        // only once a message has been received, but not
+        // periodically (i.e. .cycle == false.
+        if ( config.rx.flags.bits.cycle_on_rx ) {
+          cycle = true;
+        }
+
+      } // end of got full message
+
+      // Log any errors
+      if ( parser_status.error != NO_ERROR ) {
+
+        // Increase count of error type
+        metrics.errors.type[ config.rx.index ][ parser_status.error ]++;
+
+        if ( parser_status.error == ERR_BAD_CRC ) {
+          // Increase count of fails for this rx
+          metrics.crc.fail[ config.rx.index ]++;
+
+        }
+
+      } // end of log errors
+
+
+      // update delta time since last receiving
+      // message or bytes
+      updateMsgElapsedTime();
+      updateByteElapsedTime();
+
+    } // end of isRxDisabled() {} else
+
+
+
+    // overrun == true: The board is configured to finish receiving
+    // once the start byte has been received
+    if ( config.rx.flags.bits.overrun && parser.parser_state != RX_WAIT_START ) {
+
+      // Prevent cycling or transmission
+      transmit = false;
+      cycle = false;
+
+    } else if ( isTxPeriodic() ) {
+
+      if ( millis() - tx_ts > config.tx.period_ms ) {
+        transmit = true;
       }
+    } // end of overrun
 
-      //
-      //  if ( disabled == true ) {
-      //    return activity;
-      //  }
+    // We are in either TX_MODE_INTERLEAVED or
+    // PERIODIC, and we need to check if it is time
+    // to rotate the RX receiver.
+    if ( isRxCycle() ) {
 
+      // Has the rx period passed?
+      if ( millis() - rx_ts > config.rx.period_ms) {
 
-
-      // overrun == true: The board is configured to finish receiving
-      // once the start byte has been received
-      if ( config.rx.flags.bits.overrun && parser.rx_state != RX_WAIT_START ) {
-
-        // Prevent cycling or transmission
-        transmit = false;
-        cycle = false;
-
-        // If in TX_MODE_PERIODIC, TX takes priority
-        //} else if ( config.tx.flags.bits.mode == TX_MODE_PERIODIC ) {
-      } else if ( isTxPeriodic() ) {
-
-        if ( millis() - tx_ts > config.tx.period_ms ) {
+        if ( isTxInterleaved() ) {
           transmit = true;
         }
+
+        cycle = true;
+
       }
-
-      // We are in either TX_MODE_INTERLEAVED or
-      // PERIODIC, and we need to check if it is time
-      // to rotate the RX receiver.
-      //    if ( config.rx.flags.bits.cycle == true ) {
-      if ( isRxCycle() ) {
-
-        // Has the rx period passed?
-        if ( millis() - rx_ts > config.rx.period_ms) {
-
-          //        if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
-          if ( isTxInterleaved() ) {
-            transmit = true;
-          }
-
-          cycle = true;
-
-        }
-      } else {
-        cycle = false;
-      }
+    } else {
+      cycle = false;
+    } // end of isRxCycle{} else
 
 
-      // defer == true: recent byte activity will mean
-      // that the transmission is deferred (cancelled)
-      if ( config.tx.defer_multi > 0 ) {
+    // defer == true: recent byte activity will mean
+    // that the transmission is deferred (cancelled)
+    if ( config.tx.defer_multi > 0 ) {
 
-        // Was the last byte activity within the time
-        // expected?
+
+      // Was the last byte activity within the time
+      // expected?
 #ifdef IR_FREQ_56
-        if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ * config.tx.defer_multi ) {
+      if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ * config.tx.defer_multi ) {
 #endif
 #ifdef IR_FREQ_38
-          if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_38KHZ * config.tx.defer_multi ) {
+        if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_38KHZ * config.tx.defer_multi ) {
 #endif
 
-            transmit = false;
-          }
+          transmit = false;
         }
 
-      } // if( isRxDisabled ){}else
+      } // end of defer_multi
 
-      
+
+
+
       if ( transmit ) {
 
         // Interupts any rx in process
@@ -968,13 +931,10 @@ bool IRComm_c::update() {
           // update all the byte timestamps
           // here.
           advanceByteTimestamps();
-        }
 
-      }
+        } // end of doTransmit
 
-
-
-
+      } // end of transmit
 
       if ( cycle ) {
 
@@ -988,11 +948,374 @@ bool IRComm_c::update() {
           advanceByteTimestamps();
         }
 
+      } // end of cycle
+
+    } // end of update()
+
+
+    /*
+      bool IRComm_c::update_old() {
+
+
+      // We periodically track update the activity
+      // of each receiver to help estimate a bearing
+      // of neighbouring boards.
+      // Activity is simply bytes received
+      if ( millis() - bearing_ts > UPDATE_BEARING_MS ) {
+        bearing_ts = millis();
+        updateBearingActivity();
       }
 
+      // toggles off the LED if it was put on
+      // somewhere else
+      if ( millis() - led_ts > 100 ) {
+        led_ts = millis();
+        digitalWrite(DEBUG_LED, LOW );
+      }
+
+      // Assume we will not transmit or cycle
+      // the receiver on this update().  Deciding
+      // which to do and when is a bit complicated,
+      // depending on how the board has been
+      // configured (the main job of this update).
+      // The precedence of transmit or receive is
+      // determined by "drop through" the following
+      // conditional statements against configuration
+      bool transmit = false;
+      bool cycle = false;
+      bool skip = false; // to register if the cycle
+      // is the results of a skip
+
+      // Assume there is no byte activity
+      bool activity = false;
+
+      if ( isRxDisabled() ) {
+
+        // Assume we will be only doing a
+        // transmit.
+        // Skips the entire receiving and
+        // decoding sequence.
+        transmit = true;
+
+      } else {
+
+        // We assume we always want to get the latest
+        // byte from the UART buffer
+        float timeout_ms = (float)config.rx.timeout_multi;
+
+        // scale for carrier frequency clock
+        #ifdef IR_FREQ_56
+        timeout_ms *= (float)MS_PER_BYTE_58KHZ;
+        #endif
+        #ifdef IR_FREQ_38
+        timeout_ms *= (float)MS_PER_BYTE_38KHZ;
+        #endif
+
+        // Paul: I think this is a bug, should be timeout_ms?
+        //int status = parser.getNextByte( (uint32_t)config.rx.timeout_multi );
+        int status = parser.getNextByte( (uint32_t)timeout_ms );
 
 
-    }
+
+        // Use the value of status to update metrics and/or
+        // to transfer a message into the i2c variables.
+        // status  < 0 : error type defined in ir_parser.h
+        // status == 0 : no bytes were received
+        // status == 1 : 1 byte was received, not a full message
+        // status  > 1 : a full message was received correctly
+        if ( status < 0 ) { // log the error.
+
+          // Note, if status equals byte timeout, it
+          // will have reset itself, meaning that later
+          // overrun will not occur (start byte no longer
+          // registered as having been received).
+          if ( status != -ERR_BYTE_TIMEOUT ) {
+
+            // Register that there was some byte activity
+            activity = true;
+
+          }
+
+          // Increase count of fails for this rx
+          metrics.crc.fail[ config.rx.index ]++;
+
+
+          // Use status to index the log of errors.
+          // Errors are returned here as negative sign.
+          // We flip it to use it as the index for the
+          // error type arrays
+          status *= -1;
+
+          // Our status is 1 to 4, but the
+          // index is 0:3
+          status -= 1;
+
+          // Increase count of error type
+          metrics.errors.type[ config.rx.index ][ status ]++;
+
+
+
+        } else if ( status == 1 ) { // just got a byte
+
+          // Register that there was some byte activity
+          activity = true;
+
+        } else if ( status > 1 ) { // got a message
+
+          // Paul: I move this around a lot for debugging
+          //digitalWrite(13, HIGH);
+
+          // Register that there was some byte activity
+          activity = true;
+
+          // Increase count of success for this rx
+          metrics.crc.pass[ config.rx.index ]++;
+
+          // The return value in status is the total number
+          // of decoded bytes, including escaped characters.
+          // This is what we need to know to attempt to
+          // predict or optimise the time to wait when
+          // listening for IR messages
+          config.rx.len = status;
+
+          // Record message length for i2c transfers
+          msg_len[ config.rx.index ] = parser.msg_len;
+
+          // Copy message into i2c buffer
+          parser.copyMsg( ir_msg[ config.rx.index ] );
+
+          setMsgStatusBit( config.rx.index );
+
+          // Paul: TO REMOVE
+          // Try to read out an ID
+          //    int id = atoi( ir_msg[ config.rx.index ] );
+          //    if ( id > 0 && id < 4 ) {
+          //      metrics.hist.id[id]++;
+          //    }
+
+          // Record timing statistics for messaging
+          updateMsgTimestamp();
+
+          // If the board is configured for interleaved transmission
+          // that means the board will send after a message receipt.
+          // If so, flag for transmission to happen at end of update().
+          //if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
+          if ( isTxInterleaved() ) { // If there is no tx period, we must be interleaved
+
+            transmit = true;
+
+            // User may have configured the board to do interleaved
+            // transmission but no cycling of receiver
+            //      if ( config.rx.flags.bits.cycle == true ) {
+            if ( config.rx.period_ms >  0 ) { // if we have a >0 period, we are cycling
+              cycle = true;
+            }
+          }
+
+          // User may have configured the board to cycle the receiver
+          // only once a message has been received, but not
+          // periodically (i.e. .cycle == false.
+          if ( config.rx.flags.bits.cycle_on_rx ) {
+            cycle = true;
+          }
+
+        }
+
+        if ( activity ) { // We had some byte activity, log
+
+          setRxActivityBit( config.rx.index );
+
+          // Record timing statistics for byte activity
+          updateByteTimestamp();
+
+          //    digitalWrite(13, HIGH);
+          bearing_activity[ config.rx.index ] += 1;
+          metrics.activity.rx[         // Register that there was some byte activity
+          activity = true;
+          config.rx.index ]++;
+
+
+        }
+
+
+        // Track time between receiving messages and
+        // receiving bytes
+        updateMsgElapsedTime();
+        updateByteElapsedTime();
+
+
+        if ( !activity ) { // no activity
+
+          // The user has configured the board to skip over any
+          // receivers which have no activity for a period of
+          // time.  Whilst we set cycle = true here, it is still
+          // possible for this to be over-ruled later by the
+          // overrun check (if a message start has been received).
+          if ( isRxSkipInactive() ) {
+
+      #ifdef IR_FREQ_56
+            if ( metrics.byte_timings.dt_us[config.rx.index] > (US_PER_BYTE_58KHZ * config.rx.skip_multi) ) {
+      #endif
+
+      #ifdef IR_FREQ_38
+              if ( metrics.byte_timings.dt_us[config.rx.index] > (US_PER_BYTE_38KHZ * config.rx.skip_multi) ) {
+      #endif
+
+                cycle = true;
+                skip = true;
+
+
+              }
+            }
+
+
+
+
+
+            // This is an attempt at a fix to a problem I haven't
+            // fully diagnosed or solved yet.  It seems like the
+            // AGC in the receiver can saturate or lower the gain
+            // to 0, causing no bytes to be received.  If we find
+            // that there is no activity for a long time, setting
+            // desaturate = 1 will mean we attempt to power cycle
+            // the receiver.
+            //      if ( config.rx.flags.bits.desaturate == 1 ) {
+            if ( isRxDesaturate() ) { // if we have a saturation timeout
+
+              if ( metrics.byte_timings.dt_us[config.rx.index] > (uint32_t)config.rx.saturation_us ) {
+
+                toggleRxPower();
+
+                // Advance this byte time stamp so
+                // that we don't immediately trigger
+                // again.
+                metrics.byte_timings.ts_us[config.rx.index] = micros();
+
+                // Add to our count of saturation
+                // occurences.
+                metrics.saturation.rx[config.rx.index]++;
+              }
+            }
+          }
+
+          //
+          //  if ( disabled == true ) {
+          //    return activity;
+          //  }
+
+
+
+          // overrun == true: The board is configured to finish receiving
+          // once the start byte has been received
+          if ( config.rx.flags.bits.overrun && parser.rx_state != RX_WAIT_START ) {
+
+            // Prevent cycling or transmission
+            transmit = false;
+            cycle = false;
+
+            // If in TX_MODE_PERIODIC, TX takes priority
+            //} else if ( config.tx.flags.bits.mode == TX_MODE_PERIODIC ) {
+          } else if ( isTxPeriodic() ) {
+
+            if ( millis() - tx_ts > config.tx.period_ms ) {
+              transmit = true;
+            }
+          }
+
+          // We are in either TX_MODE_INTERLEAVED or
+          // PERIODIC, and we need to check if it is time
+          // to rotate the RX receiver.
+          //    if ( config.rx.flags.bits.cycle == true ) {
+          if ( isRxCycle() ) {
+
+            // Has the rx period passed?
+            if ( millis() - rx_ts > config.rx.period_ms) {
+
+              //        if ( config.tx.flags.bits.mode == TX_MODE_INTERLEAVED ) {
+              if ( isTxInterleaved() ) {
+                transmit = true;
+              }
+
+              cycle = true;
+
+            }
+          } else {
+            cycle = false;
+          }
+
+
+          // defer == true: recent byte activity will mean
+          // that the transmission is deferred (cancelled)
+          if ( config.tx.defer_multi > 0 ) {
+
+            // Was the last byte activity within the time
+            // expected?
+      #ifdef IR_FREQ_56
+            if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_58KHZ * config.tx.defer_multi ) {
+      #endif
+      #ifdef IR_FREQ_38
+              if ( micros() - metrics.byte_timings.ts_us[ config.rx.index ] < US_PER_BYTE_38KHZ * config.tx.defer_multi ) {
+      #endif
+
+                transmit = false;
+              }
+            }
+
+          } // if( isRxDisabled ){}else
+
+
+          if ( transmit ) {
+
+            // Interupts any rx in process
+            if ( doTransmit() ) {
+              // It takes times to transmit and
+              // the UART rx buffer is reset.
+              // So we should also reset the
+              // parser.
+              parser.reset();
+
+              // Update timestamp for the next
+              // transmission occurence
+              setTxPeriod();
+
+              // Transmitting will have taken
+              // time out of our receiving period
+              // too, so update those timestamps
+              setRxPeriod();
+
+              // If we did a transmission, our
+              // saturation/inactivty timeout may
+              // trigger because of the time
+              // spent transmitting. So we
+              // update all the byte timestamps
+              // here.
+              advanceByteTimestamps();
+            }
+
+          }
+
+
+
+
+
+          if ( cycle ) {
+
+            // This handles rotation of the
+            // receiver with respect to the
+            // config settings.
+            // This sets the new rx timestamp
+            if ( skip ) metrics.skips.rx[config.rx.index]++;
+
+            if ( cyclePowerRx() ) {
+              advanceByteTimestamps();
+            }
+
+          }
+
+
+
+        }
+    */
 
     // Sometimes a blocking process will have
     // prevented our timestamps progressing.
@@ -1044,8 +1367,8 @@ bool IRComm_c::update() {
         // Schedule next transmission
         // Redundant if set to INTERLEAVED
         setTxPeriod();
-        return false;        
-      
+        return false;
+
       } else {
 
 

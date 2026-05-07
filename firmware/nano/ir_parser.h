@@ -5,10 +5,12 @@
 #include "Arduino.h"
 #include "config.h"
 
-#define ERR_RESYNC        1   // getting start byte again
-#define ERR_BAD_LENGTH    2   // len byte error
-#define ERR_BAD_CRC       3   // crc error
-#define ERR_BYTE_TIMEOUT  4   // too much time between bytes
+
+#define ERR_RESYNC        0   // getting start byte again
+#define ERR_BAD_LENGTH    1   // len byte error
+#define ERR_BAD_CRC       2   // crc error
+#define ERR_BYTE_TIMEOUT  3   // too much time between bytes
+#define NO_ERROR          4
 
 #define NUM_CRC_BYTES       2 // using CRC16, so 2 bytes.
 #define NUM_HEADER_BYTES    2 // start byte and message length byte
@@ -25,11 +27,16 @@
 #define RX_WAIT_LEN   1
 #define RX_READ_ENC   2
 
+typedef struct {
+  uint8_t bytes;
+  uint8_t error;
+} parser_status_t;
+
 class IRParser_c {
 
   public:
     
-    uint8_t rx_state;                           // Tracks receiving state (RX_...).
+    uint8_t parser_state;                           // Tracks receiving state (RX_...).
     bool    escape_next;                        // Flag to perform XOR to escape next byte
     uint8_t enc_remain;                         // Counts down the number of encoded bytes to read in
     uint8_t msg[MAX_MSG];                       // Persistent buffer of the last message received
@@ -42,7 +49,7 @@ class IRParser_c {
     IRParser_c();
 
     void reset();
-    int getNextByte( unsigned long byte_timout );
+    parser_status_t getNextByte( unsigned long byte_timout );
     void copyMsg( uint8_t * dest );
 
     char CRC8(uint8_t * bytes, uint8_t len);
