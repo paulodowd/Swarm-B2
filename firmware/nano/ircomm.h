@@ -108,6 +108,7 @@ class IRComm_c {
     void setRxPeriod();  // set how long to listen for.
     void setTxPeriod();   // set how often to transmit.
 
+    uint32_t  getTxTotalLength();
     void powerOffAllRx(); // disables all receivers.
     void powerOnRx( byte index ); // power up 1 receiver
     void toggleRxPower(); // experimental, not used.

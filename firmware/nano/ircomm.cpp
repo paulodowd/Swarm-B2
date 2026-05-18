@@ -433,7 +433,7 @@ void IRComm_c::setTxPeriod() {
   float t = config.tx.period_base_ms;
 
   if ( isTxPredictPeriod() && config.tx.len > 0 ) {
-    t = (float)config.tx.len;
+    t = getTxTotalLength();
     t *= (float)config.tx.predict_multi;
 
     // Scale for milliseconds per byte
@@ -621,6 +621,13 @@ bool IRComm_c::isRxDisabled() {
 bool IRComm_c::isRxSkipInactive() {
   if ( config.rx.skip_multi > 0 ) return true;
   return false;
+}
+
+uint32_t  IRComm_c::getTxTotalLength() {
+  uint32_t len;
+  len = config.tx.preamble_repeat;
+  len += (config.tx.repeat * config.tx.len );
+  return len;
 }
 
 /* main update.
