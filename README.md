@@ -2,34 +2,24 @@
 # Swarm-B2
 Infra-red (IR) Communication board for Pololu 3Pi+ robots that also has a pin header to interface with an M5 Stack Core2.  This is the second major design of such a board, hence the name (S)warm (B)oard 2 - SwarmB2.  A third version is under-development with the intention to supercede this design ([SwarmB3](https://github.com/paulodowd/SwarmB3)). 
 
-The board functions as an i2c device, so it should be relatively easy to integrate into other projects using 5v, ground, SCK and SDA connections.  The board can communicate with other SwarmB2 boards up to about 2.5m max, or down to less than a centimetre.  
+The board functions as an i2c device, so it should be relatively easy to integrate into other projects using 5v, ground, SCK and SDA connections.  The board can communicate with other SwarmB2 boards up to about 2.5m max, or down to less than a centimetre.  The firmware for the board has been written with the intention that all (or most) configuration parameters can be set at runtime, so reprogramming firmware shouldn't be necessary.
 
 ## Features
 - 32 bytes per message.
+- SLIP-style encoding/escaping.
 - 9600 or 4800 baudrate (device dependent)
 - Receive or transmit, cannot do both concurrently.
 - Receiving is polled across 4 receivers.
 - Transmission power set by a potentiometer (0-2.5m)
 - Message framing with start delimiter and message length embedded.
 - A 16 bit CRC to detect transmission errors.
-- A COBS/SLIP style byte-stuffing/escaping.
-- UART level Frame Error tracking.
 - Error statistics at message level.
 - Performance statitics (timings, etc).
 - Bearing estimation.
-- 3x LDR and 2x Sharp IR Range Finder integration.
+- 3x LDR and 2x Sharp IR Range Finder integration on PCB.
 - Reconfigurable communication strategies/priorities.
-- I2C API to reconfigure firmware.
 - Header pins to attach to a Pololu 3Pi+ robot.
 - Header pins for an M5Stack Core2 device interfacing.
-
-## Things I wish I had included
-At some point one has to stop tinkering to achieve a larger goal.  If I was to revise this board again I would:
-- Include an LED next to each IR Demodulator, so I could easily see when/where messages are being received from.
-- Fix IR LED resistance, and wire the supply of the each LED to the Nano digital pins.  Note that, with 5k ohm resistance in series with the 8 IR LEDs, transmission can still occur over 2cm.  So it seems possible to simply drive each IR LED from the Nano directly (very low current) for a reasonable transmission distance (30cm?), and this would allow for directional transmission.
-- Or, find a digital potentiometer to allow for the transmission power to be set from the device, rather than a potentiometer.
-- Include a reset button on the top side of the board for the Nano device.
-- Move away from the Arduino Nano, to something like the Teensy 4.0/1 which has 8 (!) hardware UART interfaces - which would remove the need to poll receivers, and provide continuous directional receiving.   
 
 ## SwarmB2 fully assembled
 <p align="center">
@@ -39,12 +29,9 @@ At some point one has to stop tinkering to achieve a larger goal.  If I was to r
 <br>
 </p>
 
-## SwarmB2 Programming / Updating
-SwarmB2 is built around an Arduino Nano, so you should follow the normal steps to program one.  To program the IR Communication board with the software, or to update it with your own software, it is necessary to first remove the jumper situated on the back of the circuit board labelled `RX_break`.  If you do not do this, the Arduino IDE will report that the programmer cannot sync with the arduino device (or similar error).  Remember to replace this jumper, because it connects the IR receiver modules electronically to the Arduino. Without the jumper, your board won't receive any IR messages.
+## Installing / Working with the Swarm-B2
 
-The current firmware includes a modified copy of the library <a href="https://github.com/SlashDevin/NeoHWSerial">NeoHWSerial originally by SlashDevin</a>.  My modification allows for UART frame errors to be caught, counted, reported and reset.  This seems like a very niche requirement, I'm not sure how portable the modification is - so I've opted not to fork/make a pull request.  The original attribution and licensing information are included within the sub-directory `Swarm-B2/firmware/nano_neo/NeoHWSerial_Modded/`. 
-
-## SwarmB2 in other Projects
+## Using the Swarm-B2 board in other Projects
 This IR communication board can be used as a general purpose communication board.  The firmware on this github page is written as an i2c slave device with address `0x11`.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
 
 ## 38Khz or 56Khz?
@@ -52,9 +39,22 @@ This board is designed around the use of either the TSDP34138 or the TSDP34156, 
 
 Please note that all IR Demodulators like this are not created equally!  These two in particular are designed by Vishay for "continuous" data rates, which is important for the IR communication boards.  
 
-## SwarmB2 Configuration
+## SwarmB2 Configuration Information
 
-The SwarmB2 board has a lot of possible configuration. I expect that different tasks will require different configuration.  The firmware has been written to accept various configuration and with an order of precedence for which settings are applied and when.  The complexity comes from the necessity to poll receivers, and that receive and transmit must happen independently (not at the same time).  This sets up some interesting variations such as (a) transmit after checking each receiver (b) transmit periodically, independent of receivers.  We can even ask whether tranmsitting or receiving should take priority.  When transmitting, how many times to transmit the message (i.e. repeating the transmission).  When receiving, how long to listen for.  And so on...
+### Interaction between Transmitting and Receiving
+
+### Transmission Configuration (Tx)
+- **len**: Set automatically by the firmware, represents the data length of the current message.  This is the original message payload (i.e. up to 32 bytes). 
+- **period_base_ms**: determines the base time interval in milliseconds between transmission events.  If `predict_multi` is set to `0`, this base parameter is used without modification.  If `period_base_ms` is set to `0`, no transmissions will occur.
+- **period_ms**: Set automatically by the firmware.  This parameter will show the current transmission event interval in milliseconds.
+- - **predict_multi**: If non-zero, the firmware will algorithimically determine the transmission event interval in milliseconds as a multiple of the `len` parameter.  This will take the form $predict_multi * len$.  If set to `0`, `period_base_ms` will be used as set. 
+- **repeat**: How many times a message should be repeated within a transmission.  If set to 0, no transmission will occur.  If set to a high value, receiving functionality will be blocked whilst transmission takes place.
+- **defer_mutli**: 
+- **preamble_repeat**:
+
+### Receiving Configuration (Rx)
+
+
 
 ## Minor Modifications to the Pololu 3Pi+
 The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
