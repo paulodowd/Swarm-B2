@@ -47,7 +47,7 @@ Please note that all IR Demodulators like this are not created equally!  These t
 - **len**: Set automatically by the firmware, represents the data length of the current message.  This is the original message payload (i.e. up to 32 bytes). 
 - **period_base_ms**: determines the base time interval in milliseconds between transmission events.  If `predict_multi` is set to `0`, this base parameter is used without modification.  If `period_base_ms` is set to `0`, no transmissions will occur.
 - **period_ms**: Set automatically by the firmware.  This parameter will show the current transmission event interval in milliseconds.
-- - **predict_multi**: If non-zero, the firmware will algorithimically determine the transmission event interval in milliseconds as a multiple of the `len` parameter.  This will take the form $predict_multi * len$.  If set to `0`, `period_base_ms` will be used as set. 
+- **predict_multi**: If non-zero, the firmware will algorithimically determine the transmission event interval in milliseconds as a multiple of the `len` parameter.  This will take the form `predict_multi * len`.  If set to `0`, `period_base_ms` will be used as set. 
 - **repeat**: How many times a message should be repeated within a transmission.  If set to 0, no transmission will occur.  If set to a high value, receiving functionality will be blocked whilst transmission takes place.
 - **defer_mutli**: 
 - **preamble_repeat**:
