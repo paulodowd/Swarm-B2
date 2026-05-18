@@ -30,7 +30,7 @@ void setup() {
   Wire.setClock(400000);
 
   // Wait for connection
-  while (!Serial);
+  //  while (!Serial);
   Serial.println("Ready");
 
 
@@ -62,104 +62,88 @@ void setup() {
 }
 
 
+// Assuming screen in landscape mode, therefore height is the
+// shorted dimension.
 void drawGUI() {
-  const int central_w_h = M5.Display.height() - 1;
 
-  const int x_offset = (M5.Display.width() - M5.Display.height()) / 2;
-  //canvas.drawRect( x_offset, 0, central_w_h, central_w_h, TFT_DARKGREY);
-
+  const float max_radius = (float)M5.Display.height()  / 2.0;
+  const float x_offset = (M5.Display.width() - M5.Display.height()) / 2.0;
+  const float centre_x = (float)M5.Display.width() / 2.0;
+  const float centre_y = (float)M5.Display.height() / 2.0;
 
   ir_status_t ir_status = SwarmB2.getStatus();
+  //    SwarmB2.printStatus();
 
-  //zzzzzzzzzzzzSwarmB2.printStatus();
+  canvas.clear(BLACK);
+
+  canvas.drawCircle(centre_x, centre_y, max_radius, TFT_WHITE);
 
 
-  /*
-   * Indicate messages correctly received
-   */
-  // Forward = bottom of m5
-  if ( ir_status.bits & 0b00000001 ) {
-    SwarmB2.getIRMessage( (uint8_t*)buf[0], 0 );
-    canvas.drawLine( x_offset, central_w_h, x_offset + central_w_h, central_w_h, TFT_GREEN);
-  } else {
-    canvas.drawLine( x_offset, central_w_h, x_offset + central_w_h, central_w_h, TFT_BLACK);
-  }
+  uint8_t mask;
+  float angle;
 
-  // left = right of m5
-  if ( ir_status.bits & 0b00000010 ) {
-    SwarmB2.getIRMessage( (uint8_t*)buf[1], 1 );
-    canvas.drawLine( x_offset + central_w_h, 0, x_offset + central_w_h, central_w_h, TFT_GREEN);
-  } else {
-    canvas.drawLine( x_offset + central_w_h, 0, x_offset + central_w_h, central_w_h, TFT_BLACK);
-  }
+  //   Indicate any receiver activity
+  angle = 0;
+  mask = 0x10;  // starting at bit 0b00010000
+  for ( int i = 0; i < 4; i++ ) {
+    angle = ((TWO_PI / 4.0) * i);
+    float x = centre_x + (max_radius * sin(angle));
+    float y = centre_y + (max_radius * cos(angle));
 
-  // back = top of m5
-  if ( ir_status.bits & 0b00000100 ) {
-    SwarmB2.getIRMessage( (uint8_t*)buf[2], 2 );
-    canvas.drawLine( x_offset, 0, x_offset + central_w_h, 0, TFT_GREEN);
-  } else {
-    canvas.drawLine( x_offset, 0, x_offset + central_w_h, 0, TFT_BLACK);
-  }
-
-  // right = left of m5
-  if ( ir_status.bits & 0b00001000 ) {
-    SwarmB2.getIRMessage( (uint8_t*)buf[3], 3 );
-    canvas.drawLine( x_offset, 0, x_offset, central_w_h, TFT_GREEN);
-  } else {
-    canvas.drawLine( x_offset, 0, x_offset, central_w_h, TFT_BLACK);
+    if ( ir_status.bits & (mask << i ) ) {
+      canvas.fillCircle( x, y, 12, PINK );
+    }
   }
 
 
-  /*
-   * Indicate activity
-   */
-  // Forward = bottom of m5
-  if ( ir_status.bits & 0b00010000 ) {
-    canvas.drawLine( x_offset+1, central_w_h-1, x_offset + central_w_h-1, central_w_h-1, TFT_BLUE);
-  } else {
-    canvas.drawLine( x_offset+1, central_w_h-1, x_offset + central_w_h-1, central_w_h-1, TFT_BLACK);
+  //   Indicate messages correctly received
+  angle = 0;
+  mask = 0x01; // starting at bit 0b00000001
+  for ( int i = 0; i < 4; i++ ) {
+    if ( ir_status.bits & (mask << i ) ) {
+
+
+      angle = ((TWO_PI / 4.0) * i);
+      float x = centre_x + (max_radius * sin(angle));
+      float y = centre_y + (max_radius * cos(angle));
+
+      canvas.fillCircle( x, y, 10, TFT_GREEN );
+
+      // Retrieve the message to clear the status bit
+      SwarmB2.getIRMessage( (uint8_t*)buf[i], i );
+
+    }
   }
 
-  // left = right of m5
-  if ( ir_status.bits & 0b00100000 ) {
-    canvas.drawLine( x_offset + central_w_h-1, 1, x_offset + central_w_h-1, central_w_h-1, TFT_BLUE);
-  } else {
-    canvas.drawLine( x_offset + central_w_h-1, 1, x_offset + central_w_h-1, central_w_h-1, TFT_BLACK);
-  }
 
-  // back = top of m5
-  if ( ir_status.bits & 0b0100000 ) {
-    canvas.drawLine( x_offset+1, 1, x_offset + central_w_h-1, 1, TFT_BLUE);
-  } else {
-    canvas.drawLine( x_offset+1, 1, x_offset + central_w_h-1, 1, TFT_BLACK);
-  }
+  ir_bearing_t bearing = SwarmB2.getBearing();
 
-  // right = left of m5
-  if ( ir_status.bits & 0b10000000 ) {
-    canvas.drawLine( x_offset+1, 1, x_offset+1, central_w_h-1, TFT_BLUE);
-  } else {
-    canvas.drawLine( x_offset+1, 1, x_offset+1, central_w_h-1, TFT_BLACK);
-  }
+  // maximum radius to draw the bearing indicator
+  const float bearing_radius = (max_radius*0.66);
 
-  // Draw bearing information at a slower interval
-  if ( millis() - bearing_ts > 100 ) {
-    bearing_ts = millis();
-    ir_bearing_t bearing = SwarmB2.getBearing();
+  // draw general direction indicator
+  canvas.drawCircle( centre_x, centre_y, bearing_radius, DARKCYAN);
 
-    const float bearing_radius = 50;
+  // draw dot indicator for direction
+  float x = centre_x + (bearing_radius) * sin( -bearing.theta );
+  float y = centre_y + (bearing_radius) * cos( -bearing.theta );
+  canvas.fillCircle( x, y, 10, CYAN);
 
-    // "Clear" this area of the screen by placing a black circle
-    canvas.fillCircle( M5.Display.width()/2, M5.Display.height()/2, bearing_radius, TFT_BLACK);
+  // sum of all activity
+  canvas.fillCircle( centre_x, centre_y, bearing.sum * 0.25 * bearing_radius, DARKGREEN);
 
-    canvas.fillCircle( M5.Display.width()/2, M5.Display.height()/2, bearing.sum, TFT_BLUE);
+  // draw line indicator scaled to magnitude
+  float x1 = (bearing.mag * bearing_radius) * sin( -bearing.theta  );
+  float y1 = (bearing.mag * bearing_radius) * cos( -bearing.theta  );
+  x1 += centre_x;
+  y1 += centre_y;
+  canvas.drawLine( centre_x, centre_y, x1, y1, TFT_GREEN);
 
-    // resolve bearing to x,y
-    float x1 = (bearing.mag * bearing_radius) * sin( -bearing.theta );
-    float y1 = (bearing.mag * bearing_radius) * cos( -bearing.theta );
-    x1 += M5.Display.width()/2;
-    y1 += M5.Display.height()/2;
-    canvas.drawLine( M5.Display.width()/2, M5.Display.height()/2, x1,y1, TFT_GREEN);
-    
+  // Display list of current messages received
+  canvas.setTextColor(DARKGREY);
+  canvas.setCursor( 0,10 );
+  for( int i = 0; i < 4; i++ ) {
+    canvas.printf("Rx%d: %s\n", i, (char*)buf[i]);
   }
 
 
@@ -174,5 +158,5 @@ void loop() {
 
   drawGUI();
 
-  delay(50);
+  delay(100);
 }

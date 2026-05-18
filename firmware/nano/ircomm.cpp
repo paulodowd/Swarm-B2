@@ -201,12 +201,12 @@ void IRComm_c::updateBearingActivity() {
   // Therefore, we expect 960 bytes per second, or
   // 96 bytes per 100ms
   #ifdef IR_FREQ_56
-const float bytes_per_us = 960.0 / 1000000.0;
+const float bytes_per_ms = 960.0 / 1000.0;
   #endif
   #ifdef IR_FREQ_38
-const float bytes_per_us = 480.0 / 1000000.0;
+const float bytes_per_ms = 480.0 / 1000.0;
   #endif
-  const float max_bytes = bytes_per_us * UPDATE_BEARING_MS;
+  const float max_bytes = bytes_per_ms * UPDATE_BEARING_MS;
 
 
   const float alpha = 0.25;
@@ -659,9 +659,11 @@ bool IRComm_c::update() {
 
   // toggles off the LED if it was put on
   // somewhere else
-  if ( millis() - led_ts > 100 ) {
+  if ( millis() - led_ts > 50 ) {
     led_ts = millis();
     digitalWrite(DEBUG_LED, LOW );
+    for( int i = 0; i < 4; i++ ) clearRxActivityBit( i );
+
   }
 
   // Assume we will not transmit or cycle
@@ -723,7 +725,8 @@ bool IRComm_c::update() {
 
 
 
-      clearRxActivityBit( config.rx.index );
+      
+      
       // The user has configured the board to skip over any
       // receivers which have no activity for a period of
       // time.  Whilst we set cycle = true here, it is still

@@ -154,9 +154,9 @@ void SwarmB2_c::printStatus() {
   ir_status_t ir_status = getStatus();
 
   Serial.print("Msg[0:3], Activity[4:7]: ");
-
+  uint8_t mask = 0x01;
   for ( int i = 0; i < 8; i++ ) {
-    if ( ir_status.bits & (1 << i) ) {
+    if ( ir_status.bits & (mask << i) ) {
       Serial.print("1 ");
     } else {
       Serial.print("0 ");

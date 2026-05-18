@@ -49,7 +49,7 @@ Please note that all IR Demodulators like this are not created equally!  These t
 - **period_ms**: Set automatically by the firmware.  This parameter will show the current transmission event interval in milliseconds.
 - **predict_multi**: If non-zero, the firmware will algorithimically determine the transmission event interval in milliseconds as a multiple of the `len` parameter.  This will take the form `predict_multi * len`.  If set to `0`, `period_base_ms` will be used as set. 
 - **repeat**: How many times a message should be repeated within a transmission.  If set to 0, no transmission will occur.  If set to a high value, receiving functionality will be blocked whilst transmission takes place.
-- **defer_mutli**: 
+- **defer_mutli**:
 - **preamble_repeat**:
 
 ### Receiving Configuration (Rx)
