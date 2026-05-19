@@ -91,7 +91,7 @@ void SwarmB2_c::updateSettings() {
 //  -1    invalid request
 //   0    no message available
 //  [1:32]valid message length
-int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
+int SwarmB2_c::getIRMessage( uint8_t * buf, int which_rx ) {
 
   // Bad request
   if ( which_rx < 0 || which_rx > 3 ) return -1;
@@ -134,7 +134,7 @@ int SwarmB2_c::getIRMessage( uint8_t * received, int which_rx ) {
       // Read across uint8_ts using the anticipated len.
       // Store into buffer provided as function argument
       Wire.requestFrom( IRCOMM_I2C_ADDR, len );
-      Wire.readBytes( (uint8_t*)received, len );
+      Wire.readBytes( (uint8_t*)buf, len );
 
       // Let the user know how many bytes were
       // received.
@@ -154,9 +154,9 @@ void SwarmB2_c::printStatus() {
   ir_status_t ir_status = getStatus();
 
   Serial.print("Msg[0:3], Activity[4:7]: ");
-
+  uint8_t mask = 0x01;
   for ( int i = 0; i < 8; i++ ) {
-    if ( ir_status.bits & (1 << i) ) {
+    if ( ir_status.bits & (mask << i) ) {
       Serial.print("1 ");
     } else {
       Serial.print("0 ");

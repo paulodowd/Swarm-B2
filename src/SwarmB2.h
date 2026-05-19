@@ -40,7 +40,7 @@ class SwarmB2_c {
     // Messaging operations
     uint8_t getMsgLength( int which_rx );
     void    setIRMessage( uint8_t * payload, int len );
-    int     getIRMessage( uint8_t * msg_buf, int rx );
+    int     getIRMessage( uint8_t * buf, int rx );
 
     void printStatus();
     void printAnyMessage();
@@ -53,7 +53,7 @@ class SwarmB2_c {
     ir_activity_t     getRxActivity();
     ir_saturation_t   getRxSaturation();
     ir_msg_timings_t  getMsgTimings();
-    ir_byte_timings_t getByteTimings();
+    ir_byte_timings_t getByteTimings();  
     ir_skips_t        getRxSkips();
     ir_errors_t       getRxErrors();
     ir_crc_t          getRxCRC();

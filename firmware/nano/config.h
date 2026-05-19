@@ -14,8 +14,8 @@
 // signal
 // Other parts of the code depend on this
 // being set correctly.
-//#define IR_FREQ_38  // For chip TSDP34138
-#define IR_FREQ_56    // For chip TSDP34156
+#define IR_FREQ_38  // For chip TSDP34138
+//#define IR_FREQ_56    // For chip TSDP34156
 
 // If we know we are going to send and receive
 // messages of a certain length then we could
@@ -29,9 +29,9 @@
 // which ever of the two is longest.
 // If set to false, the board will use the
 // #defines set above for tx/rx_delay _bias _mod.
-#define RX_CYCLE_ON_RX        false  // if a message is received, cycle?
-#define RX_PREDICT_MULTIPLIER 1   // how many message-size to wait?
-#define RX_DESYNC             false
+#define RX_CYCLE_ON_RX        true  // if a message is received, cycle?
+#define RX_PREDICT_MULTIPLIER 4   // how many message-size to wait?
+#define RX_DESYNC             true
 #define RX_OVERRUN            true  // allow for rx message to complete? 
 #define RX_DEFAULT_MSG_LEN    MAX_MSG // 36 is worst case
 #define RX_SKIP_MULTI         4
@@ -70,13 +70,13 @@
 //          receiving messages well, the tranmission rate
 //          would also increase.  Seems complicated.
 #define TX_MODE_PERIODIC     0 // tx periodically, timing set below
-#define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation (not working)
+#define TX_MODE_INTERLEAVED  1 // tx after every receiver rotation 
 #define TX_MODE (TX_MODE_PERIODIC)
 //#define TX_MODE (TX_MODE_INTERLEAVED)
-#define TX_PREDICT_PERIOD     false
-#define TX_PREDICT_MULTI      8
-#define TX_DEFER_MULTI        4
-#define TX_PREAMBLE_REPEAT    UINT32_MAX
+#define TX_PREDICT_PERIOD     true
+#define TX_PREDICT_MULTI      4
+#define TX_DEFER_MULTI        0
+#define TX_PREAMBLE_REPEAT    4
 #define TX_PREAMBLE_BYTE      0x55 // 0b01010101
 
 // When set in TX_MODE_PERIODIC
@@ -101,7 +101,7 @@
 // How many times should we repeat the transmission
 // of a message? This should be set as a positive
 // no zero value (1+)
-#define TX_DEFAULT_REPEAT UINT32_MAX
+#define TX_DEFAULT_REPEAT 4
 
 // How often should the bearing estimate be updated?
 #define UPDATE_BEARING_MS  100
