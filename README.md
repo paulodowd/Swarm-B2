@@ -47,7 +47,7 @@ The Swarm-B2 can receive a message of maximum length 32 bytes to transmit.  This
 
 ### Polling
 <p align="center">
-  <img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/polling.png?raw=true">
+  <img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/polling.png?raw=true", width="200">
 </p>
 The Swarm-B2 board can only read one receiver at a time. The board is configured by default to switch which receiver is enabled as soon as one message is successfully received.  The board is also configured by default to switch receiver if it detects no activity.  Otherwise, the board is configured by default to listen for a period of time before switching receiver. 
 
