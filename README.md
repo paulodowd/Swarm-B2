@@ -1,3 +1,9 @@
+<p align="center">
+<br>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true" width="250"></img>
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true" width="250"></img>
+<br>
+</p>
 
 # Swarm-B2
 Infra-red (IR) Communication board for Pololu 3Pi+ robots that also has a pin header to interface with an M5 Stack Core2.  This is the second major design of such a board, hence the name (S)warm (B)oard 2 - SwarmB2.  A third version is under-development with the intention to supercede this design ([SwarmB3](https://github.com/paulodowd/SwarmB3)). 
@@ -21,46 +27,21 @@ The board functions as an i2c device, so it should be relatively easy to integra
 - Header pins to attach to a Pololu 3Pi+ robot.
 - Header pins for an M5Stack Core2 device interfacing.
 
-## SwarmB2 fully assembled
-<p align="center">
-<br>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/top_3pi_m5.jpg?raw=true" width="250"></img>
-<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/on3pi_45.jpg?raw=true" width="250"></img>
-<br>
-</p>
 
-## Installing / Working with the Swarm-B2
+## Getting Started
+
+The best way to get started is to download and install the example <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> written for the M5Stack Core2.  This example demonstrates how to make function calls through the `SwarmB2_c` class.  
+
+## Working with the M5Stack Core2
+
+To get started with the M5Stack Core2, it is best to follow the manufacturers documentation to configure the Arduino IDE.  Make sure you follow the instructions for both:
+- <a href="https://docs.m5stack.com/en/arduino/arduino_board">Board Management Installation</a>
+- <a href="https://docs.m5stack.com/en/arduino/arduino_library">Arduino Library Installation</a>
+
+The <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> example was written against the M5Unified library - installing or using a different M5Stack library is likely to cause compilation errors for the provided example.
 
 ## Using the Swarm-B2 board in other Projects
 This IR communication board can be used as a general purpose communication board.  The firmware on this github page is written as an i2c slave device with address `0x11`.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
-
-## 38Khz or 56Khz?
-This board is designed around the use of either the TSDP34138 or the TSDP34156, which demodulate a 38.4Khz or 57.6Khz carrier frequency respectively.  The firmware needs to be configured (config.h - comment/uncomment as necessary) for which TSDP341xx device you've populated on your SwarmB2 board.  
-
-Please note that all IR Demodulators like this are not created equally!  These two in particular are designed by Vishay for "continuous" data rates, which is important for the IR communication boards.  
-
-## SwarmB2 Configuration Information
-
-### Interaction between Transmitting and Receiving
-
-### Transmission Configuration (Tx)
-- **len**: Set automatically by the firmware, represents the data length of the current message.  This is the original message payload (i.e. up to 32 bytes). 
-- **period_base_ms**: determines the base time interval in milliseconds between transmission events.  If `predict_multi` is set to `0`, this base parameter is used without modification.  If `period_base_ms` is set to `0`, no transmissions will occur.
-- **period_ms**: Set automatically by the firmware.  This parameter will show the current transmission event interval in milliseconds.
-- **predict_multi**: If non-zero, the firmware will algorithimically determine the transmission event interval in milliseconds as a multiple of the `len` parameter.  This will take the form `predict_multi * len`.  If set to `0`, `period_base_ms` will be used as set. 
-- **repeat**: How many times a message should be repeated within a transmission.  If set to 0, no transmission will occur.  If set to a high value, receiving functionality will be blocked whilst transmission takes place.
-- **defer_mutli**:
-- **preamble_repeat**:
-
-### Receiving Configuration (Rx)
-
-
-
-## Minor Modifications to the Pololu 3Pi+
-The IR Communication board has been designed to work with the Atmega32u4 variant of the Pololu 3Pi+ robot.  To use the IR Communication board with the Pololu 3Pi+ robot it is necessary to install some pin headers.  
-
-## BOM, Bill of Materials
-
 
 ## Fabrication, Gerber files
 Navigate to folder `pcb` to find the last known gerber files sent for manufacturing, `Gerbers.zip`.  
