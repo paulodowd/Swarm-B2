@@ -30,7 +30,7 @@ The board functions as an i2c device, so it should be relatively easy to integra
 
 ## Getting Started
 
-The best way to get started is to download and install the example <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> written for the M5Stack Core2.  This example demonstrates how to make function calls through the `SwarmB2_c` class.  
+The best way to get started is to download and install the example <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> written for the M5Stack Core2.  This example demonstrates how to make function calls through the `SwarmB2_c` class. 
 
 ## Working with the M5Stack Core2
 
@@ -39,6 +39,23 @@ To get started with the M5Stack Core2, it is best to follow the manufacturers do
 - <a href="https://docs.m5stack.com/en/arduino/arduino_library">Arduino Library Installation</a>
 
 The <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> example was written against the M5Unified library - installing or using a different M5Stack library is likely to cause compilation errors for the provided example.
+
+## Important Characteristics
+
+### Message Size
+The Swarm-B2 can receive a message of maximum length 32 bytes to transmit.  This limitation is currently defined by the Arduino i2c implementation.  The Swarm-B2 can accept a message of upto 32bytes, and it will then encode the message using a further number of bytes.   It is important to consider that when transmitting a long length message, the probability that the message will become corrupted (or similar) increases.  
+
+### Polling
+<p align="center">
+  <img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/polling.png?raw=true">
+</p>
+The Swarm-B2 board can only read one receiver at a time. The board is configured by default to switch which receiver is enabled as soon as one message is successfully received.  The board is also configured by default to switch receiver if it detects no activity.  Otherwise, the board is configured by default to listen for a period of time before switching receiver. 
+
+### Transmitting
+The Swarm-B2 must disable receiving to be able to transmit, otherwise it will immediately receive it's own transmission.  Therefore, the board is configured to periodically transmit messages, and in the interval period poll the receivers to receive messages.  
+
+### Other Configurations
+It is possible to change the Swarm-B2 configuration via i2c transactions.  For example, it is possible to setup a Swarm-B2 to only transmit continously.  Or, it is possible to setup the Swarm-B2 to only receive on 1 receiver continuously.  
 
 ## Using the Swarm-B2 board in other Projects
 This IR communication board can be used as a general purpose communication board.  The firmware on this github page is written as an i2c slave device with address `0x11`.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
