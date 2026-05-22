@@ -30,7 +30,7 @@ The board functions as an i2c device, so it should be relatively easy to integra
 
 ## Getting Started
 
-The best way to get started is to download and install the example <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> written for the M5Stack Core2.  This example demonstrates how to make function calls through the `SwarmB2_c` class. 
+The best way to get started is to download and install the example <a href="https://github.com/paulodowd/Swarm-B2/tree/main/examples/M5Visualiser">M5Visualiser</a> written for the M5Stack Core2.  This example demonstrates how to make function calls through the `SwarmB2_c` class. The class has function calls for all functionality available on the Swarm-B2, returning data types specified in the file `ircomm_i2c.h`.  
 
 ## Working with the M5Stack Core2
 
@@ -54,8 +54,19 @@ The Swarm-B2 board can only read one receiver at a time. The board is configured
 ### Transmitting
 The Swarm-B2 must disable receiving to be able to transmit, otherwise it will immediately receive it's own transmission.  Therefore, the board is configured to periodically transmit messages, and in the interval period poll the receivers to receive messages.  
 
+### Transmitting Power
+The power of the IR LEDs which transmit messages can be varied via the blue potentiometer on the back of the Swarm-B2 circuit board.  The blue potentiometer has a small silver dot: rotating the white arrow indicator to point at this silver dot will produce maximum power, or maximum range of transmission.  Swarm-B2 can transmit upto 3m distance.  However, this is not very useful in a swarm/multi-robot context.  If the transmit power is set high, it is likely that the environment will become saturated with IR emissions, effectively blocking transmissions between all other robots.  The recommended position for the potentiometer is indicated in the below image with a pink dot.  This position sets the communication distance to approximately 20cm, or two robot-body lengths.
+
+<p align="center">
+<img src="https://github.com/paulodowd/Swarm-B2/blob/main/images/SwarmB2_Back.jpg?raw=true" width="300">
+</p>
+
+
 ### Other Configurations
 It is possible to change the Swarm-B2 configuration via i2c transactions.  For example, it is possible to setup a Swarm-B2 to only transmit continously.  Or, it is possible to setup the Swarm-B2 to only receive on 1 receiver continuously.  
+
+## FAQ
+
 
 ## Using the Swarm-B2 board in other Projects
 This IR communication board can be used as a general purpose communication board.  The firmware on this github page is written as an i2c slave device with address `0x11`.  It should be possible to use the IR Communication board in it's current design and format with any other device that can operate the I2C protocol.  To do so, you simply need to connect the `5v`, `GND`, `SCL` and `SDA` pins appropriately to your operating device.  These physical pins are labelled on the underside of the circuit board as `+RED` (5v), `-BLK` (GND), `SDA` and `SCL`, or as `5V`, `GND`, `SCL`, `SDA` on the  topside of the circuit board.
